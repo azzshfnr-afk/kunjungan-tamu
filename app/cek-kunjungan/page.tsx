@@ -18,67 +18,48 @@ export default function CekKunjunganPage() {
     const [isExpanded, setIsExpanded] = useState(true);
 
     const handleCariKunjungan = async () => {
-        if (!emailSearch) return alert("Masukkan email terlebih dahulu!");
-        
-        setIsSearching(true);
-        setHasilKunjungan(null);
+    if (!emailSearch) return alert("Masukkan email terlebih dahulu!");
+    
+    setIsSearching(true);
+    setHasilKunjungan(null);
 
-        try {
-            const response = await fetch(`/api/tamu?email=${emailSearch}`);
-            const result = await response.json();
+    try {
+        const response = await fetch(`/api/tamu?email=${emailSearch}`);
+        const result = await response.json();
 
-            if (response.ok && result.data) {
-                let dbData = result.data as any;
-                
-                if (Array.isArray(result.data)) {
-                    if (result.data.length === 0) {
-                        alert("Data kunjungan tidak ditemukan untuk email tersebut.");
-                        setIsSearching(false);
-                        return;
-                    }
-                    dbData = result.data[0]; 
-                }
+        if (response.ok && result.data) {
+            const dbData = result.data;
 
-                const rombonganValid = (dbData.anggotaRombongan || []).filter(
-                    (anggota: any) => anggota.nama && anggota.nama !== "-" && anggota.nama.trim() !== ""
-                );
+            const rombonganValid = (dbData.anggotaRombongan || []).filter(
+                (a: any) => a.nama && a.nama !== "-" && a.nama.trim() !== ""
+            );
 
-                const daftarTamu = [
-                    { nama: dbData.namaTamu, noUrut: 1, role: "Tamu Utama" },
-                    ...rombonganValid.map((anggota: any, index: number) => ({
-                        nama: anggota.nama,
-                        noUrut: index + 2,
-                        role: "Rombongan"
-                    }))
-                ];
+            const daftarTamu = [
+                { nama: dbData.namaTamu, noUrut: 1, role: "Tamu Utama" },
+                ...rombonganValid.map((a: any, index: number) => ({
+                    nama: a.nama,
+                    noUrut: index + 2,
+                    role: "Rombongan"
+                }))
+            ];
 
-                const tanggalFormat = new Date(dbData.tanggalKunjungan).toLocaleDateString('id-ID', {
-                    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-                });
+            setHasilKunjungan({
+                ...dbData, 
+                idKunjungan: `PKC-${String(dbData.id || "").substring(0, 8).toUpperCase()}`,
+                tamu: daftarTamu,
+                jumlahTamu: daftarTamu.length,
+            });
 
-                setHasilKunjungan({
-                    idKunjungan: `PKC-${String(dbData.id || "00000000").substring(0, 8).toUpperCase()}`,
-                    status: "Menunggu Konfirmasi",
-                    tanggal: tanggalFormat,
-                    jam: `${dbData.jamKunjungan} WIB`,
-                    tujuan: `${dbData.departemen} (${dbData.karyawanDituju})`,
-                    lokasi: "Gedung Pusat Administrasi (GPA) PT Pupuk Kujang",
-                    jumlahTamu: daftarTamu.length,
-                    email: dbData.email,
-                    noTelp: dbData.noTelp,
-                    nik: dbData.nik,
-                    tamu: daftarTamu
-                });
-            } else {
-                alert(result.message || "Data kunjungan tidak ditemukan untuk email tersebut.");
-            }
-        } catch (error) {
-            console.error("Error fetching data:", error);
-            alert("Terjadi kesalahan saat mencari data.");
-        } finally {
-            setIsSearching(false);
+        } else {
+            alert(result.message || "Data kunjungan tidak ditemukan.");
         }
-    };
+    } catch (error) {
+        console.error("Error fetching data:", error);
+        alert("Terjadi kesalahan saat mencari data.");
+    } finally {
+        setIsSearching(false);
+    }
+};
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -131,11 +112,49 @@ export default function CekKunjunganPage() {
                                     </div>
                                 </div>
                                 <div className="flex flex-wrap items-center gap-y-2 gap-x-4 text-gray-600 font-medium">
-                                    <div className="flex items-center gap-1.5"><Building2 className="w-4 h-4 text-gray-400" /> {hasilKunjungan.tujuan}</div>
-                                    <div className="flex items-center gap-1.5"><MapPin className="w-4 h-4 text-gray-400" /> {hasilKunjungan.lokasi}</div>
-                                    <div className="flex items-center gap-1.5"><Users className="w-4 h-4 text-gray-400" /> {hasilKunjungan.jumlahTamu}</div>
-                                    <div className="flex items-center gap-1.5 text-blue-700 bg-blue-50 px-2 py-0.5 rounded"><Calendar className="w-4 h-4" />{hasilKunjungan.tanggal} - {hasilKunjungan.jam}</div>
+                                <div className="flex items-center gap-1.5">
+                                    <Building2 className="w-4 h-4 text-gray-400" /> 
+                                    {hasilKunjungan.departemen} - {hasilKunjungan.karyawanDituju}
                                 </div>
+
+                                <div className="flex items-center gap-1.5">
+                                    <MapPin className="w-4 h-4 text-gray-400" /> 
+                                    Gedung Pusat Administrasi (GPA)
+                                </div>
+
+                                <div className="flex items-center gap-1.5">
+                                    <Users className="w-4 h-4 text-gray-400" /> 
+                                    {hasilKunjungan.jumlahTamu} Orang
+                                </div>
+
+                                <div className="flex flex-col gap-1.5 text-blue-700 bg-blue-50/50 p-3 rounded-lg border border-blue-100 w-fit">
+                                    <div className="flex items-center gap-2">
+                                        <div className="bg-blue-600 text-white text-[10px] px-1.5 py-0.5 rounded font-bold uppercase">In</div>
+                                        <Calendar className="w-3.5 h-3.5" />
+                                        <span className="text-sm font-semibold">
+                                            {new Date(hasilKunjungan.waktuCheckIn).toLocaleDateString('id-ID', { 
+                                                day: 'numeric', month: 'long', year: 'numeric' 
+                                            })}
+                                            {" | "}
+                                            {new Date(hasilKunjungan.waktuCheckIn).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
+                                        </span>
+                                    </div>
+
+                                    <div className="h-[1px] bg-blue-200 w-full ml-10"></div>
+
+                                    <div className="flex items-center gap-2">
+                                        <div className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded font-bold uppercase">Out</div>
+                                        <Calendar className="w-3.5 h-3.5" />
+                                        <span className="text-sm font-semibold text-gray-700">
+                                            {new Date(hasilKunjungan.waktuCheckOut).toLocaleDateString('id-ID', { 
+                                                day: 'numeric', month: 'long', year: 'numeric' 
+                                            })}
+                                            {" | "}
+                                            {new Date(hasilKunjungan.waktuCheckOut).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
                             </div>
 
                 {isExpanded && (
@@ -189,20 +208,6 @@ export default function CekKunjunganPage() {
                                             Silakan menuju Gate 1 Utama PT Pupuk Kujang untuk melakukan penukaran QR Code dengan Kartu Akses NFC.
                                         </p>
                                         <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
-                                            <Map className="w-4 h-4 mr-2" /> Buka di Maps
-                                        </Button>
-                                    </div>
-                                </div>
-
-                                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm flex flex-col">
-                                    <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100 bg-green-50/50 text-green-800 font-semibold text-sm">
-                                        <Building2 className="w-4 h-4" /> Lokasi Pertemuan
-                                    </div>
-                                    <div className="p-4 flex-1 flex flex-col">
-                                        <p className="text-xs text-gray-600 mb-4 leading-relaxed flex-1">
-                                            {hasilKunjungan.tujuan} - Gedung Pusat Administrasi (GPA) PT Pupuk Kujang.
-                                        </p>
-                                        <Button className="w-full bg-[#419b69] hover:bg-green-700 text-white">
                                             <Map className="w-4 h-4 mr-2" /> Buka di Maps
                                         </Button>
                                     </div>

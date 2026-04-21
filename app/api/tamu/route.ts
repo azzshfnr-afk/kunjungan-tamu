@@ -28,10 +28,20 @@ export async function POST(request: Request) {
     const karyawanDituju = (formData.get("karyawanDituju") as string) || (formData.get("petugas") as string) || "-";
     const departemen = (formData.get("departemen") as string) || "-";
     const tujuanKunjungan = (formData.get("tujuanKunjungan") as string) || (formData.get("tujuan") as string) || "-";
-    const tanggalInput = formData.get("tanggalKunjungan") as string;
-    const tanggalKunjungan = tanggalInput ? new Date(tanggalInput) : new Date();
-    const waktuCheckIn = new Date(formData.get("waktuCheckIn") as string);
-    const waktuCheckOut = new Date(formData.get("waktuCheckOut") as string);
+    const tglMasuk = formData.get("tanggalCheckIn") as string;
+    const jamMasuk = formData.get("jamCheckIn") as string;
+
+    const tglKeluar = formData.get("tanggalCheckOut") as string;
+    const jamKeluar = formData.get("jamCheckOut") as string;
+
+    const waktuCheckIn = (tglMasuk && jamMasuk) 
+      ? new Date(`${tglMasuk}T${jamMasuk}`) 
+      : new Date();
+
+    const waktuCheckOut = (tglKeluar && jamKeluar) 
+      ? new Date(`${tglKeluar}T${jamKeluar}`) 
+      : new Date();
+
     const anggotaRombonganString = formData.get("anggotaRombongan") as string;
     let anggotaRombonganParsed = [];
     if (anggotaRombonganString) {
@@ -53,9 +63,8 @@ export async function POST(request: Request) {
         karyawanDituju,
         departemen,
         tujuanKunjungan,
-        tanggalKunjungan,
-        waktuCheckIn,
-        waktuCheckOut,
+        waktuCheckIn: waktuCheckIn,
+        waktuCheckOut: waktuCheckOut,
         anggotaRombongan: {
           create: anggotaRombonganParsed.map((a: any) => ({
             nama: a.nama || "-",
@@ -94,7 +103,6 @@ export async function GET(request: Request) {
           }
         ]
       },
-      orderBy: { createdAt: 'desc' },
       include: {
         anggotaRombongan: true
       }

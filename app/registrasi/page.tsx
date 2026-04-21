@@ -34,34 +34,7 @@ import {
     DialogFooter,
 } from "@/components/ui/dialog";
 import { QRCodeSVG } from "qrcode.react";
-
-const daftarDepartemen = [
-    "Direksi",
-    "SVP",
-    "VP",
-    "AVP",
-    "Departemen TI",
-    "Departemen Riset",
-    "Departemen SMTI",
-    "Departemen Agrosolution",
-    "Departemen Komunikasi Perusahaan",
-    "Departemen Hukum & Administrasi Perusahaan",
-    "Departemen Tanggung Jawab Sosial & Lingkungan",
-    "Departemen Produksi 1-A",
-    "Departemen Produksi 1-B",
-    "Departemen Keselamatan, Kesehatan Kerja & Lingkungan Hidup",
-    "Departemen Produksi NPK & Pengantongan",
-    "Departemen Perencanaan & Pemeliharaan",
-    "Departemen Pengadaan Barang & Jasa",
-    "Departemen Perencanaan, Penerimaan & Pergudangan",
-    "Departemen Operasi & Pemeliharaan",
-    "Departemen Pengembangan",
-    "Departemen MPSDM",
-    "Departemen Pengamanan",
-    "Departemen Pelayanan Umum",
-    "Departemen Keuangan",
-    "Lainnya"
-] as const;
+import { Calendar, User, Building } from "lucide-react";
 
 function PanduanK3({ open, onOpenChange, onAgree }: { open: boolean; onOpenChange: (open: boolean) => void; onAgree: () => void }) {
     const daftarAturan = [
@@ -161,7 +134,7 @@ export default function HalamanRegistrasi() {
 
     const [dataForm, setDataForm] = useState({
         namaTamu: "", asalInstansi: "", email: "", noTelp: "", nik: "", ktp: null as File | null, 
-        karyawanDituju: "", departemen: "", tujuanKunjungan: "", tanggalKunjungan: "", jamCheckIn: "", jamCheckOut: "",
+        karyawanDituju: "", departemen: "", tujuanKunjungan: "", tanggalCheckIn: "", jamCheckIn: "", tanggalCheckOut: "", jamCheckOut: "",
         anggotaRombongan: [{ nama: "", email: "", noTelp: "", gunakanEmailUtama: false}],
     });
 
@@ -235,19 +208,30 @@ export default function HalamanRegistrasi() {
     };
 
     const validasiStep2 = () => {
-        if (!dataForm.karyawanDituju.trim()) return alert("Karyawan dituju wajib diisi!"), false;
-        if (!dataForm.departemen) return alert("Departemen wajib dipilih!"), false;
-        if (!dataForm.tujuanKunjungan.trim()) return alert("Tujuan wajib diisi!"), false;
-        if (!dataForm.tanggalKunjungan) return alert("Tanggal wajib diisi!"), false;
-        if (!dataForm.jamCheckIn) return alert("Waktu CheckIn wajib diisi!"), false;
-        if (!dataForm.jamCheckOut) return alert("Waktu CheckOut wajib diisi!"), false;
-        if (!sudahSetujuK3) {
-            alert("Anda harus menyetujui panduan K3 sebelum melanjutkan!");
-            setPanduanK3Tampil(true);
-            return false;
-        }
-        return true;
-    };
+    if (!dataForm.karyawanDituju.trim()) return alert("Karyawan dituju wajib diisi!"), false;
+    if (!dataForm.departemen) return alert("Departemen wajib dipilih!"), false;
+    if (!dataForm.tujuanKunjungan.trim()) return alert("Tujuan wajib diisi!"), false;
+    
+    if (!dataForm.tanggalCheckIn) return alert("Tanggal Check-in wajib diisi!"), false;
+    if (!dataForm.jamCheckIn) return alert("Waktu Check-in wajib diisi!"), false;
+    if (!dataForm.tanggalCheckOut) return alert("Tanggal Check-out wajib diisi!"), false;
+    if (!dataForm.jamCheckOut) return alert("Waktu Check-out wajib diisi!"), false;
+
+    const checkInFull = new Date(`${dataForm.tanggalCheckIn}T${dataForm.jamCheckIn}`);
+    const checkOutFull = new Date(`${dataForm.tanggalCheckOut}T${dataForm.jamCheckOut}`);
+
+    if (checkOutFull <= checkInFull) {
+        alert("Waktu Check-out harus lebih lambat dari waktu Check-in!");
+        return false;
+    }
+
+    if (!sudahSetujuK3) {
+        alert("Anda harus menyetujui panduan K3 sebelum melanjutkan!");
+        setPanduanK3Tampil(true);
+        return false;
+    }
+    return true;
+};
 
     const mulaiSubmit = async (e?: any) => {
     if (e) e.preventDefault(); 
@@ -255,10 +239,6 @@ export default function HalamanRegistrasi() {
     setSedangLoading(true);
 
     const formDataBaru = new FormData();
-    const waktuCheckInFix = `${dataForm.tanggalKunjungan}T${dataForm.jamCheckIn}:00`;
-    const waktuCheckOutFix = `${dataForm.tanggalKunjungan}T${dataForm.jamCheckOut}:00`;
-    formDataBaru.append("waktuCheckIn", new Date(waktuCheckInFix).toISOString());
-    formDataBaru.append("waktuCheckOut", new Date(waktuCheckOutFix).toISOString());
     formDataBaru.append("namaTamu", dataForm.namaTamu);
     formDataBaru.append("email", dataForm.email);
     formDataBaru.append("asalInstansi", dataForm.asalInstansi);
@@ -267,6 +247,10 @@ export default function HalamanRegistrasi() {
     formDataBaru.append("karyawanDituju", dataForm.karyawanDituju);
     formDataBaru.append("departemen", dataForm.departemen);
     formDataBaru.append("tujuanKunjungan", dataForm.tujuanKunjungan);
+    formDataBaru.append("tanggalCheckIn", dataForm.tanggalCheckIn); 
+    formDataBaru.append("jamCheckIn", dataForm.jamCheckIn);
+    formDataBaru.append("tanggalCheckOut", dataForm.tanggalCheckOut); 
+    formDataBaru.append("jamCheckOut", dataForm.jamCheckOut);
 
     if (fotoTamu) {
         formDataBaru.append("ktp", fotoTamu);
@@ -303,7 +287,7 @@ export default function HalamanRegistrasi() {
 
     const resetForm = () => {
         setIdKunjungan(""); setBerhasilSubmit(false); setPosisiHalaman(1); setSudahSetujuK3(false); setJikaRombongan(false); setFotoTamu(null);
-        setDataForm({ namaTamu: "", asalInstansi: "", email: "", noTelp: "", nik: "", ktp: null, karyawanDituju: "", departemen: "", tujuanKunjungan: "", tanggalKunjungan: "", jamCheckIn: "", jamCheckOut: "", anggotaRombongan: [{ nama: "", email: "", noTelp: "", gunakanEmailUtama: false }] });
+        setDataForm({ namaTamu: "", asalInstansi: "", email: "", noTelp: "", nik: "", ktp: null, karyawanDituju: "", departemen: "", tujuanKunjungan: "", tanggalCheckIn: "", jamCheckIn: "",tanggalCheckOut: "", jamCheckOut: "", anggotaRombongan: [{ nama: "", email: "", noTelp: "", gunakanEmailUtama: false }] });
     };
 
     if (berhasilSubmit) {
@@ -510,32 +494,54 @@ export default function HalamanRegistrasi() {
                                         * Jelaskan keperluan kunjungan Anda.
                                     </p>
                                 </div>
-                               <div className="space-y-3">
+                               <div className="space-y-4">
                                 <Label className="text-base font-semibold">Jadwal Kunjungan *</Label>
                                 <Card className="shadow-sm border-gray-200">
-                                    <CardContent className="p-4 space-y-4">
-                                        <div className="space-y-2">
-                                            <Label className="text-sm text-gray-600">Pilih Tanggal</Label>
-                                            <Input type="date" value={dataForm.tanggalKunjungan} onChange={e => ubahField("tanggalKunjungan", e.target.value)} min={new Date().toISOString().split("T")[0]}/>
+                                    <CardContent className="p-4 space-y-6">
+                                        
+                                        <div className="space-y-3">
+                                            <Label className="text-sm font-medium text-blue-700 flex items-center gap-2">
+                                                <Calendar className="w-4 h-4" /> Rencana Kedatangan (Check-in)
+                                            </Label>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <Input 
+                                                    type="date" 
+                                                    value={dataForm.tanggalCheckIn} 
+                                                    onChange={e => ubahField("tanggalCheckIn", e.target.value)}
+                                                    min={new Date().toISOString().split("T")[0]}
+                                                />
+                                                <Input 
+                                                    type="time" 
+                                                    value={dataForm.jamCheckIn} 
+                                                    onChange={e => ubahField("jamCheckIn", e.target.value)} 
+                                                />
+                                            </div>
                                         </div>
 
-                                        <div className="grid grid-cols-2 gap-4 pt-2 border-t border-gray-100">
-                                            <div className="space-y-2">
-                                                <Label className="text-sm text-gray-600 flex items-center gap-1.5">
-                                                    <Clock className="w-4 h-4" /> Waktu Check-in
-                                                </Label>
-                                                <Input type="time" value={dataForm.jamCheckIn} onChange={e => ubahField("jamCheckIn", e.target.value)} />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label className="text-sm text-gray-600 flex items-center gap-1.5">
-                                                    <Clock className="w-4 h-4" /> Waktu Check-out
-                                                </Label>
-                                                <Input type="time" value={dataForm.jamCheckOut} onChange={e => ubahField("jamCheckIn", e.target.value)} />
+                                        <div className="border-t border-gray-100 pt-4"></div>
+
+                                        <div className="space-y-3">
+                                            <Label className="text-sm font-medium text-red-700 flex items-center gap-2">
+                                                <Calendar className="w-4 h-4" /> Rencana Kepulangan (Check-out)
+                                            </Label>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <Input 
+                                                    type="date" 
+                                                    value={dataForm.tanggalCheckOut} 
+                                                    onChange={e => ubahField("tanggalCheckOut", e.target.value)}
+                                                    min={dataForm.tanggalCheckIn || new Date().toISOString().split("T")[0]}
+                                                />
+                                                <Input 
+                                                    type="time" 
+                                                    value={dataForm.jamCheckOut} 
+                                                    onChange={e => ubahField("jamCheckOut", e.target.value)} 
+                                                />
                                             </div>
                                         </div>
+
                                     </CardContent>
                                 </Card>
-                               </div>
+                            </div>
 
                                 <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-5 mt-6">
                                     <div className="flex gap-3 items-start mb-3">
@@ -599,7 +605,16 @@ export default function HalamanRegistrasi() {
                                         <TabelKonfirmasi label="Karyawan Dituju" nilai={dataForm.karyawanDituju} />
                                         <TabelKonfirmasi label="Departemen" nilai={dataForm.departemen} />
                                         <TabelKonfirmasi label="Tujuan" nilai={dataForm.tujuanKunjungan} />
-                                        <TabelKonfirmasi label="Waktu" nilai={`${dataForm.tanggalKunjungan} | ${dataForm.jamCheckIn} WIB | ${dataForm.jamCheckOut} WIB`} />
+                                        
+                                        <TabelKonfirmasi 
+                                            label="Check-in" 
+                                            nilai={`${dataForm.tanggalCheckIn} | ${dataForm.jamCheckIn} WIB`} 
+                                        />
+                                        <TabelKonfirmasi 
+                                            label="Check-out" 
+                                            nilai={`${dataForm.tanggalCheckOut} | ${dataForm.jamCheckOut} WIB`} 
+                                        />
+                                        
                                         <TabelKonfirmasi label="Status K3" nilai={sudahSetujuK3 ? "Disetujui" : "Belum Disetujui"} />
                                     </div>
                                 </div>
