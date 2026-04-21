@@ -6,6 +6,7 @@ import {
   Trash2,
   Eye,
   Search,
+  IdCard,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -135,6 +136,15 @@ export default function VisitorCardPage() {
   return (
     <>
       {/* HEADER */}
+
+      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
+        <IdCard size={16} />
+        <span>›</span>
+        <span className="font-medium text-foreground">
+          Laporan
+        </span>
+      </div>
+
       <div className="flex items-center justify-between mb-6 flex-col md:flex-row gap-4">
         <div className="flex items-center gap-4">
           <div className="bg-green-100 text-green-600 p-4 rounded-xl">

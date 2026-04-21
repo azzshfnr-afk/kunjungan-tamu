@@ -21,14 +21,14 @@ export function AppSidebar() {
 
   const menus = [
     { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { title: "Visitor", href: "/visitor", icon: Users },
+    // { title: "Visitor", href: "/visitor", icon: Users }, //matiin hela ach
     { title: "Visitor Card", href: "/visitor-card", icon: IdCard },
     { title: "Laporan", href: "/laporan", icon: FileText },
   ];
 
   return (
     <Sidebar>
-      <div className="h-full m-3 rounded-3xl bg-white shadow-sm flex flex-col">
+      <div className="h-full m-3 rounded-3xl bg-gray-50 shadow-sm flex flex-col">
         <SidebarHeader className={open ? "px-5 pt-5 pb-4" : "px-2 pt-5 pb-4 flex justify-center"}>
           {open ? (
             <div>
