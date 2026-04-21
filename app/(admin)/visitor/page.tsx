@@ -127,7 +127,7 @@ export default function VisitorPage() {
     <div className="space-y-6">
 
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Home size={16} />
+        <Users size={16} />
         <span>›</span>
         <span className="text-foreground font-medium">Visitor</span>
       </div>
