@@ -147,19 +147,14 @@ export default function LaporanPage() {
 
       return (
         isDateMatch &&
-        (selectedYear ===
-          "Semua" ||
-          itemYear ===
-            selectedYear) &&
-        (item.name
-          .toLowerCase()
-          .includes(keyword) ||
-          item.email
-            .toLowerCase()
-            .includes(keyword) ||
-          item.id
-            .toLowerCase()
-            .includes(keyword))
+        (selectedYear === "Semua" ||
+          itemYear === selectedYear) &&
+        (
+          item.name.toLowerCase().includes(keyword) ||
+          item.email.toLowerCase().includes(keyword) ||
+          item.id.toLowerCase().includes(keyword) ||
+          item.instansi.toLowerCase().includes(keyword)
+        )
       );
     }
   );
@@ -231,7 +226,7 @@ export default function LaporanPage() {
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
 
           <Input
-            placeholder="Search ID, nama..."
+            placeholder="Search..."
             className="pl-9"
             value={search}
             onChange={(e) => {
