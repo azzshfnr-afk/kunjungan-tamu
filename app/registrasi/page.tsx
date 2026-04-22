@@ -129,7 +129,10 @@ export default function HalamanRegistrasi() {
     const [fotoTamu, setFotoTamu] = useState<any>(null);
 
     const handleUploadFoto = (file: any) => {
-        setFotoTamu(URL.createObjectURL(file));
+        if (file) {
+            setFotoTamu(URL.createObjectURL(file));
+            setDataForm({ ...dataForm, ktp: file });
+        }
     };
 
     const [dataForm, setDataForm] = useState({
@@ -358,33 +361,43 @@ export default function HalamanRegistrasi() {
 
                             <div className="space-y-4">
                                 <div className="space-y-2">
-                                    <Label>Nama Lengkap *</Label>
+                                    <Label className="text-sm font-medium">
+                                        Nama Lengkap<span className="text-red-500">*</span>
+                                    </Label>
                                     <Input placeholder="Masukkan nama lengkap" value={dataForm.namaTamu} onChange={e => ubahField("namaTamu", e.target.value)} />
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label>Asal Instansi / Perusahaan *</Label>
+                                    <Label className="text-sm font-medium">
+                                        Asal Instansi / Perusahaan<span className="text-red-500">*</span>
+                                    </Label>
                                     <Input placeholder="Contoh: PT PLN Persero" value={dataForm.asalInstansi} onChange={e => ubahField("asalInstansi", e.target.value)} />
                                 </div>
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <Label>Email *</Label>
+                                        <Label className="text-sm font-medium">
+                                        Email<span className="text-red-500">*</span>
+                                    </Label>
                                         <Input type="email" placeholder="email@contoh.com" value={dataForm.email} onChange={e => ubahField("email", e.target.value)} />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label>Nomor Telepon *</Label>
+                                        <Label className="text-sm font-medium">
+                                        Nomor Telepon<span className="text-red-500">*</span>
+                                    </Label>
                                         <Input type="tel" placeholder="08xxxxxxxxxx" value={dataForm.noTelp} onChange={e => ubahField("noTelp", e.target.value)} />
                                     </div>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-6 mt-4 pt-4 border-t border-gray-100">
                                     <div className="space-y-2 flex flex-col">
-                                        <Label>Upload Gambar KTP</Label>
+                                        <Label className="text-sm font-medium">
+                                        Upload Gambar KTP<span className="text-red-500">*</span>
+                                    </Label>
                                         <FileUploader handleChange={handleUploadFoto} name="file" types={fileTypes} >
                                             <div className="flex w-full items-center justify-center h-10 px-3 border-2 border-dashed border-blue-400 rounded-md cursor-pointer bg-blue-50 hover:bg-blue-100 transition-colors">
                                                 <span className="text-xs text-gray-600 font-medium truncate">
-                                                    Pilih gambar (JPG, PNG, JPEG)
+                                                    {dataForm.ktp ? dataForm.ktp.name : "Pilih gambar (JPG, PNG, JPEG)"}
                                                 </span>
                                             </div>
                                         </FileUploader>
@@ -398,7 +411,9 @@ export default function HalamanRegistrasi() {
                                     </div>
 
                                     <div className="space-y-2 flex flex-col">
-                                        <Label>NIK *</Label>
+                                        <Label className="text-sm font-medium">
+                                        NIK<span className="text-red-500">*</span>
+                                    </Label>
                                         <Input type="text" placeholder="3215xxxxxxxxxxxx" value={dataForm.nik} onChange={e => ubahField("nik", e.target.value)} className="h-10" />
                                     </div>
                                 </div>
@@ -471,18 +486,24 @@ export default function HalamanRegistrasi() {
                             <div className="space-y-4">
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <Label>Nama Karyawan yang Dituju *</Label>
+                                        <Label className="text-sm font-medium">
+                                        Nama Karyawan yang Dituju<span className="text-red-500">*</span>
+                                    </Label>
                                         <Input placeholder="Nama karyawan" value={dataForm.karyawanDituju} onChange={e => ubahField("karyawanDituju", e.target.value)} />
                                     </div>
 
                                     <div className="space-y-2">
-                                        <Label>Departemen *</Label>
+                                        <Label className="text-sm font-medium">
+                                        Departemen<span className="text-red-500">*</span>
+                                    </Label>
                                         <Input placeholder="Departemen" value={dataForm.departemen} onChange={e => ubahField("departemen", e.target.value)} />
                                     </div>
                                 </div>
                                 
                                 <div className="space-y-2">
-                                    <Label htmlFor="tujuan">Tujuan Kunjungan*</Label>
+                                   <Label htmlFor="tujuan" className="text-sm font-medium">
+                                        Tujuan Kunjungan<span className="text-red-500">*</span>
+                                    </Label>
                                     <Textarea
                                         id="tujuan"
                                         placeholder="Ketik tujuan Anda (misal: Rapat, Audit, dll)"
@@ -495,13 +516,13 @@ export default function HalamanRegistrasi() {
                                     </p>
                                 </div>
                                <div className="space-y-4">
-                                <Label className="text-base font-semibold">Jadwal Kunjungan *</Label>
+                                <Label className="text-sm font-medium">Jadwal Kunjungan <span className="text-red-500">*</span></Label>
                                 <Card className="shadow-sm border-gray-200">
                                     <CardContent className="p-4 space-y-6">
                                         
                                         <div className="space-y-3">
                                             <Label className="text-sm font-medium text-blue-700 flex items-center gap-2">
-                                                <Calendar className="w-4 h-4" /> Rencana Kedatangan (Check-in)
+                                                <Calendar className="w-4 h-4" /> Rencana Kedatangan (Check-in) <span className="text-red-500">*</span>
                                             </Label>
                                             <div className="grid grid-cols-2 gap-4">
                                                 <Input 
@@ -522,7 +543,7 @@ export default function HalamanRegistrasi() {
 
                                         <div className="space-y-3">
                                             <Label className="text-sm font-medium text-red-700 flex items-center gap-2">
-                                                <Calendar className="w-4 h-4" /> Rencana Kepulangan (Check-out)
+                                                <Calendar className="w-4 h-4" /> Rencana Kepulangan (Check-out) <span className="text-red-500">*</span>
                                             </Label>
                                             <div className="grid grid-cols-2 gap-4">
                                                 <Input 
