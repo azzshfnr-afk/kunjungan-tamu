@@ -141,7 +141,7 @@ export default function VisitorCardPage() {
         <IdCard size={16} />
         <span>›</span>
         <span className="font-medium text-foreground">
-          Laporan
+          Visitor Card
         </span>
       </div>
 
@@ -172,13 +172,21 @@ export default function VisitorCardPage() {
       </div>
 
       {/* TAB */}
+
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
-          <TabsTrigger value="today">Hari Ini</TabsTrigger>
-          <TabsTrigger value="upcoming">Mendatang</TabsTrigger>
-          <TabsTrigger value="all">Semua</TabsTrigger>
+          <TabsTrigger value="today" className="text-xs">
+            Hari Ini
+          </TabsTrigger>
+          <TabsTrigger value="upcoming" className="text-xs">
+            Mendatang
+          </TabsTrigger>
+          <TabsTrigger value="all" className="text-xs">
+            Semua
+          </TabsTrigger>
         </TabsList>
       </Tabs>
+
 
       {/* CONTENT */}
       {loading ? (

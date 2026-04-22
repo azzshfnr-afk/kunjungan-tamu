@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, IdCard, FileText } from "lucide-react";
+import { LayoutDashboard, IdCard, FileText } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -28,7 +28,7 @@ export function AppSidebar() {
 
   return (
     <Sidebar>
-      <div className="h-full m-3 rounded-3xl bg-gray-50 shadow-sm flex flex-col">
+      <div className="h-full m-3 rounded-3xl bg-white flex flex-col"> 
         <SidebarHeader className={open ? "px-5 pt-5 pb-4" : "px-2 pt-5 pb-4 flex justify-center"}>
           {open ? (
             <div>
