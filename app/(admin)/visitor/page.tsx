@@ -104,7 +104,7 @@ export default function VisitorPage() {
         }
 
         const parsed: Visitor[] = result.map(
-          (item: VisitorApi) => ({
+          (item) => ({
             ...item,
             visitDate: new Date(item.visitDate),
           })
@@ -231,27 +231,26 @@ export default function VisitorPage() {
             </p>
           )}
 
-          {!loading &&
-            !error &&
-            filteredData.length > 0 && (
-              <Table>
-                <TableHeader>
-                  <Row>
-                    <TableHead>No</TableHead>
-                    <TableHead>Nama</TableHead>
-                    <TableHead>Instansi</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Karyawan</TableHead>
-                    <TableHead>Departemen</TableHead>
-                    <TableHead>Tujuan</TableHead>
-                    <TableHead>Tanggal</TableHead>
-                    <TableHead>Waktu</TableHead>
-                    <TableHead></TableHead>
-                  </Row>
-                </TableHeader>
+          {!loading && !error && (
+            <Table>
+              <TableHeader>
+                <Row>
+                  <TableHead>No</TableHead>
+                  <TableHead>Nama</TableHead>
+                  <TableHead>Instansi</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Karyawan</TableHead>
+                  <TableHead>Departemen</TableHead>
+                  <TableHead>Tujuan</TableHead>
+                  <TableHead>Tanggal</TableHead>
+                  <TableHead>Waktu</TableHead>
+                  <TableHead></TableHead>
+                </Row>
+              </TableHeader>
 
-                <TableBody>
-                  {filteredData.map(
+              <TableBody>
+                {filteredData.length > 0 ? (
+                  filteredData.map(
                     (item, index) => (
                       <Row key={item.id}>
                         <TableCell>
@@ -314,10 +313,20 @@ export default function VisitorPage() {
                         </TableCell>
                       </Row>
                     )
-                  )}
-                </TableBody>
-              </Table>
-            )}
+                  )
+                ) : (
+                  <Row>
+                    <TableCell
+                      colSpan={10}
+                      className="text-center text-muted-foreground"
+                    >
+                      Tidak ada data visitor
+                    </TableCell>
+                  </Row>
+                )}
+              </TableBody>
+            </Table>
+          )}
         </div>
       </div>
 

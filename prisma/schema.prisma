@@ -1,61 +1,23 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
 datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
-generator client {
-  provider = "prisma-client-js"
-}
-
-model Tamu {
-  id                Int      @id @default(autoincrement())
-  namaTamu          String
-  asalInstansi      String?
-  email             String?
-  noTelp            String?
-  nik               String?
-  karyawanDituju    String?
-  departemen        String?
-  tujuanKunjungan   String
-  tanggalKunjungan  DateTime?
-  waktuCheckIn      DateTime
-  waktuCheckOut     DateTime
-  createdAt         DateTime @default(now())
-
-  anggotaRombongan  AnggotaRombongan[]
-}
-
-model AnggotaRombongan {
-  id        Int   @id @default(autoincrement())
-  nama      String
-  email     String?
-  noTelp    String?
-
-  tamu      Tamu  @relation(fields: [tamuId], references: [id])
-  tamuId    Int
-}
-
-model Visitor {
-  id          String   @id @default(cuid())
-  kode        String   @unique   
-
-  name        String
-  instansi    String
-  email       String
-  phone       String
-  ktp         String
-  karyawan    String
-  departemen  String
-  tujuan      String
-
-  visitDate   DateTime
-  visitTime   String
-
-  checkin     DateTime?
-  checkout    DateTime?
-
-  rejected    Boolean  @default(false)
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+model tamu {
+  id               Int       @id @default(autoincrement())
+  createdAt        DateTime  @default(now())
+  asalInstansi     String?
+  departemen       String?
+  email            String?
+  jamKunjungan     String?
+  karyawanDituju   String?
+  namaTamu         String
+  nik              String?
+  noTelp           String?
+  tanggalKunjungan DateTime?
+  tujuanKunjungan  String
 }
