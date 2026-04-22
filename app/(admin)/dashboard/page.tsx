@@ -7,7 +7,6 @@ import {
   CheckCircle,
   Clock,
   XCircle,
-  ChevronRight,
   LayoutDashboard,
   Search,
 } from "lucide-react";
