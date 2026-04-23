@@ -75,6 +75,73 @@ export async function POST(request: Request) {
       }
     });
 
+    if (email !== "-") {
+      try {
+        const transporter = nodemailer.createTransport({
+          service: "gmail",
+          auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS,
+          },
+        });
+
+        const mailOptions = {
+          from: `"Admin Kunjungan" <${process.env.EMAIL_USER}>`,
+          to: email,
+          subject: "Pendaftaran Kunjungan Berhasil - Pupuk Kujang",
+          html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
+             <div style="background-color: #4CAF50; color: white; padding: 20px; text-align: center;">
+                    <h2 style="margin: 0; font-size: 24px; font-weight: bold;">Tiket Kunjungan Disetujui</h2>
+                    <p style="margin: 8px 0 0 0; font-size: 14px;">PT Pupuk Kujang Cikampek</p>
+                </div>
+                
+                <div style="padding: 30px; color: #333; background-color: #ffffff;">
+                    <p style="margin-top: 0;">Halo <strong>${namaTamu}</strong>,</p>
+                    <p>Registrasi kunjungan Anda telah berhasil. Berikut adalah detail kunjungan Anda:</p>
+                    
+                    <table style="width: 100%; margin-top: 20px; margin-bottom: 30px; border-collapse: collapse;">
+                        <tr>
+                            <td style="padding: 10px 0; color: #666; width: 35%; border-bottom: 1px solid #f0f0f0;">ID Kunjungan</td>
+                            <td style="padding: 10px 0; font-weight: bold; border-bottom: 1px solid #f0f0f0;">${hasil.id}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 10px 0; color: #666; border-bottom: 1px solid #f0f0f0;">Tujuan</td>
+                            <td style="padding: 10px 0; font-weight: bold; border-bottom: 1px solid #f0f0f0;">Departemen ${departemen} (${karyawanDituju})</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 10px 0; color: #666; border-bottom: 1px solid #f0f0f0;">Tanggal</td>
+                            <td style="padding: 10px 0; font-weight: bold; border-bottom: 1px solid #f0f0f0;">${tglMasuk}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 10px 0; color: #666; border-bottom: 1px solid #f0f0f0;">Waktu</td>
+                            <td style="padding: 10px 0; font-weight: bold; border-bottom: 1px solid #f0f0f0;">${jamMasuk} WIB</td>
+                        </tr>
+                    </table>
+
+                    <div style="border: 2px dashed #ccc; border-radius: 8px; padding: 25px 20px; text-align: center; background-color: #fcfcfc;">
+                        <p style="margin-top: 0; margin-bottom: 20px; font-size: 14px; color: #555;">
+                            Tunjukkan QR Code ini kepada petugas Security di Gate 1:
+                        </p>
+                        
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${hasil.id}" alt="QR Code" style="width: 200px; height: 200px; margin: 0 auto; display: block;" />
+                    </div>
+
+                    <p style="text-align: center; font-size: 12px; color: #888; margin-top: 25px; line-height: 1.6;">
+                        Harap membawa KTP asli yang didaftarkan. QR Code ini hanya berlaku pada hari dan jam yang telah ditentukan.
+                    </p>
+                </div>
+            </div>
+            `
+        };
+
+        await transporter.sendMail(mailOptions);
+        console.log("Email sukses dikirim ke:", email);
+      } catch (emailError) {
+        console.error("Gagal mengirim email:", emailError);
+      }
+    }
+
     return Response.json({ ok: true, data: { id: hasil.id } });
 
   } catch (error) {
@@ -105,6 +172,9 @@ export async function GET(request: Request) {
       },
       include: {
         anggotaRombongan: true
+      },
+      orderBy: {
+        id: 'desc'
       }
     });
 

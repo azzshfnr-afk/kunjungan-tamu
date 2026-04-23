@@ -140,12 +140,10 @@ export default function CekKunjunganPage() {
                                         </span>
                                     </div>
 
-                                    <div className="h-[1px] bg-blue-200 w-full ml-10"></div>
-
                                     <div className="flex items-center gap-2">
                                         <div className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded font-bold uppercase">Out</div>
                                         <Calendar className="w-3.5 h-3.5" />
-                                        <span className="text-sm font-semibold text-gray-700">
+                                        <span className="text-sm font-semibold">
                                             {new Date(hasilKunjungan.waktuCheckOut).toLocaleDateString('id-ID', { 
                                                 day: 'numeric', month: 'long', year: 'numeric' 
                                             })}
