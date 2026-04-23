@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
@@ -37,6 +37,27 @@ export default function SatpamDashboard() {
     const [tamuTerpilih, setTamuTerpilih] = useState<any>(null);
     const [modalAction, setModalAction] = useState<"checkout" | "detail" | null>(null);
 
+    const [dataTamu, setDataTamu] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchTamu = async () => {
+            try {
+                const response = await fetch('/api/satpam/tamu');
+                const result = await response.json();
+                if (result.data) {
+                    setDataTamu(result.data);
+                }
+            } catch (error) {
+                console.error("Error fetching tamu:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchTamu();
+    }, []);
+
     const handleCloseScanModal = (open: boolean) => {
         setIsScanModalOpen(open);
         if (!open) {
@@ -49,11 +70,6 @@ export default function SatpamDashboard() {
         setModalAction(null);
         setTamuTerpilih(null);
     };
-
-    const dataTamu = [
-        { id: 1, waktu: "09:00 WIB", nama: "Rachel Vennya", instansi: "PT Teman Baik", tujuan: "Azkia (TI)", gedung: "Gedung Pusat Administrasi (GPA)", status: "Di Dalam Area", nfc: "NFC-042", statusColor: "bg-green-100 text-green-800 border-green-200" },
-        { id: 2, waktu: "-", nama: "Elzhard", instansi: "Universitas Pendidikan Indonesia", tujuan: "Junaedi (Keuangan)", gedung: "Gedung Diklat", status: "Menunggu Kedatangan", nfc: "-", statusColor: "bg-yellow-100 text-yellow-800 border-yellow-200" },
-    ];
 
     return (
         <div className="flex min-h-screen flex-col items-center bg-gradient-to-br from-gray-50 to-gray-100 p-6">
@@ -134,33 +150,14 @@ export default function SatpamDashboard() {
                                                         video: { objectFit: 'cover' }
                                                     }}
                                                 />
-
-                                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                                    <div className="w-56 h-56 border-2 border-red-500/50 rounded-3xl relative">
-                                                        <div className="absolute -top-1 -left-1 w-8 h-8 border-t-4 border-l-4 border-red-500 rounded-tl-lg"></div>
-                                                        <div className="absolute -top-1 -right-1 w-8 h-8 border-t-4 border-r-4 border-red-500 rounded-tr-lg"></div>
-                                                        <div className="absolute -bottom-1 -left-1 w-8 h-8 border-b-4 border-l-4 border-red-500 rounded-bl-lg"></div>
-                                                        <div className="absolute -bottom-1 -right-1 w-8 h-8 border-b-4 border-r-4 border-red-500 rounded-br-lg"></div>
-                                                        
-                                                        <div className="absolute top-0 left-0 w-full h-1 bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)] animate-bounce" 
-                                                             style={{ animationDuration: '3s' }}>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                
-                                                <div className="absolute bottom-0 left-0 right-0 bg-black/60 py-3 backdrop-blur-md">
-                                                    <p className="text-white text-[11px] font-medium tracking-wide">
-                                                        QR CODE SCANNER ACTIVE
-                                                    </p>
-                                                </div>
                                             </div>
 
                                             <p className="text-xs text-gray-500 px-4">
-                                                Arahkan kamera perangkat ke QR Code yang ada pada tiket atau HP tamu.
+                                                Arahkan kamera ke QR Code yang ada pada tiket tamu.
                                             </p>
-                                            
+
                                             <Button variant="outline" size="sm" className="mt-2 text-[10px]" onClick={() => setStepScan(2)}>
-                                                (Dev Mode) Lewati Scan →
+                                                (Dev Mode) Lewati Scan 
                                             </Button>
                                         </div>
                                     )}
@@ -191,39 +188,6 @@ export default function SatpamDashboard() {
                                                 </Label>
                                                 <Input id="nfc-card" placeholder="Tap kartu NFC sekarang..." autoFocus />
                                             </div>
-
-                                            <div className="space-y-3">
-                                                <Label className="text-gray-700 font-semibold">Pilih Izin Akses:</Label>
-                                                <div className="space-y-2">
-                                                    {roleSatpam === "gate1" ? (
-                                                        <>
-                                                            <div className="flex items-start space-x-3 bg-blue-50/50 p-3 rounded-lg border border-blue-100">
-                                                                <Checkbox id="akses-gate1" defaultChecked className="mt-1" />
-                                                                <div>
-                                                                    <Label htmlFor="akses-gate1" className="font-semibold text-blue-900 cursor-pointer">Akses Gate 1 Utama</Label>
-                                                                    <p className="text-xs text-blue-700 leading-snug">Izin melewati gerbang depan kawasan perusahaan.</p>
-                                                                </div>
-                                                            </div>
-                                                            <div className="flex items-start space-x-3 bg-blue-50/50 p-3 rounded-lg border border-blue-100">
-                                                                <Checkbox id="akses-area" defaultChecked className="mt-1" />
-                                                                <div>
-                                                                    <Label htmlFor="akses-area" className="font-semibold text-blue-900 cursor-pointer">Akses Area {tamuTerpilih?.gedung || "Gedung"}</Label>
-                                                                    <p className="text-xs text-blue-700 leading-snug">Izin membuka portal/gerbang area parkir gedung tujuan.</p>
-                                                                </div>
-                                                            </div>
-                                                        </>
-                                                    ) : (
-                                                        <div className="flex items-start space-x-3 bg-green-50/50 p-3 rounded-lg border border-green-200">
-                                                            <Checkbox id="akses-lobby" defaultChecked className="mt-1" />
-                                                            <div>
-                                                                <Label htmlFor="akses-lobby" className="font-semibold text-green-900 cursor-pointer">Akses Lobby {tamuTerpilih?.gedung || "Gedung"}</Label>
-                                                                <p className="text-xs text-green-700 leading-snug">Izin masuk ke dalam fasilitas lobby atau resepsionis gedung.</p>
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-
                                             <div className="flex gap-2">
                                                 <Button variant="outline" className="flex-1" onClick={() => setStepScan(2)}>Kembali</Button>
                                                 <Button className="flex-1 bg-green-600 hover:bg-green-700 text-white" onClick={() => handleCloseScanModal(false)}>
@@ -252,74 +216,91 @@ export default function SatpamDashboard() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {dataTamu
-                                .filter(tamu => tamu.nama.toLowerCase().includes(searchQuery.toLowerCase()))
-                                .map((tamu) => (
-                                <TableRow key={tamu.id}>
-                                    <TableCell>{tamu.waktu}</TableCell>
-                                    <TableCell className="font-medium">{tamu.nama}</TableCell>
-                                    <TableCell>{tamu.instansi}</TableCell>
-                                    <TableCell>{tamu.gedung}</TableCell>
-                                    <TableCell>
-                                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold border ${tamu.statusColor}`}>
-                                            {tamu.status}
-                                        </span>
-                                    </TableCell>
-                                    <TableCell className="font-mono text-sm text-gray-500">{tamu.nfc}</TableCell>
-                                    <TableCell className="text-right">
-                                        <div className="flex justify-end items-center gap-2">
-                                            {tamu.status === "Menunggu Kedatangan" && (
-                                                <Button 
-                                                    size="sm" 
-                                                    className="bg-blue-600 hover:bg-blue-700 text-white h-8" 
-                                                    onClick={() => { 
-                                                        setTamuTerpilih(tamu); 
-                                                        setStepScan(2); 
-                                                        setIsScanModalOpen(true); 
-                                                    }}
-                                                >
-                                                    <ShieldCheck className="mr-1 h-4 w-4" /> Validasi
-                                                </Button>
-                                            )}
-                                            
-                                            {tamu.status === "Di Dalam Area" && (
-                                                <Button 
-                                                    size="sm" 
-                                                    variant="destructive" 
-                                                    className="h-8" 
-                                                    onClick={() => { 
-                                                        setTamuTerpilih(tamu); 
-                                                        setModalAction("checkout"); 
-                                                    }}
-                                                >
-                                                    <LogOut className="mr-1 h-4 w-4" /> Check-out
-                                                </Button>
-                                            )}
-
-                                            <Button 
-                                                variant="outline" 
-                                                size="icon" 
-                                                className="h-8 w-8 text-gray-500" 
-                                                onClick={() => { 
-                                                    setTamuTerpilih(tamu); 
-                                                    setModalAction("detail"); 
-                                                }}
-                                            >
-                                                <Eye className="h-4 w-4" />
-                                            </Button>
-                                        </div>
+                            {isLoading ? (
+                                <TableRow>
+                                    <TableCell colSpan={7} className="text-center py-10 text-gray-500 animate-pulse">
+                                        Memuat data jadwal hari ini...
                                     </TableCell>
                                 </TableRow>
-                            ))}
-                            {dataTamu.filter(tamu => tamu.nama.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
+                            ) : dataTamu.filter(tamu => tamu.namaTamu.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 ? (
                                 <TableRow>
                                     <TableCell colSpan={7} className="text-center py-6 text-gray-500">
-                                        Tidak ada data tamu yang cocok dengan pencarian "{searchQuery}"
+                                        Tidak ada jadwal tamu untuk hari ini
                                     </TableCell>
                                 </TableRow>
+                            ) : (
+                                dataTamu
+                                .filter(tamu => tamu.namaTamu.toLowerCase().includes(searchQuery.toLowerCase()))
+                                .map((tamu) => {
+                                    const statusStyle = tamu.status === "Menunggu Kedatangan"
+                                    ? "bg-yellow-100 text-yellow-800 border-yellow-200"
+                                    : tamu.status === "Di Dalam Area"
+                                    ? "bg-green-100 text-green-800 border-green-200"
+                                    : "bg-gray-100 text-gray-800 border-gray-200";
+
+                                    const waktuCheckInFormat = new Date(tamu.waktuCheckIn).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + " WIB";
+
+                                    return (
+                                        <TableRow key={tamu.id}>
+                                            <TableCell className="font-medium text-gray-600">{waktuCheckInFormat}</TableCell>
+                                            <TableCell className="font-bold text-gray-900">{tamu.namaTamu}</TableCell>
+                                            <TableCell>{tamu.asalInstansi || "-"}</TableCell>
+                                            <TableCell>{tamu.departemen || "-"}</TableCell>
+                                            <TableCell>
+                                                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold border ${statusStyle}`}>
+                                                    {tamu.status}
+                                                </span>
+                                            </TableCell>
+                                            <TableCell className="font-mono text-sm text-gray-500">{tamu.nfc || "-"}</TableCell>
+                                            <TableCell className="text-right">
+                                                <div className="flex justify-end items-center gap-2">
+                                                    {tamu.status === "Menunggu Kedatangan" && (
+                                                        <Button 
+                                                            size="sm" 
+                                                            className="bg-blue-600 hover:bg-blue-700 text-white h-8" 
+                                                            onClick={() => { 
+                                                                setTamuTerpilih(tamu); 
+                                                                setStepScan(2); 
+                                                                setIsScanModalOpen(true); 
+                                                            }}
+                                                        >
+                                                            <ShieldCheck className="mr-1 h-4 w-4" /> Validasi
+                                                        </Button>
+                                                    )}
+                                                    
+                                                    {tamu.status === "Di Dalam Area" && (
+                                                        <Button 
+                                                            size="sm" 
+                                                            variant="destructive" 
+                                                            className="h-8" 
+                                                            onClick={() => { 
+                                                                setTamuTerpilih(tamu); 
+                                                                setModalAction("checkout"); 
+                                                            }}
+                                                        >
+                                                            <LogOut className="mr-1 h-4 w-4" /> Check-out
+                                                        </Button>
+                                                    )}
+
+                                                    <Button 
+                                                        variant="outline" 
+                                                        size="icon" 
+                                                        className="h-8 w-8 text-gray-500" 
+                                                        onClick={() => { 
+                                                            setTamuTerpilih(tamu); 
+                                                            setModalAction("detail"); 
+                                                        }}
+                                                    >
+                                                        <Eye className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    );
+                                })
                             )}
                         </TableBody>
-                    </Table>  
+                    </Table>
                 </div>
             </div>
 
@@ -337,35 +318,15 @@ export default function SatpamDashboard() {
                             <Input id="verif-nfc" placeholder="Tap kartu NFC di sini..." autoFocus />
                         </div>
                         
-                        {roleSatpam === "area" ? (
-                            <div className="flex items-start space-x-3 bg-red-50/50 p-3 rounded-lg border border-red-100">
-                                <Checkbox id="lepas-lobby" defaultChecked className="mt-1" />
+                        <div className="space-y-3">
+                            <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-300 flex items-start gap-3">
+                                <AlertTriangle className="h-5 w-5 text-yellow-600 shrink-0 mt-0,5"/>
                                 <div>
-                                    <Label htmlFor="lepas-lobby" className="font-semibold text-red-900">Cabut Akses Lobby {tamuTerpilih?.gedung}</Label>
-                                    <p className="text-xs text-red-700 leading-snug">Tamu keluar dari gedung. (Akses kawasan/Gate 1 masih aktif).</p>
+                                    <p className="text-sm font-bold text-yellow-900">Tarik NFC & Kembalikan KTP</p>
+                                    <p className="text-xs text-yellow-800 mt-1">Pastikan kartu NFC ditarik kembali oleh petugas dan KTP asli dikembalikan kepada tamu.</p>
                                 </div>
                             </div>
-                        ) : (
-                            <div className="space-y-3">
-                                <div className="flex items-start space-x-3 bg-red-50 p-3 rounded-lg border border-red-200">
-                                    <Checkbox id="lepas-semua" defaultChecked className="mt-1" />
-                                    <div>
-                                        <Label htmlFor="lepas-semua" className="font-bold text-red-900">Cabut SEMUA Akses secara Paksa</Label>
-                                        <p className="text-xs text-red-700 leading-snug mt-1">
-                                            Opsi ini akan otomatis mencabut akses Lobby, Parkir, dan Gate Utama, 
-                                            sekalipun tamu lupa check-out di pos {tamuTerpilih?.gedung}.
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-300 flex items-start gap-3">
-                                    <AlertTriangle className="h-5 w-5 text-yellow-600 shrink-0 mt-0.5" />
-                                    <div>
-                                        <p className="text-sm font-bold text-yellow-900">Tarik NFC & Kembalikan KTP</p>
-                                        <p className="text-xs text-yellow-800 mt-1">Pastikan kartu NFC ditarik kembali oleh petugas dan KTP asli dikembalikan kepada tamu.</p>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
+                        </div>
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={tutupModal}>Batal</Button>
@@ -383,8 +344,8 @@ export default function SatpamDashboard() {
                     <div className="border border-gray-200 rounded-xl overflow-hidden mb-6 bg-white">
                         <div className="p-5 border-b border-gray-100">
                             <h4 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">Data Tamu</h4>
-                            <TabelKonfirmasi label="Nama" nilai={tamuTerpilih?.nama} />
-                            <TabelKonfirmasi label="Asal Instansi" nilai={tamuTerpilih?.instansi} />
+                            <TabelKonfirmasi label="Nama" nilai={tamuTerpilih?.namaTamu} />
+                            <TabelKonfirmasi label="Asal Instansi" nilai={tamuTerpilih?.asalInstansi} />
                             <TabelKonfirmasi label="NIK" nilai={tamuTerpilih?.nik} />
                             <TabelKonfirmasi label="Email" nilai={tamuTerpilih?.email} />
                             <TabelKonfirmasi label="Gambar KTP" nilai={tamuTerpilih?.ktp} />
@@ -392,11 +353,9 @@ export default function SatpamDashboard() {
                         </div>
                         <div className="p-5 border-b border-gray-100">
                             <h4 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">Detail Kunjungan</h4>
-                            <TabelKonfirmasi label="Karyawan Dituju" nilai={tamuTerpilih?.tujuan} />
-                            <TabelKonfirmasi label="Lokasi Gedung" nilai={tamuTerpilih?.gedung} />
+                            <TabelKonfirmasi label="Karyawan Dituju" nilai={tamuTerpilih?.karyawanDituju} />
                             <TabelKonfirmasi label="Departemen" nilai={tamuTerpilih?.departemen} />
-                            <TabelKonfirmasi label="Tujuan" nilai={tamuTerpilih?.tujuan} />
-                            <TabelKonfirmasi label="Waktu" nilai={tamuTerpilih?.tanggal | tamuTerpilih?.jam} />
+                            <TabelKonfirmasi label="Tujuan Spesifik" nilai={tamuTerpilih?.tujuanKunjungan} />
                         </div>
                     </div>
                     <DialogFooter>

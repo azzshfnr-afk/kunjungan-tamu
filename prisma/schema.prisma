@@ -21,6 +21,8 @@ model Tamu {
   waktuCheckIn      DateTime
   waktuCheckOut     DateTime
   createdAt         DateTime @default(now())
+  status            String   @default("Menunggu Kedatangan")
+  nfcId             String?
 
   anggotaRombongan  AnggotaRombongan[]
 }
