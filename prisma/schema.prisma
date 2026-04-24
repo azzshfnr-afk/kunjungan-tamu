@@ -23,18 +23,30 @@ model Tamu {
   createdAt         DateTime @default(now())
   status            String   @default("Menunggu Kedatangan")
   nfcId             String?
+  fotoKtp           String?
+  statusKunjungan   String   @default("MENUNGGU_GATE_1")
+  gedungTujuan      String?
+  aksesAktif        String?
 
   anggotaRombongan  AnggotaRombongan[]
 }
 
 model AnggotaRombongan {
-  id        Int   @id @default(autoincrement())
-  nama      String
-  email     String?
-  noTelp    String?
+  id                Int      @id @default(autoincrement())
+  nama              String
+  email             String?
+  noTelp            String?
 
-  tamu      Tamu  @relation(fields: [tamuId], references: [id])
-  tamuId    Int
+  tamu              Tamu     @relation(fields: [tamuId], references: [id])
+  tamuId            Int
+}
+
+model User {
+  id          Int     @id @default(autoincrement())
+  username    String  @unique  
+  password    String           
+  role        String  @default("SATPAM_AREA")
+  lokasiTugas String?
 }
 
 model Visitor {

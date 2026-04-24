@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import nodemailer from 'nodemailer';
-import { PrismaClient } from '@prisma/client/extension';
+import { writeFile, mkdir } from 'fs/promises';
+import { join } from 'path';
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -49,8 +50,28 @@ export async function POST(request: Request) {
     }
 
     const fileKTP = formData.get("ktp") as File | null;
-    if (fileKTP) {
-        console.log("Ada file KTP masuk:", fileKTP.name);
+    let fotoKtpUrl = null;
+
+    if (fileKTP && fileKTP.name) {
+        console.log("Mulai memproses file KTP:", fileKTP.name);
+        try {
+          const bytes = await fileKTP.arrayBuffer();
+          const buffer = Buffer.from(bytes);
+
+          const uniqueName = `${Date.now()}-${fileKTP.name.replace(/[^a-zA-Z0-9.-]/g, '-')}`;
+
+          const uploadDir = join(process.cwd(), 'public', 'uploads');
+
+          await mkdir(uploadDir, { recursive: true });
+
+          const filePath = join(uploadDir, uniqueName);
+          await writeFile(filePath, buffer);
+
+          fotoKtpUrl = `/uploads/${uniqueName}`;
+          console.log("File KTP berhasil disimpan di:", fotoKtpUrl);
+        } catch (err) {
+          console.error("Gagal menyimpan file KTP:", err);
+        }
     }
 
     const hasil = await prisma.tamu.create({
@@ -65,6 +86,7 @@ export async function POST(request: Request) {
         tujuanKunjungan,
         waktuCheckIn: waktuCheckIn,
         waktuCheckOut: waktuCheckOut,
+        fotoKtp: fotoKtpUrl,
         anggotaRombongan: {
           create: anggotaRombonganParsed.map((a: any) => ({
             nama: a.nama || "-",
@@ -77,14 +99,6 @@ export async function POST(request: Request) {
 
     if (email !== "-") {
       try {
-        const transporter = nodemailer.createTransport({
-          service: "gmail",
-          auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS,
-          },
-        });
-
         const mailOptions = {
           from: `"Admin Kunjungan" <${process.env.EMAIL_USER}>`,
           to: email,

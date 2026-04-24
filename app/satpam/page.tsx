@@ -10,7 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import dynamic from 'next/dynamic';
 import { 
     ScanLine, IdCard, CheckCircle2, ShieldCheck, 
-    LogOut, SearchIcon, AlertTriangle, Eye 
+    LogOut, SearchIcon, AlertTriangle, Eye, Building, Users 
 } from "lucide-react";
 
 const Scanner = dynamic(() => import('@yudiel/react-qr-scanner').then(mod => mod.Scanner), { 
@@ -22,10 +22,42 @@ function TabelKonfirmasi({ label, nilai }: { label: string; nilai: any }) {
     return (
         <div className="flex justify-between text-sm py-1.5 gap-2 border-b border-gray-100/50 last:border-0">
             <span className="text-gray-500">{label}</span>
-            <span className="font-medium text-right text-gray-800">{nilai}</span>
+            <span className="font-medium text-right text-gray-800">{nilai || "-"}</span>
         </div>
     );
 }
+
+const DAFTAR_GEDUNG = [
+    "Gedung Pusat Administrasi (GPA)",
+    "Gedung Diklat",
+    "Pabrik 1A",
+    "Pabrik 1B",
+    "Gedung MO",
+    "Gedung LC"
+];
+
+const DATA_KARYAWAN: Record<string, { bet: string, nama: string }[]> = {
+    "Gedung Pusat Administrasi (GPA)": [
+        { bet: "PKC-101", nama: "Junaedi (TI)" },
+        { bet: "PKC-102", nama: "Susi (Keuangan)" }
+    ],
+    "Gedung Diklat" : [
+        { bet: "PKC-201", nama: "Yoyo (Pelayanan Umum)" },
+        { bet: "PKC-202", nama: "Mumun (Sekretaris)" }
+    ],
+    "Pabrik 1A": [
+        { bet: "PKC-301", nama: "Velia (Humas)" }
+    ],
+    "Pabrik 1B": [
+        { bet: "PKC-401", nama: "Nazla (QC)" }
+    ],
+    "Gedung MO": [
+        { bet: "PKC-501", nama: "Zihan (MPSDM)" }
+    ],
+    "Gedung LC": [
+        { bet: "PKC-601", nama: "Bibah (Akuntansi)" }
+    ]
+};
 
 export default function SatpamDashboard() {
     const [roleSatpam, setRoleSatpam] = useState<"gate1" | "area">("gate1");
@@ -36,6 +68,9 @@ export default function SatpamDashboard() {
 
     const [tamuTerpilih, setTamuTerpilih] = useState<any>(null);
     const [modalAction, setModalAction] = useState<"checkout" | "detail" | null>(null);
+
+    const [selectedGedung, setSelectedGedung] = useState("");
+    const [selectedKaryawan, setSelectedKaryawan] = useState("");
 
     const [dataTamu, setDataTamu] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -54,7 +89,6 @@ export default function SatpamDashboard() {
                 setIsLoading(false);
             }
         };
-
         fetchTamu();
     }, []);
 
@@ -62,13 +96,23 @@ export default function SatpamDashboard() {
         setIsScanModalOpen(open);
         if (!open) {
             setStepScan(1);
-            setTamuTerpilih(null); 
+            setTamuTerpilih(null);
+            setSelectedGedung("");
+            setSelectedKaryawan(""); 
         }
     };
 
     const tutupModal = () => {
         setModalAction(null);
         setTamuTerpilih(null);
+    };
+
+    const handleBukaValidasi = (tamu: any) => {
+        setTamuTerpilih(tamu);
+        setSelectedGedung("");
+        setSelectedKaryawan("");
+        setStepScan(2);
+        setIsScanModalOpen(true);
     };
 
     return (
@@ -92,7 +136,6 @@ export default function SatpamDashboard() {
                         <div className="relative w-full sm:w-72">
                             <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                             <Input 
-                                id="search-tamu" 
                                 placeholder="Cari nama atau ID..." 
                                 className="pl-9 border-gray-300 focus-visible:ring-blue-600"
                                 value={searchQuery}
@@ -102,10 +145,7 @@ export default function SatpamDashboard() {
 
                         <Dialog open={isScanModalOpen} onOpenChange={handleCloseScanModal}>
                             <DialogTrigger asChild>
-                                <Button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white shadow-md" onClick={() => {
-                                    setTamuTerpilih(null);
-                                    setStepScan(1);
-                                }}>
+                                <Button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white shadow-md" onClick={() => handleCloseScanModal(true)}>
                                     <ScanLine className="mr-2 h-5 w-5" />
                                     Scan QR Check-in
                                 </Button>
@@ -127,9 +167,6 @@ export default function SatpamDashboard() {
                                         {stepScan === 2 && "Step 2: Verifikasi Data Tamu"}
                                         {stepScan === 3 && "Step 3: Berikan Akses & NFC"}
                                     </DialogTitle>
-                                    <DialogDescription className="sr-only">
-                                        Proses check-in pengunjung menggunakan QR Code.
-                                    </DialogDescription>
                                 </div>
 
                                 <div className="p-6">
@@ -140,42 +177,77 @@ export default function SatpamDashboard() {
                                                     onScan={(result) => {
                                                         if (result && result.length > 0) {
                                                             console.log("QR Terdeteksi:", result[0].rawValue);
+                                                            if (dataTamu.length > 0) setTamuTerpilih(dataTamu[0]);
                                                             setStepScan(2);
                                                         }
                                                     }}
                                                     onError={(error) => console.error("Kamera Error:", error)}
-                                                    components={{ finder: false }}
-                                                    styles={{
-                                                        container: { width: '100%', height: '100%' },
-                                                        video: { objectFit: 'cover' }
-                                                    }}
                                                 />
                                             </div>
-
-                                            <p className="text-xs text-gray-500 px-4">
-                                                Arahkan kamera ke QR Code yang ada pada tiket tamu.
-                                            </p>
-
-                                            <Button variant="outline" size="sm" className="mt-2 text-[10px]" onClick={() => setStepScan(2)}>
+                                            <Button variant="outline" size="sm" className="mt-2 text-[10px]" onClick={() => {
+                                                if (dataTamu.length > 0) setTamuTerpilih(dataTamu[0]);
+                                                setStepScan(2);
+                                            }}>
                                                 (Dev Mode) Lewati Scan 
                                             </Button>
                                         </div>
                                     )}
 
                                     {stepScan === 2 && (
-                                        <div className="space-y-4">
+                                        <div className="space-y-5">
                                             <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
-                                                <p className="text-[10px] text-blue-600 font-bold uppercase tracking-wider mb-2">ID Kunjungan: PKC-{String(tamuTerpilih?.id || 20260414).padStart(4, '0')}</p>
+                                                <p className="text-[10px] text-blue-600 font-bold uppercase tracking-wider mb-2">ID Kunjungan: PKC-{String(tamuTerpilih?.id || 0).padStart(4, '0')}</p>
                                                 <div className="space-y-1">
-                                                    <TabelKonfirmasi label="Nama Lengkap" nilai={tamuTerpilih?.nama || "Azkia Shafa"} />
-                                                    <TabelKonfirmasi label="Instansi" nilai={tamuTerpilih?.instansi || "UPI Bandung"} />
-                                                    <TabelKonfirmasi label="Tujuan Gedung" nilai={tamuTerpilih?.gedung || "Gedung Pusat Administrasi"} />
-                                                    <TabelKonfirmasi label="Karyawan Dituju" nilai={tamuTerpilih?.tujuan || "Bapak Junaedi"} />
+                                                    <TabelKonfirmasi label="Nama Lengkap" nilai={tamuTerpilih?.namaTamu} />
+                                                    <TabelKonfirmasi label="Instansi" nilai={tamuTerpilih?.asalInstansi} />
+                                                    <TabelKonfirmasi label="Tujuan (Di Form)" nilai={tamuTerpilih?.tujuanKunjungan} />
                                                 </div>
                                             </div>
+
+                                            <div className="space-y-4 border-t pt-4">
+                                                <div className="space-y-1.5">
+                                                    <Label className="flex items-center gap-2 text-gray-700">
+                                                        <Building className="w-4 h-4 text-blue-600" /> Gedung Tujuan Aktual
+                                                    </Label>
+                                                    <select 
+                                                        className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+                                                        value={selectedGedung}
+                                                        onChange={(e) => {
+                                                            setSelectedGedung(e.target.value);
+                                                            setSelectedKaryawan(""); 
+                                                        }}
+                                                    >
+                                                        <option value="">-- Pilih Gedung --</option>
+                                                        {DAFTAR_GEDUNG.map(gedung => (
+                                                            <option key={gedung} value={gedung}>{gedung}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+
+                                                {selectedGedung && (
+                                                    <div className="space-yy-1.5 animate-in fade-in slide-in-from-top-2">
+                                                        <Label className="flex items-center gap-2 text-gray-700">
+                                                            <Users className="w-4 h-4 text-blue-600" /> Karyawan Dituju (Sesuai Bet)
+                                                        </Label>
+                                                        <select
+                                                            className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2-blue-600"
+                                                            value={selectedKaryawan}
+                                                            onChange={(e) => setSelectedKaryawan(e.target.value)}
+                                                        >
+                                                            <option value="">-- Pilih Karyawan --</option>
+                                                            {DATA_KARYAWAN[selectedGedung]?.map(karyawan => (
+                                                                <option key={karyawan.bet} value={karyawan.bet}>
+                                                                    [{karyawan.bet}] - {karyawan.nama}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                )}
+                                            </div>
+
                                             <div className="flex gap-2">
                                                 <Button variant="outline" className="flex-1" onClick={() => setStepScan(1)}>Ulangi Scan</Button>
-                                                <Button className="flex-1 bg-blue-600 hover:bg-blue-700" onClick={() => setStepScan(3)}>Data Sesuai →</Button>
+                                                <Button className="flex-1 bg-blue-600 hover:bg-blue-700" disabled={!selectedGedung || !selectedKaryawan} onClick={() => setStepScan(3)}>Lanjut ke Akses </Button>
                                             </div>
                                         </div>
                                     )}
@@ -188,6 +260,29 @@ export default function SatpamDashboard() {
                                                 </Label>
                                                 <Input id="nfc-card" placeholder="Tap kartu NFC sekarang..." autoFocus />
                                             </div>
+
+                                            <div className="space-y-3">
+                                                <Label className="text-gray-700 font-semibold">Berikan Izin Akses Sesuai Tujuan</Label>
+                                                <div className="space-y-2">
+                                                    <div className="flex items-start space-x-3 bg-blue-50/50 p-3 rounded-lg border border-blue-100">
+                                                        <Checkbox id="akses-gate1" defaultChecked disabled className="mt-1 opacity-70" />
+                                                        <div>
+                                                            <Label htmlFor="akses-gate1" className="font-semibold text-blue-900">Akses Gate 1 Utama</Label>
+                                                            <p className="text-xs text-blue-700 leading-snug">Wajib untuk masuk kawasan perusahaan.</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex ites-start space-x-3 bg-blue-50/50 p-3 rounded-lg border border-blue-100">
+                                                        <Checkbox id="akses-area" defaultChecked className="mt-1" />
+                                                        <div>
+                                                            <Label htmlFor="akses-area" className="font-semibold text-blue-900 cursor-pointer">
+                                                                Akses Area {selectedGedung || "Gedung Tujuan"}
+                                                            </Label>
+                                                            <p className="text-xs text-blue-700 leading-snug">Izin membuka portal parkir menuju {selectedGedung}. Akses ruang dalam ditentukan Satpam Area nanti.</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
                                             <div className="flex gap-2">
                                                 <Button variant="outline" className="flex-1" onClick={() => setStepScan(2)}>Kembali</Button>
                                                 <Button className="flex-1 bg-green-600 hover:bg-green-700 text-white" onClick={() => handleCloseScanModal(false)}>
@@ -206,10 +301,10 @@ export default function SatpamDashboard() {
                     <Table>
                         <TableHeader>
                             <TableRow className="bg-gray-50 hover:bg-gray-50">
-                                <TableHead className="font-semibold text-gray-900">Waktu</TableHead>
+                                <TableHead className="font-semibold text-gray-900 w-[200px]">Waktu Kunjungan</TableHead>
                                 <TableHead className="font-semibold text-gray-900">Nama Tamu</TableHead>
                                 <TableHead className="font-semibold text-gray-900">Instansi</TableHead>
-                                <TableHead className="font-semibold text-gray-900">Gedung Tujuan</TableHead>
+                                <TableHead className="font-semibold text-gray-900">Departemen</TableHead>
                                 <TableHead className="font-semibold text-gray-900">Status</TableHead>
                                 <TableHead className="font-semibold text-gray-900">ID NFC</TableHead>
                                 <TableHead className="text-right font-semibold text-gray-900">Aksi</TableHead>
@@ -238,11 +333,17 @@ export default function SatpamDashboard() {
                                     ? "bg-green-100 text-green-800 border-green-200"
                                     : "bg-gray-100 text-gray-800 border-gray-200";
 
-                                    const waktuCheckInFormat = new Date(tamu.waktuCheckIn).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + " WIB";
-
+                                    const dateObj = new Date(tamu.waktuCheckIn);
+                                    const formatTanggal = dateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+                                    const formatJam = dateObj.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + " WIB";
                                     return (
                                         <TableRow key={tamu.id}>
-                                            <TableCell className="font-medium text-gray-600">{waktuCheckInFormat}</TableCell>
+                                            <TableCell>
+                                                <div className="flex flex-col">
+                                                    <span className="font-medium text-gray-900">{formatTanggal}</span>
+                                                    <span className="text-xs text-gray-500">{formatJam}</span>
+                                                </div>
+                                            </TableCell>
                                             <TableCell className="font-bold text-gray-900">{tamu.namaTamu}</TableCell>
                                             <TableCell>{tamu.asalInstansi || "-"}</TableCell>
                                             <TableCell>{tamu.departemen || "-"}</TableCell>
@@ -258,11 +359,7 @@ export default function SatpamDashboard() {
                                                         <Button 
                                                             size="sm" 
                                                             className="bg-blue-600 hover:bg-blue-700 text-white h-8" 
-                                                            onClick={() => { 
-                                                                setTamuTerpilih(tamu); 
-                                                                setStepScan(2); 
-                                                                setIsScanModalOpen(true); 
-                                                            }}
+                                                            onClick={() => handleBukaValidasi(tamu)}
                                                         >
                                                             <ShieldCheck className="mr-1 h-4 w-4" /> Validasi
                                                         </Button>
@@ -308,49 +405,45 @@ export default function SatpamDashboard() {
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Check-out Tamu: {tamuTerpilih?.nama}</DialogTitle>
-                        <DialogDescription>
-                            Proses pencabutan akses tamu dari kawasan.
-                        </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-2">
-                        <div className="mb-4">
-                            <Label htmlFor="verif-nfc" className="text-xs font-semibold text-gray-700 mb-1 block">Verifikasi Kepulangan (Tap NFC)</Label>
-                            <Input id="verif-nfc" placeholder="Tap kartu NFC di sini..." autoFocus />
+                        <Label>Verifikasi Kepulangan (Tap NFC)</Label>
+                        <Input placeholder="Tap kartu NFC di sini..." autoFocus />
                         </div>
-                        
-                        <div className="space-y-3">
-                            <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-300 flex items-start gap-3">
-                                <AlertTriangle className="h-5 w-5 text-yellow-600 shrink-0 mt-0,5"/>
-                                <div>
-                                    <p className="text-sm font-bold text-yellow-900">Tarik NFC & Kembalikan KTP</p>
-                                    <p className="text-xs text-yellow-800 mt-1">Pastikan kartu NFC ditarik kembali oleh petugas dan KTP asli dikembalikan kepada tamu.</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={tutupModal}>Batal</Button>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={tutupModal}>Batal</Button>
                         <Button variant="destructive">Proses Check-out</Button>
-                    </DialogFooter>
+                        </DialogFooter>
                 </DialogContent>
             </Dialog>
 
             <Dialog open={modalAction === "detail"} onOpenChange={tutupModal}>
-                <DialogContent>
+                <DialogContent className="sm:max-w-md">
                     <DialogHeader>
-                        <DialogTitle>Detail Tamu: {tamuTerpilih?.nama}</DialogTitle>
-                        <DialogDescription>Lihat Detail Data Tamu {tamuTerpilih?.nfc}</DialogDescription>
+                        <DialogTitle>Detail Tamu: {tamuTerpilih?.namaTamu}</DialogTitle>
+                        <DialogDescription>Informasi lengkap pengunjung</DialogDescription>
                     </DialogHeader>
-                    <div className="border border-gray-200 rounded-xl overflow-hidden mb-6 bg-white">
-                        <div className="p-5 border-b border-gray-100">
-                            <h4 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">Data Tamu</h4>
-                            <TabelKonfirmasi label="Nama" nilai={tamuTerpilih?.namaTamu} />
+                    <div className="space-y-4 max-h-[75vh] overflow-y-auto pr-2">
+                        <div className="flex flex-col bg-gray-50 rounded-xl p-3 border border-gray-200">
+                            <p className="text-xs font-bold text-gray-600 mb-2 uppercase tracking-wider">Foto Identitas (KTP)</p>
+                            {tamuTerpilih?.fotoKtp ? (
+                                <img
+                                    src={tamuTerpilih.fotoKtp} alt={`KTP ${tamuTerpilih?.namaTamu}`} className="w-full h-auto max-h-48 object-contain rounded-lg border border-gray-300 shadow-sm bg-white" />
+                            ) : (
+                                <div className="w-full h-32 flex items-center justify-center bg-gray-200 border-2 border-dashed border-gray-300 rounded-lg">
+                                    <p>Gambar KTP tidak tersedia</p>
+                                </div>
+                            )}
+                        </div>
+                        <div className="space-y-2 border-t pt-4">
+                            <TabelKonfirmasi label="Nama Lengkap" nilai={tamuTerpilih?.namaTamu} />
                             <TabelKonfirmasi label="Asal Instansi" nilai={tamuTerpilih?.asalInstansi} />
                             <TabelKonfirmasi label="NIK" nilai={tamuTerpilih?.nik} />
                             <TabelKonfirmasi label="Email" nilai={tamuTerpilih?.email} />
                             <TabelKonfirmasi label="Gambar KTP" nilai={tamuTerpilih?.ktp} />
                             <TabelKonfirmasi label="No. Telepon" nilai={tamuTerpilih?.noTelp || "-"} />
                         </div>
+                    
                         <div className="p-5 border-b border-gray-100">
                             <h4 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">Detail Kunjungan</h4>
                             <TabelKonfirmasi label="Karyawan Dituju" nilai={tamuTerpilih?.karyawanDituju} />

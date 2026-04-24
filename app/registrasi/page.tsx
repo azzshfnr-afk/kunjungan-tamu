@@ -128,6 +128,12 @@ export default function HalamanRegistrasi() {
     const [sedangLoading, setSedangLoading] = useState(false);
     const [fotoTamu, setFotoTamu] = useState<any>(null);
 
+    const [dataForm, setDataForm] = useState({
+        namaTamu: "", asalInstansi: "", email: "", noTelp: "", nik: "", ktp: null as File | null, 
+        karyawanDituju: "", departemen: "", tujuanKunjungan: "", tanggalCheckIn: "", jamCheckIn: "", tanggalCheckOut: "", jamCheckOut: "",
+        anggotaRombongan: [{ nama: "", email: "", noTelp: "", gunakanEmailUtama: false}],
+    });
+
     const handleUploadFoto = (file: any) => {
         if (file) {
             setFotoTamu(URL.createObjectURL(file));
@@ -135,11 +141,55 @@ export default function HalamanRegistrasi() {
         }
     };
 
-    const [dataForm, setDataForm] = useState({
-        namaTamu: "", asalInstansi: "", email: "", noTelp: "", nik: "", ktp: null as File | null, 
-        karyawanDituju: "", departemen: "", tujuanKunjungan: "", tanggalCheckIn: "", jamCheckIn: "", tanggalCheckOut: "", jamCheckOut: "",
-        anggotaRombongan: [{ nama: "", email: "", noTelp: "", gunakanEmailUtama: false}],
-    });
+    const handleSubmit = async (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
+        if (!validasiStep1() || !validasiStep2()) return;
+        setSedangLoading(true);
+        
+        try {
+            const formDataBaru = new FormData();
+
+            formDataBaru.append("namaTamu", dataForm.namaTamu);
+            formDataBaru.append("email", dataForm.email);
+            formDataBaru.append("asalInstansi", dataForm.asalInstansi);
+            formDataBaru.append("noTelp", dataForm.noTelp);
+            formDataBaru.append("nik", dataForm.nik);
+            formDataBaru.append("karyawanDituju", dataForm.karyawanDituju);
+            formDataBaru.append("departemen", dataForm.departemen);
+            formDataBaru.append("tujuanKunjungan", dataForm.tujuanKunjungan);
+            formDataBaru.append("tanggalCheckIn", dataForm.tanggalCheckIn); 
+            formDataBaru.append("jamCheckIn", dataForm.jamCheckIn);
+            formDataBaru.append("tanggalCheckOut", dataForm.tanggalCheckOut); 
+            formDataBaru.append("jamCheckOut", dataForm.jamCheckOut);
+
+            if (jikaRombongan) {
+                formDataBaru.append("anggotaRombongan", JSON.stringify(dataForm.anggotaRombongan));
+            }
+            if (dataForm.ktp) {
+                formDataBaru.append("ktp", dataForm.ktp);
+            }
+
+            const response = await fetch('/api/tamu', {
+                method: 'POST',
+                body: formDataBaru,
+            });
+            
+            const result = await response.json();
+            
+            if (result.ok) {
+                const realId = `PKC-${String(result.data.id).padStart(4, '0')}`;
+                setIdKunjungan(realId);
+                setBerhasilSubmit(true);
+            } else {
+                alert("Gagal mengirim data: " + result.message);
+            }
+        } catch (error) {
+            console.error("Error submit data:", error);
+            alert("Terjadi kesalahan sistem saat mengirim data.");
+        } finally {
+            setSedangLoading(false);
+        }
+    };
 
     const ubahField = (namaField: string, nilai: any) => {
         if (namaField === "namaTamu" || namaField === "karyawanDituju") {
@@ -147,7 +197,7 @@ export default function HalamanRegistrasi() {
         }
 
         if (namaField === "noTelp" || namaField === "nik") {
-            nilai = nilai.replace(/|D/g, "");
+            nilai = nilai.replace(/\D/g, "");
         }
 
         if (namaField === "nik" && nilai.length > 16) {
@@ -235,58 +285,6 @@ export default function HalamanRegistrasi() {
     }
     return true;
 };
-
-    const mulaiSubmit = async (e?: any) => {
-    if (e) e.preventDefault(); 
-    
-    setSedangLoading(true);
-
-    const formDataBaru = new FormData();
-    formDataBaru.append("namaTamu", dataForm.namaTamu);
-    formDataBaru.append("email", dataForm.email);
-    formDataBaru.append("asalInstansi", dataForm.asalInstansi);
-    formDataBaru.append("noTelp", dataForm.noTelp);
-    formDataBaru.append("nik", dataForm.nik);
-    formDataBaru.append("karyawanDituju", dataForm.karyawanDituju);
-    formDataBaru.append("departemen", dataForm.departemen);
-    formDataBaru.append("tujuanKunjungan", dataForm.tujuanKunjungan);
-    formDataBaru.append("tanggalCheckIn", dataForm.tanggalCheckIn); 
-    formDataBaru.append("jamCheckIn", dataForm.jamCheckIn);
-    formDataBaru.append("tanggalCheckOut", dataForm.tanggalCheckOut); 
-    formDataBaru.append("jamCheckOut", dataForm.jamCheckOut);
-
-    if (fotoTamu) {
-        formDataBaru.append("ktp", fotoTamu);
-    }
-
-    if (dataForm.anggotaRombongan) {
-        formDataBaru.append("anggotaRombongan", JSON.stringify(dataForm.anggotaRombongan));
-    }
-
-    try {
-        const response = await fetch('/api/tamu', {
-            method: 'POST',
-            body: formDataBaru,
-        });
-
-        const result = await response.json();
-
-        if (response.ok && result.data) {
-            const realId = `PKC-${String(result.data.id).padStart(4, '0')}`;
-            
-            setIdKunjungan(realId);
-            setBerhasilSubmit(true); 
-        } else {
-            alert(result.message || "Gagal menyimpan data pendaftaran.");
-        }
-
-    } catch (error: any) { 
-        console.error("Gagal submit:", error);
-        alert("Terjadi kesalahan saat menyambung ke server.");
-    } finally {
-        setSedangLoading(false);
-    }
-    };
 
     const resetForm = () => {
         setIdKunjungan(""); setBerhasilSubmit(false); setPosisiHalaman(1); setSudahSetujuK3(false); setJikaRombongan(false); setFotoTamu(null);
@@ -643,7 +641,7 @@ export default function HalamanRegistrasi() {
 
                             <div className="flex justify-between mt-8 pt-6 border-t border-gray-100">
                                 <Button variant="outline" onClick={() => setPosisiHalaman(2)} disabled={sedangLoading}>← Sebelumnya</Button>
-                                <Button className="bg-green-600 text-white hover:bg-green-700 min-w-[140px]" onClick={mulaiSubmit} disabled={sedangLoading}>
+                                <Button className="bg-green-600 text-white hover:bg-green-700 min-w-[140px]" onClick={handleSubmit} disabled={sedangLoading}>
                                     {sedangLoading ? "Mengirim..." : "Kirim Registrasi"}
                                 </Button>
                             </div>
