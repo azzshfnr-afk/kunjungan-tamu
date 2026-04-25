@@ -75,10 +75,14 @@ export default function VisitorCardPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch("/api/visitor");
+        setLoading(true);
+        // FIX: Alamat diubah ke /api/tamu agar konek
+        const res = await fetch("/api/tamu");
+        
+        if (!res.ok) throw new Error("Gagal mengambil data");
+        
         const result = await res.json();
 
-        // FIX utama: pastikan data array
         if (Array.isArray(result)) {
           setData(result);
         } else if (Array.isArray(result.data)) {
@@ -97,15 +101,16 @@ export default function VisitorCardPage() {
     fetchData();
   }, []);
 
-  const today = new Date().toDateString();
+  const now = new Date();
+  const todayISO = now.toISOString().split('T')[0];
 
   const filteredTab = Array.isArray(data)
     ? data.filter((item) => {
-        const visit = new Date(item.visitDate).toDateString();
+        // Ambil bagian tanggal saja (YYYY-MM-DD)
+        const itemDateISO = new Date(item.visitDate).toISOString().split('T')[0];
 
-        if (tab === "today") return visit === today;
-        if (tab === "upcoming")
-          return new Date(item.visitDate) > new Date();
+        if (tab === "today") return itemDateISO === todayISO;
+        if (tab === "upcoming") return itemDateISO > todayISO;
 
         return true;
       })
@@ -123,7 +128,8 @@ export default function VisitorCardPage() {
 
   const deleteCard = async (id: string) => {
     try {
-      await fetch(`/api/visitor/${id}`, {
+      // FIX: Alamat delete disesuaikan ke api/tamu
+      await fetch(`/api/tamu/${id}`, {
         method: "DELETE",
       });
 
@@ -136,7 +142,6 @@ export default function VisitorCardPage() {
   return (
     <>
       {/* HEADER */}
-
       <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
         <IdCard size={16} />
         <span>›</span>
@@ -172,7 +177,6 @@ export default function VisitorCardPage() {
       </div>
 
       {/* TAB */}
-
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
           <TabsTrigger value="today" className="text-xs">

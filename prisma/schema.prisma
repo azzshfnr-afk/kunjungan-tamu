@@ -28,6 +28,9 @@ model Tamu {
   gedungTujuan      String?
   aksesAktif        String?
 
+  aktualCheckIn     DateTime?
+  aktualCheckOut    DateTime?
+
   anggotaRombongan  AnggotaRombongan[]
 }
 
@@ -49,27 +52,3 @@ model User {
   lokasiTugas String?
 }
 
-model Visitor {
-  id          String   @id @default(cuid())
-  kode        String   @unique   
-
-  name        String
-  instansi    String
-  email       String
-  phone       String
-  ktp         String
-  karyawan    String
-  departemen  String
-  tujuan      String
-
-  visitDate   DateTime
-  visitTime   String
-
-  checkin     DateTime?
-  checkout    DateTime?
-
-  rejected    Boolean  @default(false)
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
