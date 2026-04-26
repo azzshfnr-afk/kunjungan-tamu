@@ -24,7 +24,7 @@ model Tamu {
   status            String   @default("Menunggu Kedatangan")
   nfcId             String?
   fotoKtp           String?
-  statusKunjungan   String   @default("MENUNGGU_GATE_1")
+  statusKunjungan   String?  @default("MENUNGGU_GATE_1")
   gedungTujuan      String?
   aksesAktif        String?
 
