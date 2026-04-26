@@ -228,8 +228,8 @@ export default function VisitorCardPage() {
                             Informasi lengkap
                           </SheetDescription>
                         </SheetHeader>
-
-                        <div className="mt-6 space-y-3 text-sm">
+                      
+                        <div className="p-5 mt-6 space-y-3 text-sm">
                           <Detail
                             label="Nama"
                             value={card.name}
