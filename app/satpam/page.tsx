@@ -229,7 +229,6 @@ export default function SatpamDashboard() {
                 </div>
             </div>
 
-            {/* MODAL CHECK-IN */}
             <Dialog open={modalAction === "checkin"} onOpenChange={(open) => !open && tutupModal()}>
                 <DialogContent className="sm:max-w-md p-0 overflow-hidden">
                     <div className="bg-gray-50 p-6 border-b">
@@ -243,7 +242,21 @@ export default function SatpamDashboard() {
                     <div className="p-6">
                         {stepScan === 1 && (
                             <div className="space-y-4 text-center">
-                                <div className="relative aspect-square bg-black rounded-xl overflow-hidden"><Scanner onScan={(r) => { if(r.length>0){ if(dataTamu.length>0) setTamuTerpilih(dataTamu[0]); setStepScan(2); }}} /></div>
+                                <div className="relative aspect-square bg-black rounded-xl overflow-hidden">
+                                <Scanner onScan={(result) => { if (result && result.length > 0) {
+                                    const qrValue = result[0].rawValue;
+                                    const tamuFound = dataTamu.find(t => t.id.toString() === qrValue);
+                                    if (tamuFound) {
+                                        setTamuTerpilih(tamuFound);
+                                        setStepScan(2);
+                                    } else {
+                                        console.log("Isi QR:", qrValue);
+                                        alert(`Data tamu tidak ditemukan! (QR: ${qrValue})`);
+                                    }
+                                }
+                            }}
+                        />
+                                </div>
                                 <Button variant="outline" size="sm" className="mt-2 text-[10px]" onClick={() => { if(dataTamu.length>0) setTamuTerpilih(dataTamu[0]); setStepScan(2); }}>(Dev) Lewati Scan</Button>
                             </div>
                         )}
@@ -359,13 +372,26 @@ export default function SatpamDashboard() {
                         <DialogTitle>Scan Check-out {roleSatpam === "gateUtama" ? "Gate Utama" : "Area"}</DialogTitle>
                     </DialogHeader>
                     <div className="aspect-square bg-black rounded-xl overflow-hidden">
-                        <Scanner onScan={(r) => { if(r.length>0){ if(dataTamu.length>0) setTamuTerpilih(dataTamu[0]); setStepScan(2); setModalAction("checkout"); }}} />
+                        <Scanner onScan={(result) => { if (result && result.length > 0) { 
+                            const qrValue = result[0].rawValue;
+                            const tamuFound = dataTamu.find(t => t.id.toString() === qrValue);
+
+                            if (tamuFound) {
+                                setTamuTerpilih(tamuFound);
+                                setStepScan(2);
+                                setModalAction("checkout");
+                            } else {
+                                console.log("Isi QR:", qrValue);
+                                alert(`Data tamu tidak ditemukan! (QR: ${qrValue})`);
+                            }
+                        }
+                    }}
+                />
                     </div>
                     <Button variant="outline" size="sm" className="mt-2 text-[10px] w-full" onClick={() => { if(dataTamu.length>0) setTamuTerpilih(dataTamu[0]); setStepScan(2); setModalAction("checkout"); }}>(Dev) Lewati Kamera</Button>
                 </DialogContent>
             </Dialog>
 
-            {/* MODAL CHECK-OUT */}
             <Dialog open={modalAction === "checkout"} onOpenChange={(open) => !open && tutupModal()}>
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
