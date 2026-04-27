@@ -76,7 +76,7 @@ export default function VisitorCardPage() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        // FIX: Alamat diubah ke /api/tamu agar konek
+        
         const res = await fetch("/api/tamu");
         
         if (!res.ok) throw new Error("Gagal mengambil data");
@@ -128,7 +128,7 @@ export default function VisitorCardPage() {
 
   const deleteCard = async (id: string) => {
     try {
-      // FIX: Alamat delete disesuaikan ke api/tamu
+      // alamat delete disesuaikan ke api/tamu
       await fetch(`/api/tamu/${id}`, {
         method: "DELETE",
       });
