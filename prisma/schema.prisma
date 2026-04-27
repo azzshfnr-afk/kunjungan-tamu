@@ -8,47 +8,73 @@ generator client {
 }
 
 model Tamu {
-  id                Int      @id @default(autoincrement())
-  namaTamu          String
-  asalInstansi      String?
-  email             String?
-  noTelp            String?
-  nik               String?
-  karyawanDituju    String?
-  departemen        String?
-  tujuanKunjungan   String
-  tanggalKunjungan  DateTime?
-  waktuCheckIn      DateTime
-  waktuCheckOut     DateTime
-  createdAt         DateTime @default(now())
-  status            String   @default("Menunggu Kedatangan")
-  nfcId             String?
-  fotoKtp           String?
-  statusKunjungan   String?  @default("MENUNGGU_GATE_1")
-  gedungTujuan      String?
-  aksesAktif        String?
+  id               Int       @id @default(autoincrement())
+  namaTamu         String
+  asalInstansi     String?
+  email            String?
+  noTelp           String?
+  nik              String?
+  karyawanDituju   String?
+  departemen       String?
+  tujuanKunjungan  String
+  tanggalKunjungan DateTime?
+  waktuCheckIn     DateTime
+  waktuCheckOut    DateTime
+  createdAt        DateTime  @default(now())
+  status           String    @default("Menunggu Kedatangan")
+  nfcId            String?
+  fotoKtp          String?
+  statusKunjungan  String?   @default("MENUNGGU_GATE_1")
+  gedungTujuan     String?
+  aksesAktif       String?
 
-  aktualCheckIn     DateTime?
-  aktualCheckOut    DateTime?
+  aktualCheckIn  DateTime?
+  aktualCheckOut DateTime?
 
-  anggotaRombongan  AnggotaRombongan[]
+  kartuNfcId Int?      @unique
+  kartuNfc   KartuNfc? @relation(fields: [kartuNfcId], references: [id])
+
+  logTracking LogTracking[]
+
+  anggotaRombongan AnggotaRombongan[]
+}
+
+model KartuNfc {
+  id          Int           @id @default(autoincrement())
+  uidKartu    String        @unique
+  kodeVisual  String        @unique
+  status      String        @default("TERSEDIA")
+  Tamu        Tamu?
+  LogTracking LogTracking[]
+}
+
+model LogTracking {
+  id        Int      @id @default(autoincrement())
+  waktuTap  DateTime @default(now())
+  lokasiTap String
+  jenisTap  String
+
+  kartuNfcId Int
+  kartuNfc   KartuNfc @relation(fields: [kartuNfcId], references: [id])
+
+  tamuId Int
+  tamu   Tamu @relation(fields: [tamuId], references: [id])
 }
 
 model AnggotaRombongan {
-  id                Int      @id @default(autoincrement())
-  nama              String
-  email             String?
-  noTelp            String?
+  id     Int     @id @default(autoincrement())
+  nama   String
+  email  String?
+  noTelp String?
 
-  tamu              Tamu     @relation(fields: [tamuId], references: [id])
-  tamuId            Int
+  tamu   Tamu @relation(fields: [tamuId], references: [id])
+  tamuId Int
 }
 
 model User {
   id          Int     @id @default(autoincrement())
-  username    String  @unique  
-  password    String           
+  username    String  @unique
+  password    String
   role        String  @default("SATPAM_AREA")
   lokasiTugas String?
 }
-

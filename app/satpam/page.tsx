@@ -50,16 +50,10 @@ export default function SatpamDashboard() {
     const [selectedGedung, setSelectedGedung] = useState("");
     const [selectedKaryawan, setSelectedKaryawan] = useState("");
     
-    const [aksesBeri, setAksesBeri] = useState({
-        gateUtama: true,
-        gateParkir: true
-    });
+    const [uidNfc, setUidNfc] = useState("");
 
-    const [aksesLepas, setAksesLepas] = useState({
-        gateUtama: true,
-        gateParkir: true,
-        gateLobby: true
-    });
+    const [aksesBeri, setAksesBeri] = useState({ gateUtama: true, gateParkir: true });
+    const [aksesLepas, setAksesLepas] = useState({ gateUtama: true, gateParkir: true, gateLobby: true });
 
     const [dataTamu, setDataTamu] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -79,13 +73,19 @@ export default function SatpamDashboard() {
         fetchTamu();
     }, []);
 
-    const updateStatusTamu = async (id: string, statusBaru: string, akses: string) => {
+    const updateStatusTamu = async (id: string, statusBaru: string, akses: string, uidCard?: string, lokasi?: string) => {
         setDataTamu(prev => prev.map(t => t.id === id ? { ...t, statusKunjungan: statusBaru, aksesAktif: akses } : t));
         try {
             await fetch('/api/satpam/update-status', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: id, statusKunjungan: statusBaru, aksesAktif: akses }),
+                body: JSON.stringify({ 
+                    id: id, 
+                    statusKunjungan: statusBaru, 
+                    aksesAktif: akses,
+                    uidNfc: uidCard,    
+                    lokasiTap: lokasi   
+                }),
             });
         } catch (error) {
             console.error("Error updating database:", error);
@@ -98,6 +98,7 @@ export default function SatpamDashboard() {
         setStepScan(1);
         setSelectedGedung("");
         setSelectedKaryawan("");
+        setUidNfc(""); 
         setAksesBeri({ gateUtama: true, gateParkir: true });
         setAksesLepas({ gateUtama: true, gateParkir: true, gateLobby: true });
     };
@@ -134,11 +135,9 @@ export default function SatpamDashboard() {
                             <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                             <Input placeholder="Cari nama tamu..." className="pl-9 h-9 text-sm border-gray-300" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
                         </div>
-
                         <Button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 h-9" onClick={() => { setStepScan(1); setModalAction("checkin"); }}>
                             <ScanLine className="mr-2 h-4 w-4" /> Scan Check-in
                         </Button>
-                        
                         <Button variant="destructive" className="w-full sm:w-auto h-9" onClick={() => { setStepScan(1); setModalAction("scan_checkout"); }}>
                             <QrCode className="mr-2 h-4 w-4" /> Scan Check-out
                         </Button>
@@ -186,7 +185,6 @@ export default function SatpamDashboard() {
                                             
                                             <TableCell className="text-center">
                                                 <div className="flex justify-center items-center gap-1.5 flex-wrap">
-                                                    
                                                     {roleSatpam === "gateUtama" && (
                                                         <>
                                                             {st === "MENUNGGU_GATE_UTAMA" && (
@@ -206,10 +204,9 @@ export default function SatpamDashboard() {
                                                         <>
                                                             {(st === "MENUJU_GEDUNG" || st === "DI_LOBBY_GEDUNG") && (
                                                                 <Button size="sm" className="bg-green-600 hover:bg-green-700 h-8 text-xs" onClick={() => { setTamuTerpilih(tamu); setStepScan(2); setModalAction("checkin"); }}>
-                                                                    <LogIn className="mr-1 h-3 w-3" /> Check-in (Beri Akses Lobby)
+                                                                    <LogIn className="mr-1 h-3 w-3" /> Check-in (Beri Akses)
                                                                 </Button>
                                                             )}
-
                                                             {st === "DI_DALAM_RUANGAN" && (
                                                                 <Button size="sm" variant="destructive" className="h-8 text-xs" onClick={() => { setTamuTerpilih(tamu); setModalAction("checkout"); }}>
                                                                     <LogOut className="mr-1 h-3 w-3" /> Check-out (Tarik Akses)
@@ -232,6 +229,7 @@ export default function SatpamDashboard() {
                 </div>
             </div>
 
+            {/* MODAL CHECK-IN */}
             <Dialog open={modalAction === "checkin"} onOpenChange={(open) => !open && tutupModal()}>
                 <DialogContent className="sm:max-w-md p-0 overflow-hidden">
                     <div className="bg-gray-50 p-6 border-b">
@@ -264,7 +262,6 @@ export default function SatpamDashboard() {
                                             {DAFTAR_GEDUNG.map(g => <option key={g} value={g}>{g}</option>)}
                                         </select>
                                     </div>
-                                    
                                     {selectedGedung && (
                                         <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2">
                                             <Label>Karyawan Dituju</Label>
@@ -275,7 +272,6 @@ export default function SatpamDashboard() {
                                         </div>
                                     )}
                                 </div>
-                                
                                 <div className="flex gap-2 mt-4">
                                     <Button variant="outline" className="w-1/3" onClick={() => setStepScan(1)}>Sebelumnya</Button>
                                     <Button className="w-2/3 bg-blue-600 hover:bg-blue-700" disabled={!selectedGedung || !selectedKaryawan} onClick={() => setStepScan(3)}>Lanjut ke NFC</Button>
@@ -289,8 +285,7 @@ export default function SatpamDashboard() {
                                     <TabelKonfirmasi label="Nama Lengkap" nilai={tamuTerpilih?.namaTamu} />
                                     <TabelKonfirmasi label="Status Saat Ini" nilai={tamuTerpilih?.statusKunjungan} />
                                 </div>
-                                <p className="text-sm text-gray-600">Pastikan tamu memang memiliki keperluan untuk memasuki area dalam gedung (melewati gate lobby).</p>
-                                
+                                <p className="text-sm text-gray-600">Pastikan tamu memang memiliki keperluan untuk memasuki area dalam gedung.</p>
                                 <div className="flex gap-2 mt-4">
                                     <Button variant="outline" className="w-1/3" onClick={() => setStepScan(1)}>Sebelumnya</Button>
                                     <Button className="w-2/3 bg-green-600 hover:bg-green-700" onClick={() => setStepScan(3)}>Berikan Akses Lobby</Button>
@@ -302,7 +297,13 @@ export default function SatpamDashboard() {
                             <div className="space-y-6">
                                 <div className="space-y-2">
                                     <Label className="flex items-center font-semibold"><IdCard className="mr-2 h-4 w-4" /> Tap Kartu NFC</Label>
-                                    <Input placeholder="Tap kartu di alat pembaca..." autoFocus />
+                                    <Input 
+                                        placeholder="Tap kartu di alat pembaca..." 
+                                        autoFocus 
+                                        value={uidNfc}
+                                        onChange={(e) => setUidNfc(e.target.value)}
+                                    />
+                                    <p className="text-[10px] text-gray-500">*Pastikan kursor berada di kotak ini saat menempelkan kartu ke alat pembaca.</p>
                                 </div>
                                 
                                 <div className="bg-blue-50/50 p-4 rounded-lg border border-blue-100">
@@ -330,13 +331,17 @@ export default function SatpamDashboard() {
                                     <Button className="w-2/3 bg-blue-600 hover:bg-blue-700" onClick={() => { 
                                         if(tamuTerpilih) {
                                             if(roleSatpam === "gateUtama") {
+                                                if (!uidNfc) {
+                                                    alert("Harap tap kartu NFC terlebih dahulu!");
+                                                    return;
+                                                }
                                                 let aksesArr = [];
                                                 if(aksesBeri.gateUtama) aksesArr.push("GATE_UTAMA");
                                                 if(aksesBeri.gateParkir) aksesArr.push(`PARKIR_${selectedGedung}`);
-                                                updateStatusTamu(tamuTerpilih.id, "MENUJU_GEDUNG", aksesArr.join(","));
+                                                updateStatusTamu(tamuTerpilih.id, "MENUJU_GEDUNG", aksesArr.join(","), uidNfc, "Gate Utama Masuk");
                                             }
                                             if(roleSatpam === "area") {
-                                                updateStatusTamu(tamuTerpilih.id, "DI_DALAM_RUANGAN", tamuTerpilih.aksesAktif + `,LOBBY_${lokasiArea}`);
+                                                updateStatusTamu(tamuTerpilih.id, "DI_DALAM_RUANGAN", tamuTerpilih.aksesAktif + `,LOBBY_${lokasiArea}`, uidNfc || undefined, `Lobby ${lokasiArea} Masuk`);
                                             }
                                         }
                                         tutupModal(); 
@@ -360,6 +365,7 @@ export default function SatpamDashboard() {
                 </DialogContent>
             </Dialog>
 
+            {/* MODAL CHECK-OUT */}
             <Dialog open={modalAction === "checkout"} onOpenChange={(open) => !open && tutupModal()}>
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
@@ -394,12 +400,18 @@ export default function SatpamDashboard() {
                                 <div className="space-y-4 py-2">
                                     <div className="bg-red-50 p-4 rounded-lg border border-red-100">
                                         <Label className="text-red-800 font-semibold mb-2 block">Tap NFC untuk Melepas Akses</Label>
-                                        <Input className="border-red-300 focus-visible:ring-red-500" placeholder="Tap kartu NFC di sini..." autoFocus />
+                                        <Input 
+                                            className="border-red-300 focus-visible:ring-red-500" 
+                                            placeholder="Tap kartu NFC di sini..." 
+                                            autoFocus 
+                                            value={uidNfc}
+                                            onChange={(e) => setUidNfc(e.target.value)}
+                                        />
                                     </div>
                                     <div className="flex gap-2 mt-4">
                                         <Button variant="outline" className="flex-1" onClick={() => setStepScan(2)}>Kembali</Button>
                                         <Button variant="destructive" className="flex-1" onClick={() => {
-                                            updateStatusTamu(tamuTerpilih.id, "SELESAI", "NONAKTIF");
+                                            updateStatusTamu(tamuTerpilih.id, "SELESAI", "NONAKTIF", uidNfc, "Gate Utama Keluar");
                                             tutupModal();
                                         }}>Selesaikan Check-out</Button>
                                     </div>
@@ -413,12 +425,18 @@ export default function SatpamDashboard() {
                             <p className="text-sm text-gray-600">Cabut izin akses Gate Lobby untuk tamu ini. Tamu tetap bisa menggunakan akses lain untuk keluar kawasan.</p>
                             <div className="bg-orange-50 p-4 rounded-lg border border-orange-100">
                                 <Label className="text-orange-800 font-semibold mb-2 block">Tap NFC untuk Cabut Akses Lobby</Label>
-                                <Input className="border-orange-300 focus-visible:ring-orange-500" placeholder="Tap kartu NFC di sini..." autoFocus />
+                                <Input 
+                                    className="border-orange-300 focus-visible:ring-orange-500" 
+                                    placeholder="Tap kartu NFC di sini..." 
+                                    autoFocus 
+                                    value={uidNfc}
+                                    onChange={(e) => setUidNfc(e.target.value)}
+                                />
                             </div>
                             <DialogFooter className="mt-4">
                                 <Button variant="outline" onClick={tutupModal}>Batal</Button>
                                 <Button variant="destructive" onClick={() => {
-                                    updateStatusTamu(tamuTerpilih.id, "MENUJU_GATE_UTAMA_OUT", "GATE_UTAMA,PARKIR_GEDUNG");
+                                    updateStatusTamu(tamuTerpilih.id, "MENUJU_GATE_UTAMA_OUT", "GATE_UTAMA,PARKIR_GEDUNG", uidNfc, `Lobby ${lokasiArea} Keluar`);
                                     tutupModal();
                                 }}>Cabut Akses Lobby</Button>
                             </DialogFooter>
