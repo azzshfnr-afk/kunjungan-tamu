@@ -3,14 +3,24 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
+interface BodyUpdateStatus {
+    id: string | number;
+    statusKunjungan: string;
+    aksesAktif: string;
+    uidNfc?: string;   
+    lokasiTap?: string; 
+}
+
 export async function POST(req: Request) {
     try {
-        const body = await req.json();
-        const { id, statusKunjungan, aksesAktif } = body;
+        const body = (await req.json()) as BodyUpdateStatus;
+        
+        const { id, statusKunjungan, aksesAktif, uidNfc, lokasiTap } = body;
 
         if (!id) {
             return NextResponse.json({ ok: false, message: "ID Tamu tidak dikirim dari Frontend" }, { status: 400 });
         }
+
 
         const tamuSaatIni = await prisma.tamu.findUnique({ where: { id: Number(id) } });
         if (!tamuSaatIni) {
