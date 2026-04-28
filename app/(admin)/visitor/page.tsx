@@ -75,8 +75,7 @@ type DetailProps = {
 export default function VisitorPage() {
   const router = useRouter();
 
-  const [selectedData, setSelectedData] =
-    useState<Visitor | null>(null);
+  const [selectedData, setSelectedData] = useState<Visitor | null>(null);
 
   const [search, setSearch] = useState("");
   const [data, setData] = useState<Visitor[]>([]);
@@ -103,12 +102,10 @@ export default function VisitorPage() {
           return;
         }
 
-        const parsed: Visitor[] = result.map(
-          (item) => ({
-            ...item,
-            visitDate: new Date(item.visitDate),
-          })
-        );
+        const parsed: Visitor[] = result.map((item) => ({
+          ...item,
+          visitDate: new Date(item.visitDate),
+        }));
 
         setData(parsed);
       } catch {
@@ -123,26 +120,21 @@ export default function VisitorPage() {
   }, []);
 
   const sortedData = [...data].sort(
-    (a, b) =>
-      a.visitDate.getTime() -
-      b.visitDate.getTime()
+    (a, b) => a.visitDate.getTime() - b.visitDate.getTime()
   );
 
-  const filteredData = sortedData.filter(
-    (item) =>
-      item.name
-        .toLowerCase()
-        .includes(search.toLowerCase()) ||
-      item.instansi
-        .toLowerCase()
-        .includes(search.toLowerCase()) ||
-      item.email
-        .toLowerCase()
-        .includes(search.toLowerCase()) ||
-      item.karyawan
-        .toLowerCase()
-        .includes(search.toLowerCase())
-  );
+  // --- LOGIKA FILTER SEARCH YANG SUDAH DIBENARKAN ---
+  const filteredData = sortedData.filter((item) => {
+    const keyword = search.toLowerCase();
+    return (
+      (item.name || "").toLowerCase().includes(keyword) ||
+      (item.instansi || "").toLowerCase().includes(keyword) ||
+      (item.email || "").toLowerCase().includes(keyword) ||
+      (item.karyawan || "").toLowerCase().includes(keyword) ||
+      (item.departemen || "").toLowerCase().includes(keyword) ||
+      (item.tujuan || "").toLowerCase().includes(keyword)
+    );
+  });
 
   return (
     <div className="space-y-6">
@@ -151,9 +143,7 @@ export default function VisitorPage() {
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Users size={16} />
           <span>›</span>
-          <span className="font-medium text-foreground">
-            Visitor
-          </span>
+          <span className="font-medium text-foreground">Visitor</span>
         </div>
 
         <div className="flex items-center gap-4">
@@ -162,10 +152,7 @@ export default function VisitorPage() {
           </div>
 
           <div>
-            <h1 className="text-2xl font-bold">
-              Visitor Management
-            </h1>
-
+            <h1 className="text-2xl font-bold">Visitor Management</h1>
             <p className="text-sm text-muted-foreground">
               Manage and monitor guest data
             </p>
@@ -176,10 +163,7 @@ export default function VisitorPage() {
       {/* Tabs */}
       <Tabs defaultValue="visitor">
         <TabsList>
-          <TabsTrigger
-            value="overview"
-            onClick={() => router.push("/")}
-          >
+          <TabsTrigger value="overview" onClick={() => router.push("/")}>
             <Activity className="mr-2 h-4 w-4" />
             Overview
           </TabsTrigger>
@@ -195,40 +179,28 @@ export default function VisitorPage() {
       <div className="rounded-xl border bg-background shadow-sm">
         <div className="flex justify-between border-b p-4">
           <div>
-            <h2 className="font-semibold">
-              Daftar Tamu
-            </h2>
-
-            <p className="text-sm text-muted-foreground">
-              Kunjungan terdekat
-            </p>
+            <h2 className="font-semibold">Daftar Tamu</h2>
+            <p className="text-sm text-muted-foreground">Kunjungan terdekat</p>
           </div>
 
           <div className="relative w-72">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-
             <Input
               placeholder="Search..."
               className="pl-9"
               value={search}
-              onChange={(e) =>
-                setSearch(e.target.value)
-              }
+              onChange={(e) => setSearch(e.target.value)}
             />
           </div>
         </div>
 
         <div className="overflow-x-auto p-4">
           {loading && (
-            <p className="text-sm text-muted-foreground">
-              Loading...
-            </p>
+            <p className="text-sm text-muted-foreground">Loading...</p>
           )}
 
           {!loading && error && (
-            <p className="text-sm text-red-500">
-              {error}
-            </p>
+            <p className="text-sm text-red-500">{error}</p>
           )}
 
           {!loading && !error && (
@@ -250,75 +222,37 @@ export default function VisitorPage() {
 
               <TableBody>
                 {filteredData.length > 0 ? (
-                  filteredData.map(
-                    (item, index) => (
-                      <Row key={item.id}>
-                        <TableCell>
-                          {index + 1}
-                        </TableCell>
-
-                        <TableCell>
-                          {item.name}
-                        </TableCell>
-
-                        <TableCell>
-                          {item.instansi}
-                        </TableCell>
-
-                        <TableCell>
-                          {item.email}
-                        </TableCell>
-
-                        <TableCell>
-                          {item.karyawan}
-                        </TableCell>
-
-                        <TableCell>
-                          {item.departemen}
-                        </TableCell>
-
-                        <TableCell>
-                          {item.tujuan}
-                        </TableCell>
-
-                        <TableCell>
-                          {formatDate(
-                            item.visitDate
-                          )}
-                        </TableCell>
-
-                        <TableCell>
-                          {item.visitTime}
-                        </TableCell>
-
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger>
-                              <MoreVertical size={16} />
-                            </DropdownMenuTrigger>
-
-                            <DropdownMenuContent>
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  setSelectedData(
-                                    item
-                                  )
-                                }
-                              >
-                                <Eye className="mr-2 h-4 w-4" />
-                                Detail
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </Row>
-                    )
-                  )
+                  filteredData.map((item, index) => (
+                    <Row key={item.id}>
+                      <TableCell>{index + 1}</TableCell>
+                      <TableCell className="font-medium">{item.name}</TableCell>
+                      <TableCell>{item.instansi}</TableCell>
+                      <TableCell>{item.email}</TableCell>
+                      <TableCell>{item.karyawan}</TableCell>
+                      <TableCell>{item.departemen}</TableCell>
+                      <TableCell>{item.tujuan}</TableCell>
+                      <TableCell>{formatDate(item.visitDate)}</TableCell>
+                      <TableCell>{item.visitTime}</TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger>
+                            <MoreVertical size={16} />
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent>
+                            <DropdownMenuItem onClick={() => setSelectedData(item)}>
+                              <Eye className="mr-2 h-4 w-4" />
+                              Detail
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </Row>
+                  ))
                 ) : (
                   <Row>
                     <TableCell
                       colSpan={10}
-                      className="text-center text-muted-foreground"
+                      className="text-center py-10 text-muted-foreground"
                     >
                       Tidak ada data visitor
                     </TableCell>
@@ -330,19 +264,16 @@ export default function VisitorPage() {
         </div>
       </div>
 
-      {/* Dialog */}
+      {/* Dialog Detail */}
       <Dialog
         open={!!selectedData}
         onOpenChange={(open) => {
-          if (!open)
-            setSelectedData(null);
+          if (!open) setSelectedData(null);
         }}
       >
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>
-              Detail Kunjungan
-            </DialogTitle>
+            <DialogTitle>Detail Kunjungan</DialogTitle>
           </DialogHeader>
 
           {selectedData && (
@@ -351,12 +282,8 @@ export default function VisitorPage() {
                 <div className="rounded-xl bg-blue-100 p-3 text-blue-600">
                   <User size={20} />
                 </div>
-
                 <div>
-                  <p className="font-semibold">
-                    {selectedData.name}
-                  </p>
-
+                  <p className="font-semibold">{selectedData.name}</p>
                   <p className="text-sm text-muted-foreground">
                     {selectedData.instansi}
                   </p>
@@ -369,45 +296,36 @@ export default function VisitorPage() {
                   label="Instansi"
                   value={selectedData.instansi}
                 />
-
                 <Detail
                   icon={<Phone size={14} />}
                   label="No HP"
                   value={selectedData.phone}
                 />
-
                 <Detail
                   icon={<IdCard size={14} />}
                   label="No KTP"
                   value={selectedData.ktp}
                 />
-
                 <Detail
                   icon={<Users size={14} />}
                   label="Karyawan"
                   value={selectedData.karyawan}
                 />
-
                 <Detail
                   icon={<Activity size={14} />}
                   label="Departemen"
                   value={selectedData.departemen}
                 />
-
                 <Detail
                   icon={<Mail size={14} />}
                   label="Email"
                   value={selectedData.email}
                 />
-
                 <Detail
                   icon={<Calendar size={14} />}
                   label="Tanggal"
-                  value={formatDate(
-                    selectedData.visitDate
-                  )}
+                  value={formatDate(selectedData.visitDate)}
                 />
-
                 <Detail
                   icon={<Clock size={14} />}
                   label="Waktu"
@@ -416,13 +334,8 @@ export default function VisitorPage() {
               </div>
 
               <div>
-                <p className="text-xs text-muted-foreground">
-                  Tujuan
-                </p>
-
-                <p className="font-medium">
-                  {selectedData.tujuan}
-                </p>
+                <p className="text-xs text-muted-foreground">Tujuan</p>
+                <p className="font-medium">{selectedData.tujuan}</p>
               </div>
             </div>
           )}
@@ -432,23 +345,13 @@ export default function VisitorPage() {
   );
 }
 
-function Detail({
-  icon,
-  label,
-  value,
-}: DetailProps) {
+function Detail({ icon, label, value }: DetailProps) {
   return (
     <div className="flex items-start gap-2">
-      {icon}
-
+      <div className="mt-0.5 text-muted-foreground">{icon}</div>
       <div>
-        <p className="text-xs text-muted-foreground">
-          {label}
-        </p>
-
-        <p className="font-medium">
-          {value}
-        </p>
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="font-medium">{value || "-"}</p>
       </div>
     </div>
   );

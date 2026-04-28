@@ -35,16 +35,16 @@ const MOCK_WAITING: Guest[] = [
 
 function NotifBanner({ guest, onClose }: { guest: Guest; onClose: () => void }) {
   return (
-    <div className="flex items-start gap-3 rounded-xl border border-blue-200 border-l-4 border-l-blue-500 bg-blue-50 px-4 py-3">
-      <Bell className="mt-0.5 h-4 w-4 text-blue-500 shrink-0" />
+    <div className="flex items-start gap-3 rounded-xl border border-green-200 border-l-4 border-l-green-500 bg-green-50 px-4 py-3">
+      <Bell className="mt-0.5 h-4 w-4 text-green-500 shrink-0" />
       <div className="flex-1 text-sm">
-        <p className="font-medium text-blue-700 mb-0.5">Tamu baru telah check-in!</p>
-        <p className="text-blue-600">
+        <p className="font-medium text-green-700 mb-0.5">Tamu baru telah check-in!</p>
+        <p className="text-green-600">
           <span className="font-semibold">{guest.name}</span> menunggu di{" "}
           <span className="font-semibold">{guest.room}</span> sejak pukul {guest.time}
         </p>
       </div>
-      <button onClick={onClose} className="text-blue-400 hover:text-blue-600 transition-colors">
+      <button onClick={onClose} className="text-green-400 hover:text-green-600 transition-colors">
         <X className="h-4 w-4" />
       </button>
     </div>

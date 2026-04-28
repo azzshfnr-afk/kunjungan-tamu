@@ -9,6 +9,7 @@ import {
   XCircle,
   LayoutDashboard,
   Search,
+  CalendarDays,
 } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type StatusType = "Pending" | "Check-in" | "Selesai" | "Ditolak";
 
@@ -55,6 +63,11 @@ export default function Page() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentDateTime, setCurrentDateTime] = useState(new Date());
+  
+  const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
+
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 8 }, (_, i) => (currentYear - 2 + i).toString());
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -98,36 +111,43 @@ export default function Page() {
     return "Pending";
   };
 
-  // --- LOGIKA FILTER TANGGAL YANG DIPERBAIKI ---
-  
-  const now = new Date();
-  const todayString = now.toDateString(); // Contoh: "Sat Apr 25 2026"
+  const filteredByYear = dashboardData.filter((item) => 
+    item.visitDate.getFullYear().toString() === selectedYear
+  );
 
-  // 1. Overview: Khusus untuk tamu yang tanggalnya ADALAH hari ini
+  const now = new Date();
+  const todayString = now.toDateString();
+
+  // Filter Aktivitas Hari Ini
   const todayData = dashboardData.filter((item) => {
-    return item.visitDate.toDateString() === todayString;
+    const isToday = item.visitDate.toDateString() === todayString;
+    const keyword = search.toLowerCase();
+    const matchesSearch = 
+      (item.name || "").toLowerCase().includes(keyword) || 
+      String(item.id || "").toLowerCase().includes(keyword) || 
+      (item.instansi || "").toLowerCase().includes(keyword);
+
+    return isToday && matchesSearch;
   });
 
-  // 2. Visitor: Khusus untuk tamu yang tanggalnya DI ATAS hari ini (Mendatang)
-  const upcomingData = dashboardData.filter((item) => {
-    // Menghilangkan jam agar perbandingan murni tanggal
+  // Filter Jadwal Mendatang
+  const upcomingData = filteredByYear.filter((item) => {
     const itemDate = new Date(item.visitDate.toDateString());
     const currentDate = new Date(todayString);
     
     const keyword = search.toLowerCase();
     const matchesSearch = 
-      item.name.toLowerCase().includes(keyword) || 
-      item.id.toLowerCase().includes(keyword) || 
-      item.instansi.toLowerCase().includes(keyword);
+      (item.name || "").toLowerCase().includes(keyword) || 
+      String(item.id || "").toLowerCase().includes(keyword) || 
+      (item.instansi || "").toLowerCase().includes(keyword);
 
-    // Syarat: Tanggal kunjungan harus lebih besar dari hari ini
     return itemDate > currentDate && matchesSearch;
   });
 
-  const total = dashboardData.length;
-  const selesai = dashboardData.filter((i) => getStatus(i) === "Selesai").length;
-  const pending = dashboardData.filter((i) => getStatus(i) === "Pending").length;
-  const ditolak = dashboardData.filter((i) => getStatus(i) === "Ditolak").length;
+  const total = filteredByYear.length;
+  const selesai = filteredByYear.filter((i) => getStatus(i) === "Selesai").length;
+  const pending = filteredByYear.filter((i) => getStatus(i) === "Pending").length;
+  const ditolak = filteredByYear.filter((i) => getStatus(i) === "Ditolak").length;
 
   return (
     <div className="space-y-6">
@@ -144,12 +164,31 @@ export default function Page() {
           <div className="rounded-xl bg-green-100 p-4 text-green-600"><LayoutDashboard size={24} /></div>
           <div>
             <h1 className="text-2xl font-bold">Dashboard Management</h1>
-            <p className="text-sm text-muted-foreground">Monitor tamu real-time</p>
+            <p className="text-sm text-muted-foreground">Monitor tamu periode tahun {selectedYear}</p>
           </div>
         </div>
-        <p className="text-sm font-medium">
-          {currentDateTime.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
-        </p>
+        
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Periode:</span>
+            <Select value={selectedYear} onValueChange={setSelectedYear}>
+              <SelectTrigger className="w-[160px] h-9">
+                <CalendarDays className="mr-2 h-4 w-4 text-muted-foreground" />
+                <SelectValue placeholder="Tahun" />
+              </SelectTrigger>
+              <SelectContent>
+                {years.map((year) => (
+                  <SelectItem key={year} value={year}>
+                    Tahun {year}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <p className="text-sm font-medium border-l pl-4 py-1">
+            {currentDateTime.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+          </p>
+        </div>
       </div>
 
       <Tabs defaultValue="overview" className="w-full">
@@ -164,14 +203,26 @@ export default function Page() {
 
         <TabsContent value="overview" className="mt-6 space-y-6">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card title="Jumlah Tamu" value={total} icon={<Users />} color="blue" />
+            <Card title={`Total Tamu ${selectedYear}`} value={total} icon={<Users />} color="blue" />
             <Card title="Tamu Selesai" value={selesai} icon={<CheckCircle />} color="green" />
             <Card title="Tamu Pending" value={pending} icon={<Clock />} color="yellow" />
             <Card title="Tamu Ditolak" value={ditolak} icon={<XCircle />} color="red" />
           </div>
 
           <div className="rounded-xl border bg-background shadow-sm">
-            <div className="border-b p-4"><h2 className="font-semibold">Aktivitas Hari Ini (Recent Activity)</h2></div>
+            {/* Header Tabel dengan Search di Dalamnya */}
+            <div className="flex items-center justify-between border-b p-4">
+              <h2 className="font-semibold">Aktivitas Hari Ini (Recent Activity)</h2>
+              <div className="relative w-64">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input 
+                  placeholder="Search..." 
+                  className="pl-9" 
+                  value={search} 
+                  onChange={(e) => setSearch(e.target.value)} 
+                />
+              </div>
+            </div>
             <div className="overflow-x-auto p-4">
               <Table>
                 <TableHeader>
@@ -203,7 +254,9 @@ export default function Page() {
                   ))}
                   {todayData.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={9} className="text-center py-10 text-muted-foreground">Tidak ada aktivitas kunjungan untuk hari ini.</TableCell>
+                      <TableCell colSpan={9} className="text-center py-10 text-muted-foreground">
+                        {search ? "Pencarian tidak ditemukan." : "Tidak ada aktivitas kunjungan untuk hari ini."}
+                      </TableCell>
                     </TableRow>
                   )}
                 </TableBody>
@@ -214,11 +267,17 @@ export default function Page() {
 
         <TabsContent value="visitor" className="mt-6">
           <div className="rounded-xl border bg-background shadow-sm">
-            <div className="flex justify-between border-b p-4">
-              <h2 className="font-semibold">Jadwal Kunjungan Mendatang</h2>
+            {/* Header Tabel dengan Search di Dalamnya */}
+            <div className="flex items-center justify-between border-b p-4">
+              <h2 className="font-semibold">Jadwal Kunjungan Mendatang ({selectedYear})</h2>
               <div className="relative w-72">
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Cari tamu..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+                <Input 
+                  placeholder="Cari jadwal mendatang..." 
+                  className="pl-9" 
+                  value={search} 
+                  onChange={(e) => setSearch(e.target.value)} 
+                />
               </div>
             </div>
             <div className="overflow-x-auto p-4">
@@ -250,7 +309,9 @@ export default function Page() {
                   ))}
                   {upcomingData.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center py-10 text-muted-foreground">Tidak ada jadwal kunjungan mendatang.</TableCell>
+                      <TableCell colSpan={8} className="text-center py-10 text-muted-foreground">
+                        {search ? "Pencarian tidak ditemukan." : `Tidak ada jadwal kunjungan mendatang untuk tahun ${selectedYear}.`}
+                      </TableCell>
                     </TableRow>
                   )}
                 </TableBody>
