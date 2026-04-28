@@ -164,7 +164,7 @@ export default function SatpamDashboard() {
                                 dataTamu
                                 .filter(t => t.namaTamu.toLowerCase().includes(searchQuery.toLowerCase()))
                                 .map((tamu) => {
-                                    const st = tamu.statusKunjungan || "MENUNGGU_GATE_UTAMA"; 
+                                    const st = tamu.statusKunjungan || "MENUNGGU GATE UTAMA"; 
                                     
                                     let bg = "bg-gray-100 text-gray-800"; let txt = st;
                                     if (st === "MENUNGGU_GATE_UTAMA") { bg = "bg-yellow-100 text-yellow-800"; txt = "Menunggu Gate Utama"; }
@@ -263,8 +263,13 @@ export default function SatpamDashboard() {
                         
                         {stepScan === 2 && roleSatpam === "gateUtama" && (
                             <div className="space-y-5">
-                                <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                                <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 space-y-1">
                                     <TabelKonfirmasi label="Nama Lengkap" nilai={tamuTerpilih?.namaTamu} />
+                                    <TabelKonfirmasi label="No. Identitas (NIK)" nilai={tamuTerpilih?.nik || tamuTerpilih?.noKtp} />
+                                    <TabelKonfirmasi label="No. Handphone" nilai={tamuTerpilih?.noTelp
+
+                                    } />
+                                    <TabelKonfirmasi label="Instansi/Asal" nilai={tamuTerpilih?.asalInstansi} />
                                     <TabelKonfirmasi label="Tujuan Awal" nilai={tamuTerpilih?.tujuanKunjungan} />
                                 </div>
                                 <div className="space-y-4 border-t pt-4">
@@ -475,11 +480,23 @@ export default function SatpamDashboard() {
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader><DialogTitle>Detail Tamu: {tamuTerpilih?.namaTamu}</DialogTitle></DialogHeader>
                     <div className="space-y-4 max-h-[75vh] overflow-y-auto pr-2">
-                        {tamuTerpilih?.fotoKtp && <img src={tamuTerpilih.fotoKtp} className="w-full h-auto max-h-48 object-contain rounded-lg border border-gray-300 shadow-sm" />}
-                        <div className="space-y-2 pt-2">
-                            <TabelKonfirmasi label="Status" nilai={tamuTerpilih?.statusKunjungan || "MENUNGGU_GATE_UTAMA"} />
+                        {tamuTerpilih?.fotoKtp ? (
+                            <img src={tamuTerpilih.fotoKtp} alt="Foto KTP" className="w-full h-auto max-h-48 object-contain rounded-lg border border-gray-300 shadow-sm bg-gray-50" />
+                        ) : (
+                            <div className="w-full h-32 bg-gray-100 rounded-lg flex items-center justify-center text-sm text-gray-400 border border-dashed border-gray-300">Tidak ada foto KTP</div>
+                        )}
+                        <div className="space-y-1 pt-2 bg-gray-50 p-4 rounded-xl border border-gray-200">
+                            <TabelKonfirmasi label="Nama Lengkap" nilai={tamuTerpilih?.namaTamu} />
+                            <TabelKonfirmasi label="No. Identitas (NIK)" nilai={tamuTerpilih?.nik || tamuTerpilih?.noKtp} />
+                            <TabelKonfirmasi label="No. Handphone" nilai={tamuTerpilih?.noTelp} />
+                            <TabelKonfirmasi label="Instansi/Asal" nilai={tamuTerpilih?.asalInstansi} />
+                            <TabelKonfirmasi label="Tujuan Kunjungan" nilai={tamuTerpilih?.tujuanKunjungan} />
+                            <TabelKonfirmasi label="Gedung Aktual" nilai={tamuTerpilih?.gedungTujuan} />
+
+                            <div className="border-t border-gray-200 mt-2 pt-2"></div>
+
+                            <TabelKonfirmasi label="Status" nilai={tamuTerpilih?.statusKunjungan || "MENUNGGU GATE UTAMA"} />
                             <TabelKonfirmasi label="Akses Aktif" nilai={tamuTerpilih?.aksesAktif || "Belum Ada"} />
-                            <TabelKonfirmasi label="Instansi" nilai={tamuTerpilih?.asalInstansi} />
                         </div>
                     </div>
                 </DialogContent>
