@@ -17,7 +17,6 @@ const Scanner = dynamic(() => import('@yudiel/react-qr-scanner').then(mod => mod
   ssr: false,
   loading: () => <div className="h-full w-full bg-black flex items-center justify-center text-white text-xs">Menyiapkan Kamera...</div>
 });
-
 function TabelKonfirmasi({ label, nilai }: { label: string; nilai: any }) {
     return (
         <div className="flex justify-between text-sm py-1.5 gap-2 border-b border-gray-100/50 last:border-0">
@@ -26,9 +25,7 @@ function TabelKonfirmasi({ label, nilai }: { label: string; nilai: any }) {
         </div>
     );
 }
-
 const DAFTAR_GEDUNG = ["Gedung Pusat Administrasi (GPA)", "Gedung Diklat", "Pabrik 1A", "Pabrik 1B", "Gedung MO", "Gedung LC"];
-
 const DATA_KARYAWAN: Record<string, { bet: string, nama: string }[]> = {
     "Gedung Pusat Administrasi (GPA)": [{ bet: "PKC-101", nama: "Junaedi (TI)" }, { bet: "PKC-102", nama: "Susi (Keuangan)" }],
     "Gedung Diklat" : [{ bet: "PKC-201", nama: "Yoyo (Pelum)" }, { bet: "PKC-202", nama: "Mumun (Sekretaris)" }],
@@ -37,27 +34,20 @@ const DATA_KARYAWAN: Record<string, { bet: string, nama: string }[]> = {
     "Gedung MO": [{ bet: "PKC-501", nama: "Zihan (MPSDM)" }],
     "Gedung LC": [{ bet: "PKC-601", nama: "Bibah (Akuntansi)" }]
 };
-
 export default function SatpamDashboard() {
     const [roleSatpam, setRoleSatpam] = useState<"gateUtama" | "area">("gateUtama");
     const [lokasiArea, setLokasiArea] = useState("Gedung Diklat"); 
     const [searchQuery, setSearchQuery] = useState(""); 
-
     const [stepScan, setStepScan] = useState(1);
     const [modalAction, setModalAction] = useState<"checkin" | "checkout" | "detail" | "scan_checkout" | null>(null);
     const [tamuTerpilih, setTamuTerpilih] = useState<any>(null);
-
     const [selectedGedung, setSelectedGedung] = useState("");
     const [selectedKaryawan, setSelectedKaryawan] = useState("");
-    
     const [uidNfc, setUidNfc] = useState("");
-
     const [aksesBeri, setAksesBeri] = useState({ gateUtama: true, gateParkir: true });
     const [aksesLepas, setAksesLepas] = useState({ gateUtama: true, gateParkir: true, gateLobby: true });
-
     const [dataTamu, setDataTamu] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-
     useEffect(() => {
         const fetchTamu = async () => {
             try {
@@ -68,11 +58,9 @@ export default function SatpamDashboard() {
                 console.error("Error fetching tamu:", error);
             } finally {
                 setIsLoading(false);
-            }
-        };
+            }};
         fetchTamu();
     }, []);
-
     const updateStatusTamu = async (id: string, statusBaru: string, akses: string, uidCard?: string, lokasi?: string) => {
         setDataTamu(prev => prev.map(t => t.id === id ? { ...t, statusKunjungan: statusBaru, aksesAktif: akses } : t));
         try {
@@ -89,9 +77,7 @@ export default function SatpamDashboard() {
             });
         } catch (error) {
             console.error("Error updating database:", error);
-        }
-    };
-
+        }};
     const tutupModal = () => { 
         setModalAction(null); 
         setTamuTerpilih(null); 
@@ -102,7 +88,6 @@ export default function SatpamDashboard() {
         setAksesBeri({ gateUtama: true, gateParkir: true });
         setAksesLepas({ gateUtama: true, gateParkir: true, gateLobby: true });
     };
-
     const handleLepasSemuaAkses = () => {
         setAksesLepas({ gateUtama: true, gateParkir: true, gateLobby: true });
     };
@@ -110,8 +95,7 @@ export default function SatpamDashboard() {
     return (
         <div className="flex min-h-screen flex-col items-center bg-gradient-to-br from-gray-50 to-gray-100 p-6">
             <div className="w-full max-w-7xl rounded-lg bg-white p-8 shadow-xl border border-gray-200">
-
-                <div className="mb-4 flex flex-wrap items-center justify-end gap-2 bg-gray-50 p-2 rounded-md border border-gray-200 w-fit ml-auto">
+                    <div className="mb-4 flex flex-wrap items-center justify-end gap-2 bg-gray-50 p-2 rounded-md border border-gray-200 w-fit ml-auto">
                     <span className="text-xs text-gray-500 font-medium">Mode Satpam:</span>
                     <Button variant={roleSatpam === "gateUtama" ? "default" : "outline"} size="sm" className="h-7 text-xs" onClick={() => setRoleSatpam("gateUtama")}>Gate Utama</Button>
                     <Button variant={roleSatpam === "area" ? "default" : "outline"} size="sm" className="h-7 text-xs" onClick={() => setRoleSatpam("area")}>Area/Gedung</Button>
@@ -129,7 +113,6 @@ export default function SatpamDashboard() {
                         </h1>
                         <p className="text-gray-600">Sistem Manajemen Pengunjung PT Pupuk Kujang</p>
                     </div>
-
                     <div className="flex flex-col sm:flex-row items-center gap-2">
                         <div className="relative w-full sm:w-64">
                             <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -165,7 +148,6 @@ export default function SatpamDashboard() {
                                 .filter(t => t.namaTamu.toLowerCase().includes(searchQuery.toLowerCase()))
                                 .map((tamu) => {
                                     const st = tamu.statusKunjungan || "MENUNGGU GATE UTAMA"; 
-                                    
                                     let bg = "bg-gray-100 text-gray-800"; let txt = st;
                                     if (st === "MENUNGGU_GATE_UTAMA") { bg = "bg-yellow-100 text-yellow-800"; txt = "Menunggu Gate Utama"; }
                                     else if (st === "MENUJU_GEDUNG") { bg = "bg-blue-100 text-blue-800"; txt = "Menuju Gedung"; }
@@ -173,16 +155,13 @@ export default function SatpamDashboard() {
                                     else if (st === "DI_DALAM_RUANGAN") { bg = "bg-green-100 text-green-800"; txt = "Di Dalam Ruangan"; }
                                     else if (st === "MENUJU_GATE_UTAMA_OUT") { bg = "bg-orange-100 text-orange-800"; txt = "Perjalanan Keluar"; }
                                     else if (st === "SELESAI") { bg = "bg-red-100 text-red-800"; txt = "Selesai / Pulang"; }
-
                                     const tgl = new Date(tamu.waktuCheckIn || tamu.tanggalCheckIn).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
-
                                     return (
                                         <TableRow key={tamu.id}>
                                             <TableCell className="font-medium text-gray-900">{tgl}</TableCell>
                                             <TableCell className="font-bold text-gray-900">{tamu.namaTamu}</TableCell>
                                             <TableCell>{tamu.gedungTujuan || tamu.tujuanKunjungan || "-"}</TableCell>
                                             <TableCell><span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${bg}`}>{txt}</span></TableCell>
-                                            
                                             <TableCell className="text-center">
                                                 <div className="flex justify-center items-center gap-1.5 flex-wrap">
                                                     {roleSatpam === "gateUtama" && (
@@ -252,10 +231,8 @@ export default function SatpamDashboard() {
                                     } else {
                                         console.log("Isi QR:", qrValue);
                                         alert(`Data tamu tidak ditemukan! (QR: ${qrValue})`);
-                                    }
-                                }
-                            }}
-                        />
+                                    }}
+                                }} />
                                 </div>
                                 <Button variant="outline" size="sm" className="mt-2 text-[10px]" onClick={() => { if(dataTamu.length>0) setTamuTerpilih(dataTamu[0]); setStepScan(2); }}>(Dev) Lewati Scan</Button>
                             </div>
@@ -266,9 +243,7 @@ export default function SatpamDashboard() {
                                 <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 space-y-1">
                                     <TabelKonfirmasi label="Nama Lengkap" nilai={tamuTerpilih?.namaTamu} />
                                     <TabelKonfirmasi label="No. Identitas (NIK)" nilai={tamuTerpilih?.nik || tamuTerpilih?.noKtp} />
-                                    <TabelKonfirmasi label="No. Handphone" nilai={tamuTerpilih?.noTelp
-
-                                    } />
+                                    <TabelKonfirmasi label="No. Handphone" nilai={tamuTerpilih?.noTelp} />
                                     <TabelKonfirmasi label="Instansi/Asal" nilai={tamuTerpilih?.asalInstansi} />
                                     <TabelKonfirmasi label="Tujuan Awal" nilai={tamuTerpilih?.tujuanKunjungan} />
                                 </div>
@@ -319,11 +294,9 @@ export default function SatpamDashboard() {
                                         placeholder="Tap kartu di alat pembaca..." 
                                         autoFocus 
                                         value={uidNfc}
-                                        onChange={(e) => setUidNfc(e.target.value)}
-                                    />
+                                        onChange={(e) => setUidNfc(e.target.value)} />
                                     <p className="text-[10px] text-gray-500">*Pastikan kursor berada di kotak ini saat menempelkan kartu ke alat pembaca.</p>
-                                </div>
-                                
+                                </div>                              
                                 <div className="bg-blue-50/50 p-4 rounded-lg border border-blue-100">
                                     <Label className="font-semibold text-blue-900 mb-3 block">Opsi Akses Diberikan:</Label>
                                     {roleSatpam === "gateUtama" ? (
@@ -342,8 +315,7 @@ export default function SatpamDashboard() {
                                             <li>Akses Gate Lobby {lokasiArea}</li>
                                         </ul>
                                     )}
-                                </div>
-                                
+                                </div>                               
                                 <div className="flex gap-2 mt-4">
                                     <Button variant="outline" className="w-1/3" onClick={() => setStepScan(2)}>Sebelumnya</Button>
                                     <Button className="w-2/3 bg-blue-600 hover:bg-blue-700" onClick={() => { 
@@ -360,8 +332,7 @@ export default function SatpamDashboard() {
                                             }
                                             if(roleSatpam === "area") {
                                                 updateStatusTamu(tamuTerpilih.id, "DI_DALAM_RUANGAN", tamuTerpilih.aksesAktif + `,LOBBY_${lokasiArea}`, uidNfc || undefined, `Lobby ${lokasiArea} Masuk`);
-                                            }
-                                        }
+                                            }}
                                         tutupModal(); 
                                     }}>Selesai & Simpan</Button>
                                 </div>
@@ -370,7 +341,6 @@ export default function SatpamDashboard() {
                     </div>
                 </DialogContent>
             </Dialog>
-
             <Dialog open={modalAction === "scan_checkout"} onOpenChange={(open) => !open && tutupModal()}>
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
@@ -380,7 +350,6 @@ export default function SatpamDashboard() {
                         <Scanner onScan={(result) => { if (result && result.length > 0) { 
                             const qrValue = result[0].rawValue;
                             const tamuFound = dataTamu.find(t => t.id.toString() === qrValue);
-
                             if (tamuFound) {
                                 setTamuTerpilih(tamuFound);
                                 setStepScan(2);
@@ -388,15 +357,12 @@ export default function SatpamDashboard() {
                             } else {
                                 console.log("Isi QR:", qrValue);
                                 alert(`Data tamu tidak ditemukan! (QR: ${qrValue})`);
-                            }
-                        }
-                    }}
-                />
+                            }}
+                    }} />
                     </div>
                     <Button variant="outline" size="sm" className="mt-2 text-[10px] w-full" onClick={() => { if(dataTamu.length>0) setTamuTerpilih(dataTamu[0]); setStepScan(2); setModalAction("checkout"); }}>(Dev) Lewati Kamera</Button>
                 </DialogContent>
             </Dialog>
-
             <Dialog open={modalAction === "checkout"} onOpenChange={(open) => !open && tutupModal()}>
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
@@ -492,9 +458,7 @@ export default function SatpamDashboard() {
                             <TabelKonfirmasi label="Instansi/Asal" nilai={tamuTerpilih?.asalInstansi} />
                             <TabelKonfirmasi label="Tujuan Kunjungan" nilai={tamuTerpilih?.tujuanKunjungan} />
                             <TabelKonfirmasi label="Gedung Aktual" nilai={tamuTerpilih?.gedungTujuan} />
-
                             <div className="border-t border-gray-200 mt-2 pt-2"></div>
-
                             <TabelKonfirmasi label="Status" nilai={tamuTerpilih?.statusKunjungan || "MENUNGGU GATE UTAMA"} />
                             <TabelKonfirmasi label="Akses Aktif" nilai={tamuTerpilih?.aksesAktif || "Belum Ada"} />
                         </div>

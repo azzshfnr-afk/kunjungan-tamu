@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/dialog";
 import { QRCodeSVG } from "qrcode.react";
 import { Calendar, User, Building } from "lucide-react";
+import { FaTrashAlt } from "react-icons/fa";
 
 function PanduanK3({ open, onOpenChange, onAgree }: { open: boolean; onOpenChange: (open: boolean) => void; onAgree: () => void }) {
     const daftarAturan = [
@@ -456,7 +457,9 @@ export default function HalamanRegistrasi() {
                                                     </div>
 
                                                     {dataForm.anggotaRombongan.length > 1 && (
-                                                        <Button variant="destructive" size="icon" className="w-9 h-9 shrink-0" onClick={() => hapusAnggota(index)}>x</Button>
+                                                        <Button variant="destructive" size="icon" className="w-9 h-9 shrink-0" onClick={() => hapusAnggota(index)} type="button">
+                                                            <FaTrashAlt className="w-4 h-4" />
+                                                        </Button>
                                                     )}
                                                 </div>
                                             ))}
