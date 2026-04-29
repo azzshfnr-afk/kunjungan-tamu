@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import dynamic from 'next/dynamic';
 import { 
-    ScanLine, IdCard, ShieldCheck, LogOut, SearchIcon, 
+    ScanLine, CreditCard, ShieldCheck, LogOut, SearchIcon, 
     Eye, Building, Users, MapPin, DoorOpen, DoorClosed, QrCode, LogIn
 } from "lucide-react";
 
@@ -289,7 +289,7 @@ export default function SatpamDashboard() {
                         {stepScan === 3 && (
                             <div className="space-y-6">
                                 <div className="space-y-2">
-                                    <Label className="flex items-center font-semibold"><IdCard className="mr-2 h-4 w-4" /> Tap Kartu NFC</Label>
+                                    <Label className="flex items-center font-semibold"><CreditCard className="mr-2 h-4 w-4" /> Tap Kartu NFC</Label>
                                     <Input 
                                         placeholder="Tap kartu di alat pembaca..." 
                                         autoFocus 
