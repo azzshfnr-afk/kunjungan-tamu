@@ -118,7 +118,6 @@ export default function Page() {
   const now = new Date();
   const todayString = now.toDateString();
 
-  // Filter Aktivitas Hari Ini
   const todayData = dashboardData.filter((item) => {
     const isToday = item.visitDate.toDateString() === todayString;
     const keyword = search.toLowerCase();
@@ -130,7 +129,6 @@ export default function Page() {
     return isToday && matchesSearch;
   });
 
-  // Filter Jadwal Mendatang
   const upcomingData = filteredByYear.filter((item) => {
     const itemDate = new Date(item.visitDate.toDateString());
     const currentDate = new Date(todayString);
@@ -150,18 +148,22 @@ export default function Page() {
   const ditolak = filteredByYear.filter((i) => getStatus(i) === "Ditolak").length;
 
   return (
-    <div className="space-y-6">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <LayoutDashboard size={16} />
-          <span>›</span>
-          <span className="font-medium text-foreground">
-            Dashboard Management
-          </span>
-        </div>
+    <div className="flex flex-col space-y-6 w-full">
+      {/* Breadcrumb Section */}
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <LayoutDashboard size={16} />
+        <span>›</span>
+        <span className="font-medium text-foreground">
+          Dashboard Management
+        </span>
+      </div>
 
-      <div className="flex items-center justify-between">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="rounded-xl bg-green-100 p-4 text-green-600"><LayoutDashboard size={24} /></div>
+          <div className="rounded-xl bg-green-100 p-4 text-green-600">
+            <LayoutDashboard size={24} />
+          </div>
           <div>
             <h1 className="text-2xl font-bold">Dashboard Management</h1>
             <p className="text-sm text-muted-foreground">Monitor tamu periode tahun {selectedYear}</p>
@@ -185,23 +187,35 @@ export default function Page() {
               </SelectContent>
             </Select>
           </div>
-          <p className="text-sm font-medium border-l pl-4 py-1">
+          <p className="text-sm font-medium border-l pl-4 py-1 hidden md:block">
             {currentDateTime.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
           </p>
         </div>
       </div>
 
-      <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="h-8 w-fit rounded-lg bg-muted p-1">
-          <TabsTrigger value="overview" className="h-6 px-3 text-xs">
-            <Activity className="mr-1 h-3.5 w-3.5" /> Overview
-          </TabsTrigger>
-          <TabsTrigger value="visitor" className="h-6 px-3 text-xs">
-            <Users className="mr-1 h-3.5 w-3.5" /> Visitor (Mendatang)
-          </TabsTrigger>
-        </TabsList>
+      {/* Tabs Section */}
+      <Tabs defaultValue="overview" className="w-full flex flex-col">
+        <div className="w-full mb-6">
+          <TabsList className="h-8 w-fit rounded-lg bg-muted p-1">
+            <TabsTrigger 
+              value="overview" 
+              className="h-7 px-4 text-xs transition-all data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+              onClick={() => setSearch("")} // Reset search saat klik
+            >
+              <Activity className="mr-2 h-3.5 w-3.5" /> Overview
+            </TabsTrigger>
+            <TabsTrigger 
+              value="visitor" 
+              className="h-7 px-4 text-xs transition-all data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+              onClick={() => setSearch("")} // Reset search saat klik
+            >
+              <Users className="mr-2 h-3.5 w-3.5" /> Visitor (Mendatang)
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
-        <TabsContent value="overview" className="mt-6 space-y-6">
+        {/* overview content*/}
+        <TabsContent value="overview" className="flex flex-col space-y-6 m-0 outline-none">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card title={`Total Tamu ${selectedYear}`} value={total} icon={<Users />} color="blue" />
             <Card title="Tamu Selesai" value={selesai} icon={<CheckCircle />} color="green" />
@@ -209,11 +223,10 @@ export default function Page() {
             <Card title="Tamu Ditolak" value={ditolak} icon={<XCircle />} color="red" />
           </div>
 
-          <div className="rounded-xl border bg-background shadow-sm">
-            {/* Header Tabel dengan Search di Dalamnya */}
-            <div className="flex items-center justify-between border-b p-4">
+          <div className="rounded-xl border bg-background shadow-sm overflow-hidden">
+            <div className="flex flex-col sm:flex-row items-center justify-between border-b p-4 gap-4">
               <h2 className="font-semibold">Aktivitas Hari Ini (Recent Activity)</h2>
-              <div className="relative w-64">
+              <div className="relative w-full sm:w-64">
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input 
                   placeholder="Search..." 
@@ -223,11 +236,11 @@ export default function Page() {
                 />
               </div>
             </div>
-            <div className="overflow-x-auto p-4">
+            <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>No</TableHead>
+                    <TableHead className="w-[50px] text-center">No</TableHead>
                     <TableHead>ID (PKC)</TableHead>
                     <TableHead>Nama</TableHead>
                     <TableHead>Instansi</TableHead>
@@ -239,20 +252,21 @@ export default function Page() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {todayData.map((item, index) => (
-                    <TableRow key={item.id}>
-                      <TableCell>{index + 1}</TableCell>
-                      <TableCell className="font-mono text-xs">{item.id}</TableCell>
-                      <TableCell className="font-medium">{item.name}</TableCell>
-                      <TableCell>{item.instansi}</TableCell>
-                      <TableCell>{item.karyawan}</TableCell>
-                      <TableCell>{item.departemen}</TableCell>
-                      <TableCell>{item.checkin || "-"}</TableCell>
-                      <TableCell>{item.checkout || "-"}</TableCell>
-                      <TableCell><StatusBadge status={getStatus(item)} /></TableCell>
-                    </TableRow>
-                  ))}
-                  {todayData.length === 0 && (
+                  {todayData.length > 0 ? (
+                    todayData.map((item, index) => (
+                      <TableRow key={item.id}>
+                        <TableCell className="text-center">{index + 1}</TableCell>
+                        <TableCell className="font-mono text-xs">{item.id}</TableCell>
+                        <TableCell className="font-medium">{item.name}</TableCell>
+                        <TableCell>{item.instansi}</TableCell>
+                        <TableCell>{item.karyawan}</TableCell>
+                        <TableCell>{item.departemen}</TableCell>
+                        <TableCell>{item.checkin || "-"}</TableCell>
+                        <TableCell>{item.checkout || "-"}</TableCell>
+                        <TableCell><StatusBadge status={getStatus(item)} /></TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
                     <TableRow>
                       <TableCell colSpan={9} className="text-center py-10 text-muted-foreground">
                         {search ? "Pencarian tidak ditemukan." : "Tidak ada aktivitas kunjungan untuk hari ini."}
@@ -265,12 +279,12 @@ export default function Page() {
           </div>
         </TabsContent>
 
-        <TabsContent value="visitor" className="mt-6">
-          <div className="rounded-xl border bg-background shadow-sm">
-            {/* Header Tabel dengan Search di Dalamnya */}
-            <div className="flex items-center justify-between border-b p-4">
+        {/* visitor content */}
+        <TabsContent value="visitor" className="flex flex-col m-0 outline-none">
+          <div className="rounded-xl border bg-background shadow-sm overflow-hidden">
+            <div className="flex flex-col sm:flex-row items-center justify-between border-b p-4 gap-4">
               <h2 className="font-semibold">Jadwal Kunjungan Mendatang ({selectedYear})</h2>
-              <div className="relative w-72">
+              <div className="relative w-full sm:w-72">
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input 
                   placeholder="Cari jadwal mendatang..." 
@@ -280,11 +294,11 @@ export default function Page() {
                 />
               </div>
             </div>
-            <div className="overflow-x-auto p-4">
+            <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>No</TableHead>
+                    <TableHead className="w-[50px] text-center">No</TableHead>
                     <TableHead>ID (PKC)</TableHead>
                     <TableHead>Nama</TableHead>
                     <TableHead>Instansi</TableHead>
@@ -295,19 +309,20 @@ export default function Page() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {upcomingData.map((item, index) => (
-                    <TableRow key={item.id}>
-                      <TableCell>{index + 1}</TableCell>
-                      <TableCell className="font-mono text-xs">{item.id}</TableCell>
-                      <TableCell className="font-medium">{item.name}</TableCell>
-                      <TableCell>{item.instansi}</TableCell>
-                      <TableCell>{item.email}</TableCell>
-                      <TableCell>{item.visitDate.toLocaleDateString("id-ID")}</TableCell>
-                      <TableCell>{item.karyawan}</TableCell>
-                      <TableCell><StatusBadge status={getStatus(item)} /></TableCell>
-                    </TableRow>
-                  ))}
-                  {upcomingData.length === 0 && (
+                  {upcomingData.length > 0 ? (
+                    upcomingData.map((item, index) => (
+                      <TableRow key={item.id}>
+                        <TableCell className="text-center">{index + 1}</TableCell>
+                        <TableCell className="font-mono text-xs">{item.id}</TableCell>
+                        <TableCell className="font-medium">{item.name}</TableCell>
+                        <TableCell>{item.instansi}</TableCell>
+                        <TableCell>{item.email}</TableCell>
+                        <TableCell>{item.visitDate.toLocaleDateString("id-ID")}</TableCell>
+                        <TableCell>{item.karyawan}</TableCell>
+                        <TableCell><StatusBadge status={getStatus(item)} /></TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
                     <TableRow>
                       <TableCell colSpan={8} className="text-center py-10 text-muted-foreground">
                         {search ? "Pencarian tidak ditemukan." : `Tidak ada jadwal kunjungan mendatang untuk tahun ${selectedYear}.`}
@@ -333,7 +348,10 @@ function Card({ title, value, icon, color = "blue" }: CardProps) {
   };
   return (
     <div className={`flex items-center justify-between rounded-xl border bg-white p-4 transition hover:shadow-lg ${styles[color].hover}`}>
-      <div><p className="text-sm text-gray-600">{title}</p><h2 className="mt-1 text-2xl font-semibold">{value}</h2></div>
+      <div>
+        <p className="text-sm text-gray-600">{title}</p>
+        <h2 className="mt-1 text-2xl font-semibold">{value}</h2>
+      </div>
       <div className={`rounded-lg p-3 text-white ${styles[color].iconBg}`}>{icon}</div>
     </div>
   );
@@ -346,5 +364,5 @@ function StatusBadge({ status }: { status: StatusType }) {
     Selesai: "bg-blue-100 text-blue-600",
     Ditolak: "bg-red-100 text-red-600",
   };
-  return <span className={`rounded-full px-2 py-1 text-xs ${styles[status]}`}>{status}</span>;
+  return <span className={`rounded-full px-2 py-1 text-xs font-medium ${styles[status]}`}>{status}</span>;
 }
