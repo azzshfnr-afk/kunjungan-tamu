@@ -1,122 +1,42 @@
 import { NextResponse } from "next/server";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
 
 export async function GET() {
-  const today = new Date().toISOString().slice(0, 10);
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Set ke awal hari ini
 
-  const data = [
-    {
-      id: "PKC001",
-      name: "Budi",
-      instansi: "PT Maju",
-      email: "budi@mail.com",
-      departemen: "IT",
-      date: "2026-04-10",
-      karyawan: "Andi",
-      checkin: "08:00 WIB",
-      checkout: "12:00 WIB",
-      rejected: false,
-    },
-    {
-      id: "PKC002",
-      name: "Siti",
-      instansi: "PT Jaya",
-      email: "siti@mail.com",
-      departemen: "HR",
-      date: "2026-04-11",
-      karyawan: "Rina",
-      checkin: null,
-      checkout: null,
-      rejected: false,
-    },
-    {
-      id: "PKC003",
-      name: "Jamal",
-      instansi: "PT Hebat",
-      email: "jamal@mail.com",
-      departemen: "Finance",
-      date: "2026-04-12",
-      karyawan: "Doni",
-      checkin: "09:00 WIB",
-      checkout: null,
-      rejected: false,
-    },
-    {
-      id: "PKC004",
-      name: "Rudi",
-      instansi: "PT Lama",
-      email: "rudi@mail.com",
-      departemen: "GA",
-      date: "2026-04-13",
-      karyawan: "Bambang",
-      checkin: null,
-      checkout: null,
-      rejected: true,
-    },
-    {
-      id: "PKC005",
-      name: "Dewi",
-      instansi: "PT Sukses",
-      email: "dewi@mail.com",
-      departemen: "Marketing",
-      date: "2026-04-14",
-      karyawan: "Lina",
-      checkin: "08:30 WIB",
-      checkout: "11:45 WIB",
-      rejected: false,
-    },
-    {
-      id: "PKC006",
-      name: "Tono",
-      instansi: "PT Hebat Jaya",
-      email: "tono@mail.com",
-      departemen: "Legal",
-      date: "2026-04-15",
-      karyawan: "Surya",
-      checkin: null,
-      checkout: null,
-      rejected: false,
-    },
-    {
-      id: "PKC007",
-      name: "Fajar",
-      instansi: "PT Mapan",
-      email: "fajar@mail.com",
-      departemen: "IT",
-      date: "2026-04-16",
-      karyawan: "Andi",
-      checkin: "09:00 WIB",
-      checkout: "10:30 WIB",
-      rejected: false,
-    },
-    {
-      id: "PKC008",
-      name: "Lina",
-      instansi: "PT Nusantara",
-      email: "lina@mail.com",
-      departemen: "HR",
-      date: today, 
-      karyawan: "Rina",
-      checkin: null,
-      checkout: null,
-      rejected: false,
-    },
-    {
-      id: "PKC009",
-      name: "Agus",
-      instansi: "PT Masa Depan",
-      email: "agus@mail.com",
-      departemen: "IT",
-      date: "2026-04-25", 
-      karyawan: "Doni",
-      checkin: null,
-      checkout: null,
-      rejected: false,
-    },
-  ];
+    // Ambil data yang tanggal kunjungannya sudah lewat (sebelum hari ini)
+    const data = await prisma.tamu.findMany({
+      where: {
+        tanggalKunjungan: {
+          lt: today, // lt = less than (kurang dari hari ini)
+        },
+      },
+      orderBy: {
+        tanggalKunjungan: "desc",
+      },
+    });
 
-  const result = data.filter((item) => item.date < today);
+    // Mapping agar sesuai dengan variabel yang dipakai di Frontend (LaporanPage)
+    const result = data.map((item) => ({
+      id: item.id.toString(),
+      name: item.namaTamu,
+      instansi: item.asalInstansi || "-",
+      email: item.email || "-",
+      departemen: item.departemen || "-",
+      date: item.tanggalKunjungan ? item.tanggalKunjungan.toISOString().split('T')[0] : "-",
+      karyawan: item.karyawanDituju || "-",
+      checkin: item.aktualCheckIn ? item.aktualCheckIn.toLocaleTimeString('id-ID') : null,
+      checkout: item.aktualCheckOut ? item.aktualCheckOut.toLocaleTimeString('id-ID') : null,
+      rejected: item.status === "Ditolak", // Sesuaikan dengan string status di DB-mu
+    }));
 
-  result.sort((a, b) => b.date.localeCompare(a.date));
-
-  return NextResponse.json(result);
+    return NextResponse.json(result);
+  } catch (error) {
+    console.error("Error API Laporan:", error);
+    return NextResponse.json([]);
+  }
 }

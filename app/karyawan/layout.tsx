@@ -59,7 +59,7 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
         <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-slate-100">
           <div className="flex items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-600">
-              <LayoutDashboard className="h-4 w-4 text-white" />
+              <span className="h-5 w-4 text-white">𖥔</span>
             </div>
             <span className="text-sm font-semibold text-slate-800 leading-tight">
               Visitor<br />

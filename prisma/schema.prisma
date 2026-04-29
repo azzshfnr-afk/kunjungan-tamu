@@ -78,3 +78,4 @@ model User {
   role        String  @default("SATPAM_AREA")
   lokasiTugas String?
 }
+
