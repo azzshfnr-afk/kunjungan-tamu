@@ -168,6 +168,11 @@ export async function GET(request: Request) {
       phone: t.noTelp,
       departemen: t.departemen,
       karyawan: t.karyawanDituju,
+      tujuanKunjungan: t.tujuanKunjungan, // tambah ini
+      status: t.status,                   // tambah ini
+      tipeTamu: t.tipeTamu,               // tambah ini
+      statusKunjungan: t.statusKunjungan,       // ← tambah ini
+      tanggalKunjungan: t.tanggalKunjungan,     // ← tambah ini
       visitDate: t.waktuCheckIn,
       visitTime: t.waktuCheckIn ? new Date(t.waktuCheckIn).toLocaleTimeString("id-ID", {hour: '2-digit', minute:'2-digit'}) : "-",
       checkin: t.waktuCheckIn,

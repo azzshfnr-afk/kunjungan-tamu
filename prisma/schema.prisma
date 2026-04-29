@@ -37,6 +37,9 @@ model Tamu {
   logTracking LogTracking[]
 
   anggotaRombongan AnggotaRombongan[]
+
+  status   String @default("Menunggu")
+  tipeTamu String @default("regular")
 }
 
 model KartuNfc {
