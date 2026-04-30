@@ -141,16 +141,14 @@ export default function SatpamDashboard() {
                             ) : (
                                 dataTamu
                                 .filter(t => t.namaTamu.toLowerCase().includes(searchQuery.toLowerCase()))
-                                .filter(t => t.statusKunjungan === "Check-in" || t.statusKunjungan === "DI LOBBY GEDUNG" || t.statusKunjungan === "DI DALAM RUANGAN")
+                                .filter(t => t.statusKunjungan !== "Menunggu" && t.statusKunjungan !== "MENUNGGU_GATE_UTAMA")
                                 .map((tamu) => {
-                                    const st = tamu.statusKunjungan || "MENUNGGU GATE UTAMA"; 
+                                    const st = tamu.statusKunjungan || "MENUNGGU"; 
                                     let bg = "bg-gray-100 text-gray-800"; let txt = st;
-                                    if (st === "MENUNGGU_GATE_UTAMA") { bg = "bg-yellow-100 text-yellow-800"; txt = "Menunggu Gate Utama"; }
-                                    else if (st === "MENUJU_GEDUNG") { bg = "bg-blue-100 text-blue-800"; txt = "Menuju Gedung"; }
-                                    else if (st === "DI_LOBBY_GEDUNG") { bg = "bg-purple-100 text-purple-800"; txt = "Di Lobby Gedung"; }
-                                    else if (st === "DI_DALAM_RUANGAN") { bg = "bg-green-100 text-green-800"; txt = "Di Dalam Ruangan"; }
-                                    else if (st === "MENUJU_GATE_UTAMA_OUT") { bg = "bg-orange-100 text-orange-800"; txt = "Perjalanan Keluar"; }
-                                    else if (st === "SELESAI") { bg = "bg-red-100 text-red-800"; txt = "Selesai / Pulang"; }
+                                    if (st === "Menunggu") { bg = "bg-yellow-100 text-yellow-800"; txt = "Menunggu Kedatangan"; }
+                                    else if (st === "Check-in") { bg = "bg-blue-100 text-blue-800"; txt = "Check-in"; }
+                                    else if (st === "Check-in Area") { bg = "bg-green-100 text-green-800"; txt = "Di Dalam Area/Gedung"; }
+                                    else if (st === "Check-out") { bg = "bg-red-100 text-red-800"; txt = "Check-out (Selesai)"; }
                                     const tgl = new Date(tamu.waktuCheckIn || tamu.tanggalCheckIn).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
                                     return (
                                         <TableRow key={tamu.id}>
@@ -162,12 +160,12 @@ export default function SatpamDashboard() {
                                                 <div className="flex justify-center items-center gap-1.5 flex-wrap">
                                                     {roleSatpam === "gateUtama" && (
                                                         <>
-                                                            {st === "MENUNGGU_GATE_UTAMA" && (
+                                                            {st === "Menunggu" && (
                                                                 <Button size="sm" className="bg-blue-600 hover:bg-blue-700 h-8 text-xs" onClick={() => { setTamuTerpilih(tamu); setStepScan(2); setModalAction("checkin"); }}>
                                                                     <LogIn className="mr-1 h-3 w-3" /> Check-in
                                                                 </Button>
                                                             )}
-                                                            {(st !== "MENUNGGU_GATE_UTAMA" && st !== "SELESAI") && (
+                                                            {(st !== "Check-in" && st !== "Check-in Area") && (
                                                                 <Button size="sm" variant="destructive" className="h-8 text-xs" onClick={() => { setTamuTerpilih(tamu); setStepScan(2); setModalAction("checkout"); }}>
                                                                     <LogOut className="mr-1 h-3 w-3" /> Check-out
                                                                 </Button>
@@ -176,16 +174,14 @@ export default function SatpamDashboard() {
                                                     )}
                                                     {roleSatpam === "area" && (
                                                         <>
-                                                            {(st === "MENUJU_GEDUNG" || st === "DI_LOBBY_GEDUNG") && (
+                                                            {st === "Check-in" && (
                                                                 <Button size="sm" className="bg-green-600 hover:bg-green-700 h-8 text-xs" onClick={() => { setTamuTerpilih(tamu); setStepScan(2); setModalAction("checkin"); }}>
-                                                                    <LogIn className="mr-1 h-3 w-3" /> Check-in (Beri Akses)
+                                                                    <LogIn className="mr-1 h-3 w-3" /> Masuk Area
                                                                 </Button>
                                                             )}
-                                                            {st === "DI_DALAM_RUANGAN" && (
-                                                                <Button size="sm" variant="destructive" className="h-8 text-xs" onClick={() => { setTamuTerpilih(tamu); setModalAction("checkout"); }}>
-                                                                    <LogOut className="mr-1 h-3 w-3" /> Check-out (Tarik Akses)
+                                                                <Button size="sm" variant="destructive" className="h-8 text-xs" disabled={st !== "Check-in Area"} onClick={() => { setTamuTerpilih(tamu); setModalAction("checkout"); }}>
+                                                                    <LogOut className="mr-1 h-3 w-3" /> Keluar Area
                                                                 </Button>
-                                                            )}
                                                         </>
                                                     )}
                                                     <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500 bg-gray-100 hover:bg-gray-200" onClick={() => { setTamuTerpilih(tamu); setModalAction("detail"); }}>
@@ -321,7 +317,7 @@ export default function SatpamDashboard() {
                                                 updateStatusTamu(tamuTerpilih.id, "Check-in", aksesArr.join(","), uidNfc, "Gate Utama Masuk");
                                             }
                                             if(roleSatpam === "area") {
-                                                updateStatusTamu(tamuTerpilih.id, "DI_DALAM_RUANGAN", tamuTerpilih.aksesAktif + `,LOBBY_${lokasiArea}`, uidNfc || undefined, `Lobby ${lokasiArea} Masuk`);
+                                                updateStatusTamu(tamuTerpilih.id, "Check-in Area", tamuTerpilih.aksesAktif + `,LOBBY_${lokasiArea}`, uidNfc || undefined, `Lobby ${lokasiArea} Masuk`);
                                             }}
                                         tutupModal(); 
                                     }}>Selesai & Simpan</Button>
@@ -420,9 +416,9 @@ export default function SatpamDashboard() {
                             <DialogFooter className="mt-4">
                                 <Button variant="outline" onClick={tutupModal}>Batal</Button>
                                 <Button variant="destructive" onClick={() => {
-                                    updateStatusTamu(tamuTerpilih.id, "MENUJU_GATE_UTAMA_OUT", "GATE_UTAMA,PARKIR_GEDUNG", uidNfc, `Lobby ${lokasiArea} Keluar`);
+                                    updateStatusTamu(tamuTerpilih.id, "Check-in", tamuTerpilih.aksesAktif.replace(`,LOBBY_${lokasiArea}`,''), uidNfc, `Lobby ${lokasiArea} Keluar`);
                                     tutupModal();
-                                }}>Cabut Akses Lobby</Button>
+                                }}>Cabut Akses & Selesai</Button>
                             </DialogFooter>
                         </div>
                     )}
