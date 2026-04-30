@@ -16,24 +16,18 @@ export default function CekKunjunganPage() {
     const [isSearching, setIsSearching] = useState(false);
     const [hasilKunjungan, setHasilKunjungan] = useState<any>(null);
     const [isExpanded, setIsExpanded] = useState(true);
-
     const handleCariKunjungan = async () => {
     if (!emailSearch) return alert("Masukkan email terlebih dahulu!");
-    
     setIsSearching(true);
     setHasilKunjungan(null);
-
     try {
         const response = await fetch(`/api/tamu?email=${emailSearch}`);
         const result = await response.json();
-
         if (response.ok && result.data) {
             const dbData = result.data;
-
             const rombonganValid = (dbData.anggotaRombongan || []).filter(
                 (a: any) => a.nama && a.nama !== "-" && a.nama.trim() !== ""
             );
-
             const daftarTamu = [
                 { nama: dbData.namaTamu, noUrut: 1, role: "Tamu Utama" },
                 ...rombonganValid.map((a: any, index: number) => ({
@@ -42,14 +36,12 @@ export default function CekKunjunganPage() {
                     role: "Rombongan"
                 }))
             ];
-
             setHasilKunjungan({
                 ...dbData, 
                 idKunjungan: `PKC-${String(dbData.id || "").substring(0, 8).toUpperCase()}`,
                 tamu: daftarTamu,
                 jumlahTamu: daftarTamu.length,
             });
-
         } else {
             alert(result.message || "Data kunjungan tidak ditemukan.");
         }
@@ -60,17 +52,14 @@ export default function CekKunjunganPage() {
         setIsSearching(false);
     }
 };
-
     return (
         <div className="min-h-screen bg-gray-50">
             <Navbar halamanAktif="cek-kunjungan" />
-
             <div className="max-w-4xl mx-auto px-4 pt-10 pb-16">
                 <div className="text-center mb-8">
                     <h1 className="text-3xl font-bold text-gray-900 mb-2">Cek Data Kunjungan</h1>
                     <p className="text-gray-500">Masukkan email untuk melihat daftar dan status kunjungan Anda</p>
                 </div>
-
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-10 max-w-3xl mx-auto">
                     <div className="flex flex-col sm:flex-row gap-3">
                         <div className="flex-1">
@@ -96,8 +85,7 @@ export default function CekKunjunganPage() {
 
                 {hasilKunjungan && (
                     <div className="max-w-3xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <h3 className="font-bold text-lg text-gray-900 mb-3">Daftar Kunjungan (1)</h3>
-                        
+                        <h3 className="font-bold text-lg text-gray-900 mb-3">Daftar Kunjungan (1)</h3>                        
                         <div className="bg-white rounded-xl shadow-sm border border-blue-600 overflow-hidden">
                             <div className="p-5 border-b border-gray-100 relative cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => setIsExpanded(!isExpanded)}>
                                 <div className="flex justify-between items-start mb-3">
@@ -105,9 +93,7 @@ export default function CekKunjunganPage() {
                                         <h2 className="text-lg font-bold text-gray-900 tracking-wide">{hasilKunjungan.idKunjungan}</h2>
                                     </div>
                                     <div className="flex items-center gap-3">
-                                        <span className="bg-blue-600 text-white text-xs font-semibold px-3 py-1 rounded-full">
-                                            {hasilKunjungan.status}
-                                        </span>
+                                        <span className="bg-blue-600 text-white text-xs font-semibold px-3 py-1 rounded-full"> {hasilKunjungan.status} </span>
                                         <ChevronUp className={`w-5 h-5 text-gray-500 transition-transform duration-300.${!isExpanded ? 'rotate-180' : ''}`}/>
                                     </div>
                                 </div>
@@ -116,17 +102,14 @@ export default function CekKunjunganPage() {
                                     <Building2 className="w-4 h-4 text-gray-400" /> 
                                     {hasilKunjungan.departemen} - {hasilKunjungan.karyawanDituju}
                                 </div>
-
                                 <div className="flex items-center gap-1.5">
                                     <MapPin className="w-4 h-4 text-gray-400" /> 
                                     Gedung Pusat Administrasi (GPA)
                                 </div>
-
                                 <div className="flex items-center gap-1.5">
                                     <Users className="w-4 h-4 text-gray-400" /> 
                                     {hasilKunjungan.jumlahTamu} Orang
                                 </div>
-
                                 <div className="flex flex-col gap-1.5 text-blue-700 bg-blue-50/50 p-3 rounded-lg border border-blue-100 w-fit">
                                     <div className="flex items-center gap-2">
                                         <div className="bg-blue-600 text-white text-[10px] px-1.5 py-0.5 rounded font-bold uppercase">In</div>
@@ -139,7 +122,6 @@ export default function CekKunjunganPage() {
                                             {new Date(hasilKunjungan.waktuCheckIn).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
                                         </span>
                                     </div>
-
                                     <div className="flex items-center gap-2">
                                         <div className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded font-bold uppercase">Out</div>
                                         <Calendar className="w-3.5 h-3.5" />
@@ -157,7 +139,6 @@ export default function CekKunjunganPage() {
 
                 {isExpanded && (
                     <div className="animate-in slide-in-from-top-2 duration-300 ease-in-out">
-
                             <div className="p-5 grid grid-cols-1 md:grid-cols-3 gap-4 border-b border-gray-100">
                                 <div className="flex items-center gap-3 bg-gray-50 px-4 py-3 rounded-lg border border-gray-100">
                                     <Mail className="w-5 h-5 text-gray-700 shrink-0" />
@@ -172,7 +153,6 @@ export default function CekKunjunganPage() {
                                     <span className="text-sm font-medium text-gray-800">{hasilKunjungan.nik}</span>
                                 </div>
                             </div>
-
                             <div className="p-5 border-b border-gray-100">
                                 <h4 className="font-bold text-gray-900 mb-4">Data Tamu</h4>
                                 <div className="space-y-3">
@@ -195,7 +175,6 @@ export default function CekKunjunganPage() {
                                     ))}
                                 </div>
                             </div>
-
                             <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 bg-gray-50">
                                 <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm flex flex-col">
                                     <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100 bg-blue-50/50 text-blue-800 font-semibold text-sm">
@@ -210,7 +189,6 @@ export default function CekKunjunganPage() {
                                         </Button>
                                     </div>
                                 </div>
-
                                 <div className="bg-white rounded-xl border border-yellow-200 overflow-hidden shadow-sm flex flex-col">
                                     <div className="flex items-center gap-2 px-4 py-3 border-b border-yellow-100 bg-yellow-50 text-yellow-800 font-semibold text-sm">
                                         <ShieldAlert className="w-4 h-4" /> Syarat Kunjungan
@@ -224,7 +202,6 @@ export default function CekKunjunganPage() {
                                         </p>
                                     </div>
                                 </div>
-
                                 <div className="bg-white rounded-xl border border-green-500 overflow-hidden shadow-sm flex flex-col">
                                     <div className="flex items-center justify-between px-4 py-3 border-b border-green-100 bg-green-50/80 text-green-800 font-semibold text-sm">
                                         <div className="flex items-center gap-2">

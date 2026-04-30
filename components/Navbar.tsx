@@ -7,7 +7,6 @@ export function Navbar({ halamanAktif }: { halamanAktif?: string }) {
         { id: "registrasi", label: "Registrasi", href: "/registrasi" },
         { id: "cek-kunjungan", label: "Cek Kunjungan", href: "/cek-kunjungan" },
     ];
-
     return (
         <nav className="bg-white border-b border-gray-200 py-3 sticky top-0 z-[100]">
             <div className="max-w-6xl mx-auto px-6 flex items-center justify-between">
@@ -19,7 +18,6 @@ export function Navbar({ halamanAktif }: { halamanAktif?: string }) {
                         <span className="text-xs text-gray-500 border-l border-gray-200 pl-2.5 ml-2.5"> PT Pupuk Kujang </span>
                     </div>
                 </div>
-
                 <div className="flex items-center gap-1 overflow-x-auto">
                     {menuItems.map((item) => {
                         const aktif = halamanAktif === item.id;
@@ -30,7 +28,6 @@ export function Navbar({ halamanAktif }: { halamanAktif?: string }) {
                         );
                     })}
                 </div>
-
             </div>
         </nav>
     );

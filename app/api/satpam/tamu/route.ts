@@ -11,8 +11,6 @@ export async function GET() {
 
     const dataTamu = await prisma.tamu.findMany({
       where: {
-        // Filter tamu yang jadwal kunjungannya hari ini
-        // Pakai tanggalKunjungan jika ada, fallback ke waktuCheckIn
         OR: [
           {
             tanggalKunjungan: {
@@ -21,7 +19,6 @@ export async function GET() {
             },
           },
           {
-            // Fallback untuk tamu lama yang belum punya tanggalKunjungan
             tanggalKunjungan: null,
             waktuCheckIn: {
               gte: startOfToday,

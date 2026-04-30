@@ -17,7 +17,6 @@ export async function GET(req: Request) {
             });
             return NextResponse.json({ ok: true, data: logs });
         }
-
         if (uidNfc) {
             const kartu = await prisma.kartuNfc.findUnique({ where: { uidKartu: uidNfc } });
             if (!kartu) {
@@ -31,7 +30,6 @@ export async function GET(req: Request) {
             });
             return NextResponse.json({ ok: true, data: logs });
         }
-
         return NextResponse.json({ ok: false, message: "Harap kirimkan tamuId atau uidNfc" }, { status: 400 });
     } catch (error) {
         console.error("Admin Fetch Tracking Error:", error);

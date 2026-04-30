@@ -91,7 +91,6 @@ export default function SatpamDashboard() {
     const handleLepasSemuaAkses = () => {
         setAksesLepas({ gateUtama: true, gateParkir: true, gateLobby: true });
     };
-
     return (
         <div className="flex min-h-screen flex-col items-center bg-gradient-to-br from-gray-50 to-gray-100 p-6">
             <div className="w-full max-w-7xl rounded-lg bg-white p-8 shadow-xl border border-gray-200">
@@ -105,12 +104,9 @@ export default function SatpamDashboard() {
                         </select>
                     )}
                 </div>
-
                 <div className="mb-8 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">
-                            Dashboard {roleSatpam === "gateUtama" ? "Security Gate Utama" : `Security Area (${lokasiArea})`}
-                        </h1>
+                        <h1 className="text-2xl font-bold text-gray-900"> Dashboard {roleSatpam === "gateUtama" ? "Security Gate Utama" : `Security Area (${lokasiArea})`} </h1>
                         <p className="text-gray-600">Sistem Manajemen Pengunjung PT Pupuk Kujang</p>
                     </div>
                     <div className="flex flex-col sm:flex-row items-center gap-2">
@@ -126,7 +122,6 @@ export default function SatpamDashboard() {
                         </Button>
                     </div>
                 </div>
-
                 <div className="rounded-md border bg-white overflow-hidden shadow-sm">
                     <Table>
                         <TableHeader>
@@ -178,7 +173,6 @@ export default function SatpamDashboard() {
                                                             )}
                                                         </>
                                                     )}
-
                                                     {roleSatpam === "area" && (
                                                         <>
                                                             {(st === "MENUJU_GEDUNG" || st === "DI_LOBBY_GEDUNG") && (
@@ -193,7 +187,6 @@ export default function SatpamDashboard() {
                                                             )}
                                                         </>
                                                     )}
-
                                                     <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500 bg-gray-100 hover:bg-gray-200" onClick={() => { setTamuTerpilih(tamu); setModalAction("detail"); }}>
                                                         <Eye className="h-4 w-4" />
                                                     </Button>
@@ -207,7 +200,6 @@ export default function SatpamDashboard() {
                     </Table>
                 </div>
             </div>
-
             <Dialog open={modalAction === "checkin"} onOpenChange={(open) => !open && tutupModal()}>
                 <DialogContent className="sm:max-w-md p-0 overflow-hidden">
                     <div className="bg-gray-50 p-6 border-b">
@@ -237,7 +229,6 @@ export default function SatpamDashboard() {
                                 <Button variant="outline" size="sm" className="mt-2 text-[10px]" onClick={() => { if(dataTamu.length>0) setTamuTerpilih(dataTamu[0]); setStepScan(2); }}>(Dev) Lewati Scan</Button>
                             </div>
                         )}
-                        
                         {stepScan === 2 && roleSatpam === "gateUtama" && (
                             <div className="space-y-5">
                                 <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 space-y-1">
@@ -271,7 +262,6 @@ export default function SatpamDashboard() {
                                 </div>
                             </div>
                         )}
-
                         {stepScan === 2 && roleSatpam === "area" && (
                             <div className="space-y-5">
                                 <div className="bg-green-50 p-4 rounded-xl border border-green-100">
@@ -285,7 +275,6 @@ export default function SatpamDashboard() {
                                 </div>
                             </div>
                         )}
-
                         {stepScan === 3 && (
                             <div className="space-y-6">
                                 <div className="space-y-2">
@@ -368,7 +357,6 @@ export default function SatpamDashboard() {
                     <DialogHeader>
                         <DialogTitle>Proses Check-out: {tamuTerpilih?.namaTamu}</DialogTitle>
                     </DialogHeader>
-
                     {roleSatpam === "gateUtama" && (
                         <div className="space-y-4">
                             {stepScan === 2 && (
@@ -392,7 +380,6 @@ export default function SatpamDashboard() {
                                     <Button className="w-full bg-red-600 hover:bg-red-700 text-white" onClick={() => setStepScan(3)}>Lanjut Tap NFC</Button>
                                 </div>
                             )}
-                            
                             {stepScan === 3 && (
                                 <div className="space-y-4 py-2">
                                     <div className="bg-red-50 p-4 rounded-lg border border-red-100">
@@ -416,7 +403,6 @@ export default function SatpamDashboard() {
                             )}
                         </div>
                     )}
-
                     {roleSatpam === "area" && (
                         <div className="space-y-4 py-2">
                             <p className="text-sm text-gray-600">Cabut izin akses Gate Lobby untuk tamu ini. Tamu tetap bisa menggunakan akses lain untuk keluar kawasan.</p>
@@ -441,7 +427,6 @@ export default function SatpamDashboard() {
                     )}
                 </DialogContent>
             </Dialog>
-
             <Dialog open={modalAction === "detail"} onOpenChange={(open) => !open && tutupModal()}>
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader><DialogTitle>Detail Tamu: {tamuTerpilih?.namaTamu}</DialogTitle></DialogHeader>

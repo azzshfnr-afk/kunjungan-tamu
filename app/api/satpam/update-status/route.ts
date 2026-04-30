@@ -8,7 +8,6 @@ interface BodyUpdateStatus {
   uidNfc?: string;
   lokasiTap?: string;
 }
-
 export async function POST(req: Request) {
   try {
     const body = (await req.json()) as BodyUpdateStatus;
@@ -76,7 +75,6 @@ export async function POST(req: Request) {
       });
     }
 
-    // cekin cekot
     if (statusKunjungan === "SELESAI") {
       if (tamuSaatIni.kartuNfcId) {
         await prisma.logTracking.create({
@@ -100,7 +98,7 @@ export async function POST(req: Request) {
           statusKunjungan,
           aksesAktif,
           kartuNfcId: null,
-          aktualCheckOut: new Date(), // jam check-out dari satpam
+          aktualCheckOut: new Date(),
         },
       });
 
@@ -110,12 +108,10 @@ export async function POST(req: Request) {
         message: "Check-out Sukses, Kartu Dilepas",
       });
     }
-
     const updateTamuBiasa = await prisma.tamu.update({
       where: { id: Number(id) },
       data: { statusKunjungan, aksesAktif },
     });
-
     return NextResponse.json({ ok: true, data: updateTamuBiasa });
 
   } catch (error) {
