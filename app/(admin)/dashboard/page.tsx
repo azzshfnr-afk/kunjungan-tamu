@@ -199,14 +199,14 @@ export default function Page() {
           <TabsList className="h-8 w-fit rounded-lg bg-muted p-1">
             <TabsTrigger 
               value="overview" 
-              className="h-7 px-4 text-xs transition-all data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+              className=" px-4 text-xs transition-all data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm"
               onClick={() => setSearch("")} // Reset search saat klik
             >
               <Activity className="mr-2 h-3.5 w-3.5" /> Overview
             </TabsTrigger>
             <TabsTrigger 
               value="visitor" 
-              className="h-7 px-4 text-xs transition-all data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+              className="px-4 text-xs transition-all data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm"
               onClick={() => setSearch("")} // Reset search saat klik
             >
               <Users className="mr-2 h-3.5 w-3.5" /> Visitor (Mendatang)

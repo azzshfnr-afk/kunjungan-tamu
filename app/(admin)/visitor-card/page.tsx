@@ -179,13 +179,13 @@ export default function VisitorCardPage() {
       {/* TAB */}
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
-          <TabsTrigger value="today" className="text-xs">
+          <TabsTrigger value="today" className="text-xs transition-all data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm">
             Hari Ini
           </TabsTrigger>
-          <TabsTrigger value="upcoming" className="text-xs">
+          <TabsTrigger value="upcoming" className="text-xs transition-all data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm">
             Mendatang
           </TabsTrigger>
-          <TabsTrigger value="all" className="text-xs">
+          <TabsTrigger value="all" className="text-xs transition-all data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm">
             Semua
           </TabsTrigger>
         </TabsList>

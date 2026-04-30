@@ -15,7 +15,7 @@ const transporter = nodemailer.createTransport({
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
-    
+
     const namaTamu = (formData.get("namaTamu") as string) || (formData.get("nama") as string) || "Tanpa Nama";
     const asalInstansi = (formData.get("asalInstansi") as string) || (formData.get("instansi") as string) || "-";
     const email = (formData.get("email") as string) || "-";
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     const karyawanDituju = (formData.get("karyawanDituju") as string) || (formData.get("petugas") as string) || "-";
     const departemen = (formData.get("departemen") as string) || "-";
     const tujuanKunjungan = (formData.get("tujuanKunjungan") as string) || (formData.get("tujuan") as string) || "-";
-    
+
     const tglMasuk = formData.get("tanggalCheckIn") as string;
     const jamMasuk = formData.get("jamCheckIn") as string;
     const tglKeluar = formData.get("tanggalCheckOut") as string;
@@ -32,6 +32,9 @@ export async function POST(request: Request) {
 
     const waktuCheckIn = (tglMasuk && jamMasuk) ? new Date(`${tglMasuk}T${jamMasuk}`) : new Date();
     const waktuCheckOut = (tglKeluar && jamKeluar) ? new Date(`${tglKeluar}T${jamKeluar}`) : new Date();
+
+    // ← populate tanggalKunjungan dari tanggalCheckIn form
+    const tanggalKunjungan = tglMasuk ? new Date(`${tglMasuk}T00:00:00`) : new Date();
 
     let anggotaRombonganParsed = [];
     try {
@@ -74,15 +77,16 @@ export async function POST(request: Request) {
         tujuanKunjungan,
         waktuCheckIn,
         waktuCheckOut,
+        tanggalKunjungan, // ← tambah ini
         fotoKtp: fotoKtpUrl,
         anggotaRombongan: {
           create: anggotaRombonganParsed.map((a: any) => ({
             nama: a.nama || "-",
             email: a.email || "-",
-            noTelp: a.noTelp || "-"
-          }))
-        }
-      }
+            noTelp: a.noTelp || "-",
+          })),
+        },
+      },
     });
 
     if (email !== "-" && email.includes("@")) {
@@ -112,7 +116,7 @@ export async function POST(request: Request) {
                     </div>
                 </div>
             </div>
-          `
+          `,
         };
         await transporter.sendMail(mailOptions);
       } catch (err) {
@@ -133,17 +137,16 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const email = searchParams.get('email');
 
-    // Jika ada email, cari data spesifik (Fitur Cek Tiket)
     if (email) {
       const dataKunjungan = await prisma.tamu.findFirst({
         where: {
           OR: [
             { email: email },
-            { anggotaRombongan: { some: { email: email } } }
-          ]
+            { anggotaRombongan: { some: { email: email } } },
+          ],
         },
         include: { anggotaRombongan: true },
-        orderBy: { id: 'desc' }
+        orderBy: { id: 'desc' },
       });
 
       if (!dataKunjungan) {
@@ -153,13 +156,11 @@ export async function GET(request: Request) {
       return NextResponse.json({ message: 'Sukses', data: dataKunjungan }, { status: 200 });
     }
 
-    // Jika tidak ada email, ambil SEMUA data (Fitur Dashboard & Visitor Card)
     const semuaTamu = await prisma.tamu.findMany({
       include: { anggotaRombongan: true },
-      orderBy: { id: 'desc' }
+      orderBy: { id: 'desc' },
     });
 
-    // Mapping agar nama field di database sinkron dengan yang dipanggil di UI (Frontend)
     const result = semuaTamu.map((t) => ({
       id: t.id,
       name: t.namaTamu,
@@ -168,15 +169,18 @@ export async function GET(request: Request) {
       phone: t.noTelp,
       departemen: t.departemen,
       karyawan: t.karyawanDituju,
-      tujuanKunjungan: t.tujuanKunjungan, // tambah ini
-      status: t.status,                   // tambah ini
-      tipeTamu: t.tipeTamu,               // tambah ini
-      statusKunjungan: t.statusKunjungan,       // ← tambah ini
-      tanggalKunjungan: t.tanggalKunjungan,     // ← tambah ini
+      tujuanKunjungan: t.tujuanKunjungan,
+      status: t.status,
+      tipeTamu: t.tipeTamu,
+      statusKunjungan: t.statusKunjungan,
+      tanggalKunjungan: t.tanggalKunjungan,
       visitDate: t.waktuCheckIn,
-      visitTime: t.waktuCheckIn ? new Date(t.waktuCheckIn).toLocaleTimeString("id-ID", {hour: '2-digit', minute:'2-digit'}) : "-",
-      checkin: t.waktuCheckIn,
-      checkout: t.waktuCheckOut,
+      visitTime: t.waktuCheckIn
+        ? new Date(t.waktuCheckIn).toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' })
+        : "-",
+      // aktual buat satpam nich
+      checkin: t.aktualCheckIn ?? null,
+      checkout: t.aktualCheckOut ?? null,
     }));
 
     return NextResponse.json(result);
