@@ -141,6 +141,7 @@ export default function SatpamDashboard() {
                             ) : (
                                 dataTamu
                                 .filter(t => t.namaTamu.toLowerCase().includes(searchQuery.toLowerCase()))
+                                .filter(t => t.statusKunjungan === "Check-in" || t.statusKunjungan === "DI LOBBY GEDUNG" || t.statusKunjungan === "DI DALAM RUANGAN")
                                 .map((tamu) => {
                                     const st = tamu.statusKunjungan || "MENUNGGU GATE UTAMA"; 
                                     let bg = "bg-gray-100 text-gray-800"; let txt = st;
@@ -317,7 +318,7 @@ export default function SatpamDashboard() {
                                                 let aksesArr = [];
                                                 if(aksesBeri.gateUtama) aksesArr.push("GATE_UTAMA");
                                                 if(aksesBeri.gateParkir) aksesArr.push(`PARKIR_${selectedGedung}`);
-                                                updateStatusTamu(tamuTerpilih.id, "MENUJU_GEDUNG", aksesArr.join(","), uidNfc, "Gate Utama Masuk");
+                                                updateStatusTamu(tamuTerpilih.id, "Check-in", aksesArr.join(","), uidNfc, "Gate Utama Masuk");
                                             }
                                             if(roleSatpam === "area") {
                                                 updateStatusTamu(tamuTerpilih.id, "DI_DALAM_RUANGAN", tamuTerpilih.aksesAktif + `,LOBBY_${lokasiArea}`, uidNfc || undefined, `Lobby ${lokasiArea} Masuk`);
@@ -395,7 +396,7 @@ export default function SatpamDashboard() {
                                     <div className="flex gap-2 mt-4">
                                         <Button variant="outline" className="flex-1" onClick={() => setStepScan(2)}>Kembali</Button>
                                         <Button variant="destructive" className="flex-1" onClick={() => {
-                                            updateStatusTamu(tamuTerpilih.id, "SELESAI", "NONAKTIF", uidNfc, "Gate Utama Keluar");
+                                            updateStatusTamu(tamuTerpilih.id, "Check-out", "NONAKTIF", uidNfc, "Gate Utama Keluar");
                                             tutupModal();
                                         }}>Selesaikan Check-out</Button>
                                     </div>
