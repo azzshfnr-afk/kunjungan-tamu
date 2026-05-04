@@ -8,20 +8,46 @@ export async function PATCH(
   try {
     const id = parseInt(params.id);
     const body = await request.json();
-    const { statusKunjungan } = body as {
-      statusKunjungan: "DIIZINKAN" | "DITOLAK";
+
+    const {
+      statusKunjungan,
+      status,
+      aksi,
+    } = body as {
+      statusKunjungan?: "DIIZINKAN" | "DITOLAK";
+      status?: "Diterima" | "Ditolak";        
+      aksi?: "checkin" | "checkout";           
     };
 
-    if (!statusKunjungan) {
+ 
+    if (!statusKunjungan && !status && !aksi) {
       return NextResponse.json(
-        { message: "statusKunjungan wajib diisi." },
+        { message: "Tidak ada data yang dikirim untuk diupdate." },
         { status: 400 }
       );
     }
 
+
+    const updateData: Record<string, any> = {};
+
+    if (statusKunjungan) {
+      updateData.statusKunjungan = statusKunjungan;
+    }
+
+
+    if (status) {
+      updateData.status = status;
+    }
+
+    if (aksi === "checkin") {
+      updateData.aktualCheckIn = new Date();
+    } else if (aksi === "checkout") {
+      updateData.aktualCheckOut = new Date();
+    }
+
     const updated = await prisma.tamu.update({
       where: { id },
-      data: { statusKunjungan },
+      data: updateData,
     });
 
     return NextResponse.json(

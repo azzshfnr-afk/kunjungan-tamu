@@ -43,11 +43,12 @@ type Visitor = {
   visitTime: string;
   checkin: string | null;
   checkout: string | null;
-  rejected?: boolean;
+  statusDb?: string; // status dari DB: "Menunggu" | "Diterima" | "Ditolak"
 };
 
-type VisitorApi = Omit<Visitor, "visitDate"> & {
+type VisitorApi = Omit<Visitor, "visitDate" | "statusDb"> & {
   visitDate: string;
+  status?: string; // field status dari API
 };
 
 type CardProps = {
@@ -57,18 +58,39 @@ type CardProps = {
   color?: "blue" | "green" | "yellow" | "red";
 };
 
+// ─── Tentukan status tampilan berdasarkan statusDb + aktual checkin/checkout ──
+function getStatus(item: Visitor): StatusType {
+  // 1. Jika ditolak resepsionis → Ditolak
+  if (item.statusDb === "Ditolak") return "Ditolak";
+
+  // 2. Sudah checkin DAN checkout satpam → Selesai
+  if (item.checkin && item.checkout) return "Selesai";
+
+  // 3. Sudah checkin tapi belum checkout → Check-in
+  if (item.checkin && !item.checkout) return "Check-in";
+
+  // 4. Belum checkin sama sekali → Pending
+  return "Pending";
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 export default function Page() {
   const [search, setSearch] = useState("");
   const [dashboardData, setDashboardData] = useState<Visitor[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentDateTime, setCurrentDateTime] = useState(new Date());
-  
-  const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
+
+  const [selectedYear, setSelectedYear] = useState<string>(
+    new Date().getFullYear().toString()
+  );
 
   const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 8 }, (_, i) => (currentYear - 2 + i).toString());
+  const years = Array.from({ length: 8 }, (_, i) =>
+    (currentYear - 2 + i).toString()
+  );
 
+  // Clock real-time
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentDateTime(new Date());
@@ -76,6 +98,7 @@ export default function Page() {
     return () => clearInterval(interval);
   }, []);
 
+  // Fetch data tamu dari API (semua, filter di frontend)
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -87,13 +110,22 @@ export default function Page() {
         const parsed: Visitor[] = result.map((item) => ({
           ...item,
           visitDate: new Date(item.visitDate),
+          // ← map field status dari API ke statusDb
+          statusDb: item.status ?? "Menunggu",
           checkin: item.checkin
-            ? new Date(item.checkin).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) + " WIB"
+            ? new Date(item.checkin).toLocaleTimeString("id-ID", {
+                hour: "2-digit",
+                minute: "2-digit",
+              }) + " WIB"
             : null,
           checkout: item.checkout
-            ? new Date(item.checkout).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) + " WIB"
+            ? new Date(item.checkout).toLocaleTimeString("id-ID", {
+                hour: "2-digit",
+                minute: "2-digit",
+              }) + " WIB"
             : null,
         }));
+
         setDashboardData(parsed);
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : "Terjadi kesalahan");
@@ -104,61 +136,53 @@ export default function Page() {
     fetchData();
   }, []);
 
-  const getStatus = (item: Visitor): StatusType => {
-    if (item.rejected) return "Ditolak";
-    if (item.checkin && item.checkout) return "Selesai";
-    if (item.checkin && !item.checkout) return "Check-in";
-    return "Pending";
-  };
-
-  const filteredByYear = dashboardData.filter((item) => 
-    item.visitDate.getFullYear().toString() === selectedYear
+  // ─── Filter data berdasarkan tahun yang dipilih ───────────────────────────
+  const filteredByYear = dashboardData.filter(
+    (item) => item.visitDate.getFullYear().toString() === selectedYear
   );
 
-  const now = new Date();
-  const todayString = now.toDateString();
+  const todayString = new Date().toDateString();
 
+  // Tamu hari ini (untuk tab Overview)
   const todayData = dashboardData.filter((item) => {
     const isToday = item.visitDate.toDateString() === todayString;
     const keyword = search.toLowerCase();
-    const matchesSearch = 
-      (item.name || "").toLowerCase().includes(keyword) || 
-      String(item.id || "").toLowerCase().includes(keyword) || 
+    const matchesSearch =
+      (item.name || "").toLowerCase().includes(keyword) ||
+      String(item.id || "").toLowerCase().includes(keyword) ||
       (item.instansi || "").toLowerCase().includes(keyword);
-
     return isToday && matchesSearch;
   });
 
+  // Tamu mendatang (tanggal > hari ini, filter by tahun)
   const upcomingData = filteredByYear.filter((item) => {
     const itemDate = new Date(item.visitDate.toDateString());
     const currentDate = new Date(todayString);
-    
     const keyword = search.toLowerCase();
-    const matchesSearch = 
-      (item.name || "").toLowerCase().includes(keyword) || 
-      String(item.id || "").toLowerCase().includes(keyword) || 
+    const matchesSearch =
+      (item.name || "").toLowerCase().includes(keyword) ||
+      String(item.id || "").toLowerCase().includes(keyword) ||
       (item.instansi || "").toLowerCase().includes(keyword);
-
     return itemDate > currentDate && matchesSearch;
   });
 
+  // Statistik berdasarkan tahun yang dipilih
   const total = filteredByYear.length;
   const selesai = filteredByYear.filter((i) => getStatus(i) === "Selesai").length;
   const pending = filteredByYear.filter((i) => getStatus(i) === "Pending").length;
   const ditolak = filteredByYear.filter((i) => getStatus(i) === "Ditolak").length;
+  // ─────────────────────────────────────────────────────────────────────────
 
   return (
     <div className="flex flex-col space-y-6 w-full">
-      {/* Breadcrumb Section */}
+      {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <LayoutDashboard size={16} />
         <span>›</span>
-        <span className="font-medium text-foreground">
-          Dashboard Management
-        </span>
+        <span className="font-medium text-foreground">Dashboard Management</span>
       </div>
 
-      {/* Header Section */}
+      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <div className="rounded-xl bg-green-100 p-4 text-green-600">
@@ -166,13 +190,17 @@ export default function Page() {
           </div>
           <div>
             <h1 className="text-2xl font-bold">Dashboard Management</h1>
-            <p className="text-sm text-muted-foreground">Monitor tamu periode tahun {selectedYear}</p>
+            <p className="text-sm text-muted-foreground">
+              Monitor tamu periode tahun {selectedYear}
+            </p>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Periode:</span>
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Periode:
+            </span>
             <Select value={selectedYear} onValueChange={setSelectedYear}>
               <SelectTrigger className="w-[160px] h-9">
                 <CalendarDays className="mr-2 h-4 w-4 text-muted-foreground" />
@@ -188,51 +216,88 @@ export default function Page() {
             </Select>
           </div>
           <p className="text-sm font-medium border-l pl-4 py-1 hidden md:block">
-            {currentDateTime.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+            {currentDateTime.toLocaleDateString("id-ID", {
+              weekday: "long",
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })}
           </p>
         </div>
       </div>
 
-      {/* Tabs Section */}
+      {/* Error State */}
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+          ⚠️ {error}
+        </div>
+      )}
+
+      {/* Tabs */}
       <Tabs defaultValue="overview" className="w-full flex flex-col">
         <div className="w-full mb-6">
           <TabsList className="h-8 w-fit rounded-lg bg-muted p-1">
-            <TabsTrigger 
-              value="overview" 
-              className=" px-4 text-xs transition-all data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm"
-              onClick={() => setSearch("")} // Reset search saat klik
+            <TabsTrigger
+              value="overview"
+              className="px-4 text-xs transition-all data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+              onClick={() => setSearch("")}
             >
               <Activity className="mr-2 h-3.5 w-3.5" /> Overview
             </TabsTrigger>
-            <TabsTrigger 
-              value="visitor" 
+            <TabsTrigger
+              value="visitor"
               className="px-4 text-xs transition-all data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm"
-              onClick={() => setSearch("")} // Reset search saat klik
+              onClick={() => setSearch("")}
             >
               <Users className="mr-2 h-3.5 w-3.5" /> Visitor (Mendatang)
             </TabsTrigger>
           </TabsList>
         </div>
 
-        {/* overview content*/}
-        <TabsContent value="overview" className="flex flex-col space-y-6 m-0 outline-none">
+        {/* ── Tab: Overview ─────────────────────────────────────────────────── */}
+        <TabsContent
+          value="overview"
+          className="flex flex-col space-y-6 m-0 outline-none"
+        >
+          {/* Stat Cards */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card title={`Total Tamu ${selectedYear}`} value={total} icon={<Users />} color="blue" />
-            <Card title="Tamu Selesai" value={selesai} icon={<CheckCircle />} color="green" />
-            <Card title="Tamu Pending" value={pending} icon={<Clock />} color="yellow" />
-            <Card title="Tamu Ditolak" value={ditolak} icon={<XCircle />} color="red" />
+            <StatCard
+              title={`Total Tamu ${selectedYear}`}
+              value={loading ? 0 : total}
+              icon={<Users />}
+              color="blue"
+            />
+            <StatCard
+              title="Tamu Selesai"
+              value={loading ? 0 : selesai}
+              icon={<CheckCircle />}
+              color="green"
+            />
+            <StatCard
+              title="Tamu Pending"
+              value={loading ? 0 : pending}
+              icon={<Clock />}
+              color="yellow"
+            />
+            <StatCard
+              title="Tamu Ditolak"
+              value={loading ? 0 : ditolak}
+              icon={<XCircle />}
+              color="red"
+            />
           </div>
 
+          {/* Tabel Aktivitas Hari Ini */}
           <div className="rounded-xl border bg-background shadow-sm overflow-hidden">
             <div className="flex flex-col sm:flex-row items-center justify-between border-b p-4 gap-4">
               <h2 className="font-semibold">Aktivitas Hari Ini (Recent Activity)</h2>
               <div className="relative w-full sm:w-64">
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  placeholder="Search..." 
-                  className="pl-9" 
-                  value={search} 
-                  onChange={(e) => setSearch(e.target.value)} 
+                <Input
+                  placeholder="Search..."
+                  className="pl-9"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
             </div>
@@ -252,7 +317,16 @@ export default function Page() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {todayData.length > 0 ? (
+                  {loading ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={9}
+                        className="text-center py-10 text-muted-foreground animate-pulse"
+                      >
+                        Memuat data...
+                      </TableCell>
+                    </TableRow>
+                  ) : todayData.length > 0 ? (
                     todayData.map((item, index) => (
                       <TableRow key={item.id}>
                         <TableCell className="text-center">{index + 1}</TableCell>
@@ -261,15 +335,24 @@ export default function Page() {
                         <TableCell>{item.instansi}</TableCell>
                         <TableCell>{item.karyawan}</TableCell>
                         <TableCell>{item.departemen}</TableCell>
+                        {/* Check-in dari satpam */}
                         <TableCell>{item.checkin || "-"}</TableCell>
+                        {/* Check-out dari satpam */}
                         <TableCell>{item.checkout || "-"}</TableCell>
-                        <TableCell><StatusBadge status={getStatus(item)} /></TableCell>
+                        <TableCell>
+                          <StatusBadge status={getStatus(item)} />
+                        </TableCell>
                       </TableRow>
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={9} className="text-center py-10 text-muted-foreground">
-                        {search ? "Pencarian tidak ditemukan." : "Tidak ada aktivitas kunjungan untuk hari ini."}
+                      <TableCell
+                        colSpan={9}
+                        className="text-center py-10 text-muted-foreground"
+                      >
+                        {search
+                          ? "Pencarian tidak ditemukan."
+                          : "Tidak ada aktivitas kunjungan untuk hari ini."}
                       </TableCell>
                     </TableRow>
                   )}
@@ -279,18 +362,20 @@ export default function Page() {
           </div>
         </TabsContent>
 
-        {/* visitor content */}
+
         <TabsContent value="visitor" className="flex flex-col m-0 outline-none">
           <div className="rounded-xl border bg-background shadow-sm overflow-hidden">
             <div className="flex flex-col sm:flex-row items-center justify-between border-b p-4 gap-4">
-              <h2 className="font-semibold">Jadwal Kunjungan Mendatang ({selectedYear})</h2>
+              <h2 className="font-semibold">
+                Jadwal Kunjungan Mendatang ({selectedYear})
+              </h2>
               <div className="relative w-full sm:w-72">
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  placeholder="Cari jadwal mendatang..." 
-                  className="pl-9" 
-                  value={search} 
-                  onChange={(e) => setSearch(e.target.value)} 
+                <Input
+                  placeholder="Cari jadwal mendatang..."
+                  className="pl-9"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
             </div>
@@ -309,7 +394,16 @@ export default function Page() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {upcomingData.length > 0 ? (
+                  {loading ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={8}
+                        className="text-center py-10 text-muted-foreground animate-pulse"
+                      >
+                        Memuat data...
+                      </TableCell>
+                    </TableRow>
+                  ) : upcomingData.length > 0 ? (
                     upcomingData.map((item, index) => (
                       <TableRow key={item.id}>
                         <TableCell className="text-center">{index + 1}</TableCell>
@@ -317,15 +411,24 @@ export default function Page() {
                         <TableCell className="font-medium">{item.name}</TableCell>
                         <TableCell>{item.instansi}</TableCell>
                         <TableCell>{item.email}</TableCell>
-                        <TableCell>{item.visitDate.toLocaleDateString("id-ID")}</TableCell>
+                        <TableCell>
+                          {item.visitDate.toLocaleDateString("id-ID")}
+                        </TableCell>
                         <TableCell>{item.karyawan}</TableCell>
-                        <TableCell><StatusBadge status={getStatus(item)} /></TableCell>
+                        <TableCell>
+                          <StatusBadge status={getStatus(item)} />
+                        </TableCell>
                       </TableRow>
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center py-10 text-muted-foreground">
-                        {search ? "Pencarian tidak ditemukan." : `Tidak ada jadwal kunjungan mendatang untuk tahun ${selectedYear}.`}
+                      <TableCell
+                        colSpan={8}
+                        className="text-center py-10 text-muted-foreground"
+                      >
+                        {search
+                          ? "Pencarian tidak ditemukan."
+                          : `Tidak ada jadwal kunjungan mendatang untuk tahun ${selectedYear}.`}
                       </TableCell>
                     </TableRow>
                   )}
@@ -339,7 +442,8 @@ export default function Page() {
   );
 }
 
-function Card({ title, value, icon, color = "blue" }: CardProps) {
+
+function StatCard({ title, value, icon, color = "blue" }: CardProps) {
   const styles = {
     blue: { hover: "hover:bg-blue-50", iconBg: "bg-blue-500" },
     green: { hover: "hover:bg-green-50", iconBg: "bg-green-500" },
@@ -347,15 +451,20 @@ function Card({ title, value, icon, color = "blue" }: CardProps) {
     red: { hover: "hover:bg-red-50", iconBg: "bg-red-500" },
   };
   return (
-    <div className={`flex items-center justify-between rounded-xl border bg-white p-4 transition hover:shadow-lg ${styles[color].hover}`}>
+    <div
+      className={`flex items-center justify-between rounded-xl border bg-white p-4 transition hover:shadow-lg ${styles[color].hover}`}
+    >
       <div>
         <p className="text-sm text-gray-600">{title}</p>
         <h2 className="mt-1 text-2xl font-semibold">{value}</h2>
       </div>
-      <div className={`rounded-lg p-3 text-white ${styles[color].iconBg}`}>{icon}</div>
+      <div className={`rounded-lg p-3 text-white ${styles[color].iconBg}`}>
+        {icon}
+      </div>
     </div>
   );
 }
+
 
 function StatusBadge({ status }: { status: StatusType }) {
   const styles: Record<StatusType, string> = {
@@ -364,5 +473,11 @@ function StatusBadge({ status }: { status: StatusType }) {
     Selesai: "bg-blue-100 text-blue-600",
     Ditolak: "bg-red-100 text-red-600",
   };
-  return <span className={`rounded-full px-2 py-1 text-xs font-medium ${styles[status]}`}>{status}</span>;
+  return (
+    <span
+      className={`rounded-full px-2 py-1 text-xs font-medium ${styles[status]}`}
+    >
+      {status}
+    </span>
+  );
 }

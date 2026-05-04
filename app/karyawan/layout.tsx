@@ -18,7 +18,7 @@ import {
 
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/karyawan/dashboard", icon: LayoutDashboard },
-  { label: "Tamu Menunggu", href: "/karyawan/tamu-menunggu", icon: Clock },
+  { label: "Tamu menunggu", href: "/karyawan/tamu-menunggu", icon: Clock },
   { label: "Riwayat", href: "/karyawan/riwayat", icon: ClipboardList },
 ];
 

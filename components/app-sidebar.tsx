@@ -31,7 +31,6 @@ export function AppSidebar() {
 
   return (
     <Sidebar className="border-r border-slate-50 bg-grey-50">
-      {/* Header / Logo Section */}
       <SidebarHeader className="border-b border-slate-100 px-5 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
