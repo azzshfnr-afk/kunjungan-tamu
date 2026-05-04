@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
   LayoutDashboard, 
-  CreditCard, 
+  IdCard, 
   FileText, 
   X 
 } from "lucide-react";
@@ -25,7 +25,7 @@ export function AppSidebar() {
 
   const menus = [
     { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { title: "Visitor Card", href: "/visitor-card", icon: CreditCard },
+    { title: "Visitor Card", href: "/visitor-card", icon: IdCard },
     { title: "Laporan", href: "/laporan", icon: FileText },
   ];
 

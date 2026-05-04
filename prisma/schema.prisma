@@ -38,7 +38,6 @@ model Tamu {
 
   anggotaRombongan AnggotaRombongan[]
 
-  status   String @default("Menunggu")
   tipeTamu String @default("regular")
 }
 

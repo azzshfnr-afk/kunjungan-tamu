@@ -46,7 +46,7 @@ type Visitor = {
   statusDb: string;         // status dari DB: "Menunggu" | "Diterima" | "Ditolak"
 };
 
-// Type persis seperti yang di-return API /api/tamu
+
 type VisitorApi = {
   id: string;
   name: string;
@@ -54,11 +54,11 @@ type VisitorApi = {
   email: string;
   departemen: string;
   karyawan: string;
-  visitDate: string;        // ISO string
+  visitDate: string;        
   visitTime: string;
-  checkin: string | null;   // ISO string dari aktualCheckIn, bisa null
-  checkout: string | null;  // ISO string dari aktualCheckOut, bisa null
-  status: string | null;    // "Menunggu" | "Diterima" | "Ditolak"
+  checkin: string | null;   
+  checkout: string | null;  
+  status: string | null;    
   tanggalKunjungan: string | null;
 };
 
@@ -69,19 +69,15 @@ type CardProps = {
   color?: "blue" | "green" | "yellow" | "red";
 };
 
-// ─── Status Logic ─────────────────────────────────────────────────────────────
+
 function getStatus(item: Visitor): StatusType {
-  // 1. Ditolak resepsionis
   if (item.statusDb === "Ditolak") return "Ditolak";
-  // 2. Sudah checkin DAN checkout satpam
   if (item.checkin && item.checkout) return "Selesai";
-  // 3. Sudah checkin tapi belum checkout
   if (item.checkin && !item.checkout) return "Check-in";
-  // 4. Belum checkin
   return "Pending";
 }
 
-// ─── Format jam dari ISO string ───────────────────────────────────────────────
+
 function formatJam(isoString: string | null): string | null {
   if (!isoString) return null;
   try {
@@ -119,7 +115,7 @@ export default function Page() {
     return () => clearInterval(interval);
   }, []);
 
-  // ─── Fetch data tamu ────────────────────────────────────────────────────────
+
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
@@ -137,7 +133,6 @@ export default function Page() {
         visitTime: item.visitTime,
         visitDate: new Date(item.visitDate),
         statusDb: item.status ?? "Menunggu",
-        // ← FIX: parse ISO string dari aktualCheckIn/aktualCheckOut dengan aman
         checkin: formatJam(item.checkin),
         checkout: formatJam(item.checkout),
       }));
@@ -152,11 +147,10 @@ export default function Page() {
 
   useEffect(() => {
     fetchData();
-    // Polling tiap 30 detik agar data checkin satpam langsung ter-update
     const interval = setInterval(fetchData, 30_000);
     return () => clearInterval(interval);
   }, [fetchData]);
-  // ─────────────────────────────────────────────────────────────────────────────
+
 
   const filteredByYear = dashboardData.filter(
     (item) => item.visitDate.getFullYear().toString() === selectedYear
@@ -195,14 +189,14 @@ export default function Page() {
 
   return (
     <div className="flex flex-col space-y-6 w-full">
-      {/* Breadcrumb */}
+
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <LayoutDashboard size={16} />
         <span>›</span>
         <span className="font-medium text-foreground">Dashboard Management</span>
       </div>
 
-      {/* Header */}
+
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <div className="rounded-xl bg-green-100 p-4 text-green-600">
@@ -277,7 +271,7 @@ export default function Page() {
           </TabsList>
         </div>
 
-        {/* ── Tab: Overview ──────────────────────────────────────────────────── */}
+
         <TabsContent value="overview" className="flex flex-col space-y-6 m-0 outline-none">
           {/* Stat Cards */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -307,7 +301,7 @@ export default function Page() {
             />
           </div>
 
-          {/* Tabel Aktivitas Hari Ini */}
+
           <div className="rounded-xl border bg-background shadow-sm overflow-hidden">
             <div className="flex flex-col sm:flex-row items-center justify-between border-b p-4 gap-4">
               <div>
@@ -357,7 +351,7 @@ export default function Page() {
                         <TableCell>{item.instansi}</TableCell>
                         <TableCell>{item.karyawan}</TableCell>
                         <TableCell>{item.departemen}</TableCell>
-                        {/* Jam checkin dari aktualCheckIn satpam */}
+
                         <TableCell>
                           {item.checkin ? (
                             <span className="text-green-600 font-medium">{item.checkin}</span>
@@ -393,7 +387,7 @@ export default function Page() {
           </div>
         </TabsContent>
 
-        {/* ── Tab: Visitor Mendatang ──────────────────────────────────────────── */}
+
         <TabsContent value="visitor" className="flex flex-col m-0 outline-none">
           <div className="rounded-xl border bg-background shadow-sm overflow-hidden">
             <div className="flex flex-col sm:flex-row items-center justify-between border-b p-4 gap-4">
@@ -465,7 +459,7 @@ export default function Page() {
   );
 }
 
-// ── Komponen StatCard ─────────────────────────────────────────────────────────
+
 function StatCard({ title, value, icon, color = "blue" }: CardProps) {
   const styles = {
     blue: { hover: "hover:bg-blue-50", iconBg: "bg-blue-500" },
@@ -484,7 +478,7 @@ function StatCard({ title, value, icon, color = "blue" }: CardProps) {
   );
 }
 
-// ── Komponen StatusBadge ──────────────────────────────────────────────────────
+
 function StatusBadge({ status }: { status: StatusType }) {
   const styles: Record<StatusType, string> = {
     Pending: "bg-yellow-100 text-yellow-600",
