@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
   LayoutDashboard, 
-  IdCard, 
+  CreditCard, 
   FileText, 
   X 
 } from "lucide-react";
@@ -21,11 +21,11 @@ import {
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const { open, setOpenMobile } = useSidebar();
+  const { open, setOpen } = useSidebar();
 
   const menus = [
     { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { title: "Visitor Card", href: "/visitor-card", icon: IdCard },
+    { title: "Visitor Card", href: "/visitor-card", icon: CreditCard },
     { title: "Laporan", href: "/laporan", icon: FileText },
   ];
 
@@ -47,7 +47,7 @@ export function AppSidebar() {
           </div>
           
           <button 
-            onClick={() => setOpenMobile(false)} 
+            onClick={() => setOpen(false)} 
             className="lg:hidden text-slate-400 hover:text-slate-600"
           >
             <X className="h-4 w-4" />
