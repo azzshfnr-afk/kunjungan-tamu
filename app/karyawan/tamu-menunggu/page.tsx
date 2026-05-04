@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Bell, X, Check, Search, Filter } from "lucide-react";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 type GuestType = "regular" | "vip";
 
@@ -20,7 +19,6 @@ interface Guest {
   statusKunjungan: string;
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function getInitials(name: string) {
   return name.split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase();
@@ -33,7 +31,6 @@ function isTodayVisit(tanggalKunjungan: string | null, visitDate: string | null)
   return new Date(raw).toDateString() === today;
 }
 
-// ─── Notification Banner ──────────────────────────────────────────────────────
 
 function NotifBanner({ guest, onClose }: { guest: Guest; onClose: () => void }) {
   return (
@@ -53,7 +50,7 @@ function NotifBanner({ guest, onClose }: { guest: Guest; onClose: () => void }) 
   );
 }
 
-// ─── Guest Card 
+
 
 function GuestCard({
   guest, onConfirm, onReject, loading,
@@ -133,7 +130,7 @@ function GuestCard({
   );
 }
 
-// ─── Main Page 
+
 
 export default function KonfirmasiTamuPage() {
   const [guests, setGuests] = useState<Guest[]>([]);
@@ -152,7 +149,7 @@ export default function KonfirmasiTamuPage() {
       if (!res.ok) throw new Error("Gagal mengambil data tamu.");
       const data: any[] = await res.json();
 
-      // Filter: hari H + belum dikonfirmasi (MENUNGGU_GATE_1)
+
       const waiting: Guest[] = data
         .filter((t) =>
           isTodayVisit(t.tanggalKunjungan, t.visitDate) &&

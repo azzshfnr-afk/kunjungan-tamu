@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Users,
   Activity,
@@ -41,14 +41,25 @@ type Visitor = {
   karyawan: string;
   visitDate: Date;
   visitTime: string;
-  checkin: string | null;
-  checkout: string | null;
-  statusDb?: string; // status dari DB: "Menunggu" | "Diterima" | "Ditolak"
+  checkin: string | null;   // jam checkin dari satpam, sudah diformat "HH:mm WIB"
+  checkout: string | null;  // jam checkout dari satpam, sudah diformat "HH:mm WIB"
+  statusDb: string;         // status dari DB: "Menunggu" | "Diterima" | "Ditolak"
 };
 
-type VisitorApi = Omit<Visitor, "visitDate" | "statusDb"> & {
-  visitDate: string;
-  status?: string; // field status dari API
+// Type persis seperti yang di-return API /api/tamu
+type VisitorApi = {
+  id: string;
+  name: string;
+  instansi: string;
+  email: string;
+  departemen: string;
+  karyawan: string;
+  visitDate: string;        // ISO string
+  visitTime: string;
+  checkin: string | null;   // ISO string dari aktualCheckIn, bisa null
+  checkout: string | null;  // ISO string dari aktualCheckOut, bisa null
+  status: string | null;    // "Menunggu" | "Diterima" | "Ditolak"
+  tanggalKunjungan: string | null;
 };
 
 type CardProps = {
@@ -58,21 +69,34 @@ type CardProps = {
   color?: "blue" | "green" | "yellow" | "red";
 };
 
-// ─── Tentukan status tampilan berdasarkan statusDb + aktual checkin/checkout ──
+// ─── Status Logic ─────────────────────────────────────────────────────────────
 function getStatus(item: Visitor): StatusType {
-  // 1. Jika ditolak resepsionis → Ditolak
+  // 1. Ditolak resepsionis
   if (item.statusDb === "Ditolak") return "Ditolak";
-
-  // 2. Sudah checkin DAN checkout satpam → Selesai
+  // 2. Sudah checkin DAN checkout satpam
   if (item.checkin && item.checkout) return "Selesai";
-
-  // 3. Sudah checkin tapi belum checkout → Check-in
+  // 3. Sudah checkin tapi belum checkout
   if (item.checkin && !item.checkout) return "Check-in";
-
-  // 4. Belum checkin sama sekali → Pending
+  // 4. Belum checkin
   return "Pending";
 }
-// ─────────────────────────────────────────────────────────────────────────────
+
+// ─── Format jam dari ISO string ───────────────────────────────────────────────
+function formatJam(isoString: string | null): string | null {
+  if (!isoString) return null;
+  try {
+    const date = new Date(isoString);
+    if (isNaN(date.getTime())) return null; // invalid date → null
+    return (
+      date.toLocaleTimeString("id-ID", {
+        hour: "2-digit",
+        minute: "2-digit",
+      }) + " WIB"
+    );
+  } catch {
+    return null;
+  }
+}
 
 export default function Page() {
   const [search, setSearch] = useState("");
@@ -80,7 +104,6 @@ export default function Page() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentDateTime, setCurrentDateTime] = useState(new Date());
-
   const [selectedYear, setSelectedYear] = useState<string>(
     new Date().getFullYear().toString()
   );
@@ -92,58 +115,56 @@ export default function Page() {
 
   // Clock real-time
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentDateTime(new Date());
-    }, 1000);
+    const interval = setInterval(() => setCurrentDateTime(new Date()), 1000);
     return () => clearInterval(interval);
   }, []);
 
-  // Fetch data tamu dari API (semua, filter di frontend)
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const res = await fetch("/api/tamu");
-        if (!res.ok) throw new Error("Gagal mengambil data");
-        const result: VisitorApi[] = await res.json();
+  // ─── Fetch data tamu ────────────────────────────────────────────────────────
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await fetch("/api/tamu");
+      if (!res.ok) throw new Error("Gagal mengambil data");
+      const result: VisitorApi[] = await res.json();
 
-        const parsed: Visitor[] = result.map((item) => ({
-          ...item,
-          visitDate: new Date(item.visitDate),
-          // ← map field status dari API ke statusDb
-          statusDb: item.status ?? "Menunggu",
-          checkin: item.checkin
-            ? new Date(item.checkin).toLocaleTimeString("id-ID", {
-                hour: "2-digit",
-                minute: "2-digit",
-              }) + " WIB"
-            : null,
-          checkout: item.checkout
-            ? new Date(item.checkout).toLocaleTimeString("id-ID", {
-                hour: "2-digit",
-                minute: "2-digit",
-              }) + " WIB"
-            : null,
-        }));
+      const parsed: Visitor[] = result.map((item) => ({
+        id: item.id,
+        name: item.name,
+        instansi: item.instansi,
+        email: item.email,
+        departemen: item.departemen,
+        karyawan: item.karyawan,
+        visitTime: item.visitTime,
+        visitDate: new Date(item.visitDate),
+        statusDb: item.status ?? "Menunggu",
+        // ← FIX: parse ISO string dari aktualCheckIn/aktualCheckOut dengan aman
+        checkin: formatJam(item.checkin),
+        checkout: formatJam(item.checkout),
+      }));
 
-        setDashboardData(parsed);
-      } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : "Terjadi kesalahan");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
+      setDashboardData(parsed);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Terjadi kesalahan");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  // ─── Filter data berdasarkan tahun yang dipilih ───────────────────────────
+  useEffect(() => {
+    fetchData();
+    // Polling tiap 30 detik agar data checkin satpam langsung ter-update
+    const interval = setInterval(fetchData, 30_000);
+    return () => clearInterval(interval);
+  }, [fetchData]);
+  // ─────────────────────────────────────────────────────────────────────────────
+
   const filteredByYear = dashboardData.filter(
     (item) => item.visitDate.getFullYear().toString() === selectedYear
   );
 
   const todayString = new Date().toDateString();
 
-  // Tamu hari ini (untuk tab Overview)
+  // Tamu hari ini
   const todayData = dashboardData.filter((item) => {
     const isToday = item.visitDate.toDateString() === todayString;
     const keyword = search.toLowerCase();
@@ -154,7 +175,7 @@ export default function Page() {
     return isToday && matchesSearch;
   });
 
-  // Tamu mendatang (tanggal > hari ini, filter by tahun)
+  // Tamu mendatang
   const upcomingData = filteredByYear.filter((item) => {
     const itemDate = new Date(item.visitDate.toDateString());
     const currentDate = new Date(todayString);
@@ -166,12 +187,11 @@ export default function Page() {
     return itemDate > currentDate && matchesSearch;
   });
 
-  // Statistik berdasarkan tahun yang dipilih
+  // Statistik
   const total = filteredByYear.length;
   const selesai = filteredByYear.filter((i) => getStatus(i) === "Selesai").length;
   const pending = filteredByYear.filter((i) => getStatus(i) === "Pending").length;
   const ditolak = filteredByYear.filter((i) => getStatus(i) === "Ditolak").length;
-  // ─────────────────────────────────────────────────────────────────────────
 
   return (
     <div className="flex flex-col space-y-6 w-full">
@@ -226,10 +246,13 @@ export default function Page() {
         </div>
       </div>
 
-      {/* Error State */}
+      {/* Error */}
       {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-          ⚠️ {error}
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 flex items-center justify-between">
+          <span>⚠️ {error}</span>
+          <button onClick={fetchData} className="underline font-medium ml-2">
+            Coba lagi
+          </button>
         </div>
       )}
 
@@ -254,11 +277,8 @@ export default function Page() {
           </TabsList>
         </div>
 
-        {/* ── Tab: Overview ─────────────────────────────────────────────────── */}
-        <TabsContent
-          value="overview"
-          className="flex flex-col space-y-6 m-0 outline-none"
-        >
+        {/* ── Tab: Overview ──────────────────────────────────────────────────── */}
+        <TabsContent value="overview" className="flex flex-col space-y-6 m-0 outline-none">
           {/* Stat Cards */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <StatCard
@@ -290,7 +310,12 @@ export default function Page() {
           {/* Tabel Aktivitas Hari Ini */}
           <div className="rounded-xl border bg-background shadow-sm overflow-hidden">
             <div className="flex flex-col sm:flex-row items-center justify-between border-b p-4 gap-4">
-              <h2 className="font-semibold">Aktivitas Hari Ini (Recent Activity)</h2>
+              <div>
+                <h2 className="font-semibold">Aktivitas Hari Ini</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Data check-in & check-out diambil dari catatan satpam
+                </p>
+              </div>
               <div className="relative w-full sm:w-64">
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -319,10 +344,7 @@ export default function Page() {
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell
-                        colSpan={9}
-                        className="text-center py-10 text-muted-foreground animate-pulse"
-                      >
+                      <TableCell colSpan={9} className="text-center py-10 text-muted-foreground animate-pulse">
                         Memuat data...
                       </TableCell>
                     </TableRow>
@@ -335,10 +357,22 @@ export default function Page() {
                         <TableCell>{item.instansi}</TableCell>
                         <TableCell>{item.karyawan}</TableCell>
                         <TableCell>{item.departemen}</TableCell>
-                        {/* Check-in dari satpam */}
-                        <TableCell>{item.checkin || "-"}</TableCell>
-                        {/* Check-out dari satpam */}
-                        <TableCell>{item.checkout || "-"}</TableCell>
+                        {/* Jam checkin dari aktualCheckIn satpam */}
+                        <TableCell>
+                          {item.checkin ? (
+                            <span className="text-green-600 font-medium">{item.checkin}</span>
+                          ) : (
+                            <span className="text-slate-400">-</span>
+                          )}
+                        </TableCell>
+                        {/* Jam checkout dari aktualCheckOut satpam */}
+                        <TableCell>
+                          {item.checkout ? (
+                            <span className="text-blue-600 font-medium">{item.checkout}</span>
+                          ) : (
+                            <span className="text-slate-400">-</span>
+                          )}
+                        </TableCell>
                         <TableCell>
                           <StatusBadge status={getStatus(item)} />
                         </TableCell>
@@ -346,10 +380,7 @@ export default function Page() {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell
-                        colSpan={9}
-                        className="text-center py-10 text-muted-foreground"
-                      >
+                      <TableCell colSpan={9} className="text-center py-10 text-muted-foreground">
                         {search
                           ? "Pencarian tidak ditemukan."
                           : "Tidak ada aktivitas kunjungan untuk hari ini."}
@@ -362,7 +393,7 @@ export default function Page() {
           </div>
         </TabsContent>
 
-
+        {/* ── Tab: Visitor Mendatang ──────────────────────────────────────────── */}
         <TabsContent value="visitor" className="flex flex-col m-0 outline-none">
           <div className="rounded-xl border bg-background shadow-sm overflow-hidden">
             <div className="flex flex-col sm:flex-row items-center justify-between border-b p-4 gap-4">
@@ -396,10 +427,7 @@ export default function Page() {
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell
-                        colSpan={8}
-                        className="text-center py-10 text-muted-foreground animate-pulse"
-                      >
+                      <TableCell colSpan={8} className="text-center py-10 text-muted-foreground animate-pulse">
                         Memuat data...
                       </TableCell>
                     </TableRow>
@@ -411,9 +439,7 @@ export default function Page() {
                         <TableCell className="font-medium">{item.name}</TableCell>
                         <TableCell>{item.instansi}</TableCell>
                         <TableCell>{item.email}</TableCell>
-                        <TableCell>
-                          {item.visitDate.toLocaleDateString("id-ID")}
-                        </TableCell>
+                        <TableCell>{item.visitDate.toLocaleDateString("id-ID")}</TableCell>
                         <TableCell>{item.karyawan}</TableCell>
                         <TableCell>
                           <StatusBadge status={getStatus(item)} />
@@ -422,10 +448,7 @@ export default function Page() {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell
-                        colSpan={8}
-                        className="text-center py-10 text-muted-foreground"
-                      >
+                      <TableCell colSpan={8} className="text-center py-10 text-muted-foreground">
                         {search
                           ? "Pencarian tidak ditemukan."
                           : `Tidak ada jadwal kunjungan mendatang untuk tahun ${selectedYear}.`}
@@ -442,7 +465,7 @@ export default function Page() {
   );
 }
 
-
+// ── Komponen StatCard ─────────────────────────────────────────────────────────
 function StatCard({ title, value, icon, color = "blue" }: CardProps) {
   const styles = {
     blue: { hover: "hover:bg-blue-50", iconBg: "bg-blue-500" },
@@ -451,21 +474,17 @@ function StatCard({ title, value, icon, color = "blue" }: CardProps) {
     red: { hover: "hover:bg-red-50", iconBg: "bg-red-500" },
   };
   return (
-    <div
-      className={`flex items-center justify-between rounded-xl border bg-white p-4 transition hover:shadow-lg ${styles[color].hover}`}
-    >
+    <div className={`flex items-center justify-between rounded-xl border bg-white p-4 transition hover:shadow-lg ${styles[color].hover}`}>
       <div>
         <p className="text-sm text-gray-600">{title}</p>
         <h2 className="mt-1 text-2xl font-semibold">{value}</h2>
       </div>
-      <div className={`rounded-lg p-3 text-white ${styles[color].iconBg}`}>
-        {icon}
-      </div>
+      <div className={`rounded-lg p-3 text-white ${styles[color].iconBg}`}>{icon}</div>
     </div>
   );
 }
 
-
+// ── Komponen StatusBadge ──────────────────────────────────────────────────────
 function StatusBadge({ status }: { status: StatusType }) {
   const styles: Record<StatusType, string> = {
     Pending: "bg-yellow-100 text-yellow-600",
@@ -474,9 +493,7 @@ function StatusBadge({ status }: { status: StatusType }) {
     Ditolak: "bg-red-100 text-red-600",
   };
   return (
-    <span
-      className={`rounded-full px-2 py-1 text-xs font-medium ${styles[status]}`}
-    >
+    <span className={`rounded-full px-2 py-1 text-xs font-medium ${styles[status]}`}>
       {status}
     </span>
   );
