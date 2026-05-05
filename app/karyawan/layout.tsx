@@ -14,7 +14,6 @@ import {
   ChevronDown,
 } from "lucide-react";
 
-// ─── Nav items 
 
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/karyawan/dashboard", icon: LayoutDashboard },
@@ -22,24 +21,21 @@ const NAV_ITEMS = [
   { label: "Riwayat", href: "/karyawan/riwayat", icon: ClipboardList },
 ];
 
-// ─── Mock user 
 
 const CURRENT_USER = {
   name: "Yusuf Hebat",
   role: "karyawan",
   department: "IT",
   initials: "YH",
-  avatar: null, // ganti dengan URL foto jika ada
+  avatar: null, 
 };
 
-// ─── Sidebar 
 
 function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const pathname = usePathname();
 
   return (
     <>
-      {/* Overlay mobile */}
       {open && (
         <div
           className="fixed inset-0 z-20 bg-black/40 lg:hidden"
@@ -74,7 +70,6 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
           </button>
         </div>
 
-        {/* Nav */}
         <nav className="flex-1 px-3 py-4 space-y-0.5">
           {NAV_ITEMS.map(({ label, href, icon: Icon }) => {
             const active = pathname === href;
@@ -101,7 +96,6 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
           })}
         </nav>
 
-        {/* Profile card di sidebar */}
         <div className="mx-3 mb-4 rounded-xl border border-slate-100 bg-slate-50 p-3">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-100 text-sm font-semibold text-green-700">
@@ -129,7 +123,6 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   );
 }
 
-// ─── Navbar (top)
 
 function Navbar({
   onMenuToggle,
@@ -143,7 +136,6 @@ function Navbar({
 
   return (
     <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b border-slate-100 bg-white px-4 lg:px-6">
-      {/* Kiri: hamburger + breadcrumb */}
       <div className="flex items-center gap-3">
         <button
           onClick={onMenuToggle}
@@ -154,9 +146,7 @@ function Navbar({
         <span className="text-sm font-medium text-slate-700">{currentPage}</span>
       </div>
 
-      {/* Kanan: notif + profil */}
       <div className="flex items-center gap-2">
-        {/* Bell */}
         <button className="relative rounded-lg p-2 text-slate-500 hover:bg-slate-100 transition-colors">
           <Bell className="h-4 w-4" />
           {notifCount > 0 && (
@@ -166,7 +156,6 @@ function Navbar({
           )}
         </button>
 
-        {/* Profil ringkas */}
         <div className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-slate-100 cursor-pointer transition-colors">
           <div className="flex h-7 w-7 items-center justify-center rounded-full bg-green-100 text-xs font-semibold text-green-700">
             {CURRENT_USER.initials}
@@ -181,7 +170,6 @@ function Navbar({
   );
 }
 
-// ─── Layout ───────────────────────────────────────────────────────────────────
 
 export default function KaryawanLayout({
   children,
@@ -190,7 +178,6 @@ export default function KaryawanLayout({
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // TODO: ganti dengan data real dari API/state global
   const pendingCount = 3;
 
   return (

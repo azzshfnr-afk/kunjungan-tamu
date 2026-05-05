@@ -354,7 +354,7 @@ export default function Page() {
 
                         <TableCell>
                           {item.checkin ? (
-                            <span className="text-green-600 font-medium">{item.checkin}</span>
+                            <span className="text-blue-600 font-medium">{item.checkin}</span>
                           ) : (
                             <span className="text-slate-400">-</span>
                           )}
@@ -362,7 +362,7 @@ export default function Page() {
                         {/* Jam checkout dari aktualCheckOut satpam */}
                         <TableCell>
                           {item.checkout ? (
-                            <span className="text-blue-600 font-medium">{item.checkout}</span>
+                            <span className="text-red-600 font-medium">{item.checkout}</span>
                           ) : (
                             <span className="text-slate-400">-</span>
                           )}
@@ -483,7 +483,7 @@ function StatusBadge({ status }: { status: StatusType }) {
   const styles: Record<StatusType, string> = {
     Pending: "bg-yellow-100 text-yellow-600",
     "Check-in": "bg-green-100 text-green-600",
-    Selesai: "bg-blue-100 text-blue-600",
+    Selesai: "bg-green-100 text-green-600",
     Ditolak: "bg-red-100 text-red-600",
   };
   return (
