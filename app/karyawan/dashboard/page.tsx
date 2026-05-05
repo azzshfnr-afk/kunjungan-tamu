@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Users, Clock, CheckCircle2, Bell, X, Check } from "lucide-react";
 
-type GuestType = "regular" | "vip";
+type GuestType   = "regular" | "vip";
 type GuestStatus = "Diterima" | "Ditolak" | "Menunggu";
 
 interface Guest {
@@ -27,12 +27,48 @@ function getInitials(name: string) {
   return name.split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase();
 }
 
+function isToday(dateString: string | null | undefined) {
+  if (!dateString) return false;
+  const date  = new Date(dateString);
+  const today = new Date();
+  // Gunakan toLocaleDateString dengan timezone Asia/Jakarta
+  const opts: Intl.DateTimeFormatOptions = { timeZone: "Asia/Jakarta", year: "numeric", month: "2-digit", day: "2-digit" };
+  return date.toLocaleDateString("id-ID", opts) === today.toLocaleDateString("id-ID", opts);
+}
+
+function isWaiting(t: any) {
+  return (
+    t.status === "Menunggu" ||
+    t.status === "Menunggu Kedatangan" ||
+    t.statusKunjungan === "MENUNGGU_GATE_1"
+  );
+}
+
+function isProcessed(t: any) {
+  return (
+    t.status === "Diterima" ||
+    t.status === "Ditolak" ||
+    t.statusKunjungan === "DIIZINKAN" ||
+    t.statusKunjungan === "DITOLAK"
+  );
+}
+
+function formatJam(date: Date) {
+  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+}
+
+function mapStatus(t: any): GuestStatus {
+  if (t.status === "Diterima" || t.statusKunjungan === "DIIZINKAN") return "Diterima";
+  if (t.status === "Ditolak"  || t.statusKunjungan === "DITOLAK")   return "Ditolak";
+  return "Menunggu";
+}
+
 function NotifBanner({ guest, onClose }: { guest: Guest; onClose: () => void }) {
   return (
     <div className="flex items-start gap-3 rounded-xl border border-green-200 border-l-4 border-l-green-500 bg-green-50 px-4 py-3 mb-6">
       <Bell className="mt-0.5 h-4 w-4 text-green-700 shrink-0" />
       <div className="flex-1 text-sm">
-        <p className="font-medium text-green-700 mb-0.5">Tamu baru telah check-in!</p>
+        <p className="font-medium text-green-700 mb-0.5">Tamu baru menunggu konfirmasi!</p>
         <p className="text-green-600">
           <span className="font-semibold">{guest.name}</span> ingin mengunjungi{" "}
           <span className="font-semibold">{guest.departemen}</span> — {guest.tujuanKunjungan} | Pukul {guest.visitTime}
@@ -53,7 +89,7 @@ function GuestCard({
   onReject: (id: string) => void;
   loading: string | null;
 }) {
-  const isVip = guest.tipeTamu === "vip";
+  const isVip        = guest.tipeTamu === "vip";
   const isProcessing = loading === guest.id;
 
   return (
@@ -77,16 +113,22 @@ function GuestCard({
           <button
             onClick={() => onAccept(guest.id)}
             disabled={isProcessing}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-green-50 border border-green-200 py-2 text-sm font-medium text-green-700 hover:bg-green-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-green-50 border border-green-200 py-2 text-sm font-medium text-green-700 hover:bg-green-100 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Check className="h-3.5 w-3.5" /> Terima
+            {isProcessing
+              ? <span className="h-3.5 w-3.5 rounded-full border-2 border-green-400 border-t-transparent animate-spin" />
+              : <Check className="h-3.5 w-3.5" />}
+            Terima
           </button>
           <button
             onClick={() => onReject(guest.id)}
             disabled={isProcessing}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-red-50 border border-red-200 py-2 text-sm font-medium text-red-700 hover:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-red-50 border border-red-200 py-2 text-sm font-medium text-red-700 hover:bg-red-100 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <X className="h-3.5 w-3.5" /> Tolak
+            {isProcessing
+              ? <span className="h-3.5 w-3.5 rounded-full border-2 border-red-400 border-t-transparent animate-spin" />
+              : <X className="h-3.5 w-3.5" />}
+            Tolak
           </button>
         </div>
       </CardContent>
@@ -104,12 +146,17 @@ function HistoryTable({ history }: { history: HistoryGuest[] }) {
             <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Keperluan</th>
             <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Tipe</th>
             <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Jam</th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Diproses</th>
             <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Status</th>
           </tr>
         </thead>
         <tbody>
           {history.length === 0 ? (
-            <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-400">Belum ada riwayat tamu hari ini.</td></tr>
+            <tr>
+              <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
+                Belum ada riwayat tamu hari ini.
+              </td>
+            </tr>
           ) : (
             history.map((h) => (
               <tr key={`${h.id}-${h.processedAt}`} className="border-b last:border-0 hover:bg-slate-50 transition-colors">
@@ -121,6 +168,7 @@ function HistoryTable({ history }: { history: HistoryGuest[] }) {
                   </span>
                 </td>
                 <td className="px-4 py-3 text-slate-500">{h.visitTime}</td>
+                <td className="px-4 py-3 text-slate-500">{h.processedAt}</td>
                 <td className="px-4 py-3">
                   <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${h.status === "Diterima" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
                     {h.status}
@@ -137,11 +185,14 @@ function HistoryTable({ history }: { history: HistoryGuest[] }) {
 
 export default function DashboardPage() {
   const [waitingGuests, setWaitingGuests] = useState<Guest[]>([]);
-  const [history, setHistory] = useState<HistoryGuest[]>([]);
-  const [notifVisible, setNotifVisible] = useState(false);
-  const [loadingId, setLoadingId] = useState<string | null>(null);
-  const [isFetching, setIsFetching] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [history, setHistory]             = useState<HistoryGuest[]>([]);
+  const [notifVisible, setNotifVisible]   = useState(false);
+  const [loadingId, setLoadingId]         = useState<string | null>(null);
+  const [isFetching, setIsFetching]       = useState(true);
+  const [error, setError]                 = useState<string | null>(null);
+
+
+  const namaKaryawan: string | null = null;
 
   const fetchTamu = useCallback(async () => {
     try {
@@ -150,28 +201,32 @@ export default function DashboardPage() {
       if (!res.ok) throw new Error("Gagal mengambil data tamu.");
       const data: any[] = await res.json();
 
-      const waiting: Guest[] = [];
+      const waiting:   Guest[]        = [];
       const processed: HistoryGuest[] = [];
 
       data.forEach((t) => {
+        const hariIni = isToday(t.tanggalKunjungan) || isToday(t.visitDate);
+        if (!hariIni) return;
+
+        if (namaKaryawan && t.karyawan !== namaKaryawan) return;
+
         const guest: Guest = {
-          id: t.id,
-          name: t.name,
-          tujuanKunjungan: t.tujuanKunjungan || t.instansi || "-",
-          departemen: t.departemen || "-",
-          visitTime: t.visitTime || "-",
-          tipeTamu: t.tipeTamu === "vip" ? "vip" : "regular",
-          phone: t.phone || "-",
-          karyawan: t.karyawan || "-",
-          status: t.status || "Menunggu",
+          id:              String(t.id),
+          name:            t.name             || "-",
+          tujuanKunjungan: t.tujuanKunjungan  || t.instansi || "-",
+          departemen:      t.departemen       || "-",
+          visitTime:       t.visitTime        || "-",
+          tipeTamu:        t.tipeTamu === "vip" ? "vip" : "regular",
+          phone:           t.phone            || "-",
+          karyawan:        t.karyawan         || "-",
+          status:          mapStatus(t),
         };
 
-        if (guest.status === "Menunggu") {
+        if (isWaiting(t)) {
           waiting.push(guest);
-        } else {
-          const checkoutDate = t.checkout ? new Date(t.checkout) : new Date();
-          const processedAt = `${String(checkoutDate.getHours()).padStart(2, "0")}:${String(checkoutDate.getMinutes()).padStart(2, "0")}`;
-          processed.push({ ...guest, processedAt });
+        } else if (isProcessed(t)) {
+          const waktuProses = t.checkout ? new Date(t.checkout) : new Date();
+          processed.push({ ...guest, processedAt: formatJam(waktuProses) });
         }
       });
 
@@ -183,7 +238,7 @@ export default function DashboardPage() {
     } finally {
       setIsFetching(false);
     }
-  }, []);
+  }, [namaKaryawan]);
 
   useEffect(() => {
     fetchTamu();
@@ -195,9 +250,9 @@ export default function DashboardPage() {
     setLoadingId(id);
     try {
       const res = await fetch(`/api/tamu/${id}`, {
-        method: "PATCH",
+        method:  "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
+        body:    JSON.stringify({ status }),
       });
       if (!res.ok) throw new Error("Gagal mengupdate status.");
 
@@ -205,8 +260,7 @@ export default function DashboardPage() {
       if (!guest) return;
 
       const now = new Date();
-      const processedAt = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
-      setHistory((prev) => [{ ...guest, status, processedAt }, ...prev]);
+      setHistory((prev) => [{ ...guest, status, processedAt: formatJam(now) }, ...prev]);
       setWaitingGuests((prev) => prev.filter((g) => g.id !== id));
     } catch (err: any) {
       alert(err.message || "Terjadi kesalahan saat memproses tamu.");
@@ -216,11 +270,12 @@ export default function DashboardPage() {
   };
 
   const totalHari = waitingGuests.length + history.length;
-  const diterima = history.filter((h) => h.status === "Diterima").length;
-  const menunggu = waitingGuests.length;
+  const diterima  = history.filter((h) => h.status === "Diterima").length;
+  const menunggu  = waitingGuests.length;
 
   return (
     <div className="space-y-8">
+
       <div>
         <h2 className="text-xl font-bold text-slate-800">Ringkasan Aktivitas</h2>
         <p className="text-sm text-slate-500">Berikut adalah data kunjungan tamu untuk hari ini.</p>
@@ -275,10 +330,12 @@ export default function DashboardPage() {
         <>
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-base font-semibold text-slate-700">Tamu Menunggu</h3>
-              <span className="rounded-full bg-blue-100 px-3 py-0.5 text-xs font-medium text-blue-700">
-                {waitingGuests.length} menunggu
-              </span>
+              <h3 className="text-base font-semibold text-slate-700">Tamu Menunggu Konfirmasi</h3>
+              {menunggu > 0 && (
+                <span className="rounded-full bg-orange-100 px-3 py-0.5 text-xs font-medium text-orange-600">
+                  {menunggu} menunggu
+                </span>
+              )}
             </div>
             {waitingGuests.length === 0 ? (
               <div className="rounded-xl border bg-white py-10 text-center text-sm text-slate-400 shadow-sm">
