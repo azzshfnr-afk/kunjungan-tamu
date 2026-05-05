@@ -184,7 +184,12 @@ export default function SatpamDashboard() {
 
     const filteredTamu = dataTamu
         .filter((t) => t.namaTamu?.toLowerCase().includes(searchQuery.toLowerCase()))
-        .filter((t) => t.statusKunjungan !== "Menunggu" && t.statusKunjungan !== "MENUNGGU_GATE_UTAMA");
+        .filter((t) => t.statusKunjungan !== "Menunggu" && t.statusKunjungan !== "MENUNGGU_GATE_UTAMA" && t.statusKunjungan !== "MENUNGGU_GATE_!")
+        .filter(t => {if (roleSatpam === "area") {
+            return t.gedungTujuan === lokasiArea || t.tipeTamu === "vip";
+        }
+        return true;
+    });
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 md:p-6">
@@ -200,7 +205,6 @@ export default function SatpamDashboard() {
                         <p className="text-sm text-slate-500 mt-0.5">Sistem Manajemen Pengunjung · PT Pupuk Kujang</p>
                     </div>
 
-                    {/* Mode switcher */}
                     <div className="flex flex-wrap items-center gap-2 bg-white border border-slate-200 rounded-lg px-3 py-2 shadow-sm">
                         <span className="text-xs text-slate-500 font-medium">Mode:</span>
                         <Button
@@ -390,7 +394,6 @@ export default function SatpamDashboard() {
                                                 </div>
                                             </TableCell>
 
-                                            {/* Detail */}
                                             <TableCell className="px-3 py-2.5 text-center">
                                                 <Button
                                                     variant="ghost" size="icon"
@@ -708,14 +711,36 @@ export default function SatpamDashboard() {
                             <InfoRow label="Instansi"         nilai={tamuTerpilih?.asalInstansi} />
                             <InfoRow label="Tujuan Kunjungan" nilai={tamuTerpilih?.tujuanKunjungan} />
                             <InfoRow label="Gedung Aktual"    nilai={tamuTerpilih?.gedungTujuan} />
-                            <InfoRow label="Karyawan Dituju"  nilai={tamuTerpilih?.karyawanTujuan} />
+                            <InfoRow label="Karyawan Dituju"  nilai={tamuTerpilih?.karyawanTujuan || tamuTerpilih?.karyawanDituju} />
                             <div className="border-t border-slate-200 my-1" />
-                            <InfoRow label="ID NFC"           nilai={tamuTerpilih?.uidNfc} />
+                            <InfoRow label="ID NFC"           nilai={tamuTerpilih?.uidNfc || tamuTerpilih?.nfcId} />
                             <InfoRow label="Status"           nilai={tamuTerpilih?.statusKunjungan || "Menunggu Gate Utama"} />
                             <InfoRow label="Akses Aktif"      nilai={tamuTerpilih?.aksesAktif || "Belum Ada"} />
-                            <InfoRow label="Waktu Check-in"   nilai={fmtDt(tamuTerpilih?.waktuCheckIn || tamuTerpilih?.tanggalCheckIn)} />
-                            <InfoRow label="Waktu Check-out"  nilai={fmtDt(tamuTerpilih?.waktuCheckOut)} />
+                            <InfoRow label="Waktu Aktual Masuk"   nilai={fmtDt(tamuTerpilih?.aktualCheckIn)} />
+                            <InfoRow label="Waktu Aktual Keluar"  nilai={fmtDt(tamuTerpilih?.aktualCheckOut)} />
                         </div>
+                        <div className="border-t border-slate-200 pt-4 mt-2">
+                            <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">Rencana Kunjungan (Sesuai Form)</p>
+                            <div className="grid grid-cols-2 gap-3 bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
+                                <div>
+                                    <span className="block text-slate-500 text-[10px] uppercase">Tanggal Daftar</span>
+                                    <span className="font-semibold text-sm text-slate-800">
+                                        {tamuTerpilih?.tanggalKunjungan 
+                                            ? new Date(tamuTerpilih.tanggalKunjungan).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) 
+                                            : "-"}
+                                    </span>
+                                </div>
+                                <div>
+                                    <span className="block text-slate-500 text-[10px] uppercase">Jam Kunjungan</span>
+                                    <span className="font-semibold text-sm text-slate-800">
+                                        {tamuTerpilih?.waktuCheckIn ? new Date(tamuTerpilih.waktuCheckIn).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : "-"} 
+                                        {" s/d "} 
+                                        {tamuTerpilih?.waktuCheckOut ? new Date(tamuTerpilih.waktuCheckOut).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : "-"}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
                 </DialogContent>
             </Dialog>
