@@ -167,7 +167,8 @@ export default function SatpamDashboard() {
             if (res.ok && responseData.data) {
                 setIsModalVipOpen(false);
                 setFormVip({ namaTamu: "", asalInstansi: "", tujuan: "" });
-                setTamuTerpilih(responseData.data);
+                const dataVip = responseData.data;
+                setTamuTerpilih(dataVip);
                 setModalAction("checkin");
                 setStepScan(2);
             } else {
