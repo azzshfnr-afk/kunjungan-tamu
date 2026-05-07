@@ -9,10 +9,62 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import dynamic from "next/dynamic";
 import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
     ScanLine, CreditCard, LogOut, SearchIcon,
     Eye, QrCode, LogIn,
 } from "lucide-react";
 import { FaCrown, } from "react-icons/fa";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils"; // Pastiin path ini sesuai sama project lu
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from "@/components/ui/command";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
+
+const DAFTAR_GEDUNG: string[] = [
+    "Gedung Pusat Administrasi (GPA)",
+    "Gedung Diklat",
+    "Pabrik 1A",
+    "Pabrik 1B",
+    "Gedung MO",
+    "Gedung LC",
+];
+
+const DATA_KARYAWAN: Record<string, { bet: string; nama: string; dept: string }[]> = {
+    "Gedung Pusat Administrasi (GPA)": [
+        { bet: "PKC-101", nama: "Junaedi", dept: "TI" },
+        { bet: "PKC-102", nama: "Susi", dept: "Keuangan" },
+    ],
+    "Gedung Diklat": [
+        { bet: "PKC-201", nama: "Yoyo", dept: "Agrosolution" },
+        { bet: "PKC-202", nama: "Mumun", dept: "Sekretaris" },
+    ],
+    "Pabrik 1A":  [{ bet: "PKC-301", nama: "Velia", dept: "Humas" }],
+    "Pabrik 1B":  [{ bet: "PKC-401", nama: "Nazla", dept: "QC" }],
+    "Gedung MO":  [{ bet: "PKC-501", nama: "Zihan", dept: "MPSDM" }],
+    "Gedung LC":  [{ bet: "PKC-601", nama: "Bibah", dept: "Akuntansi" }],
+};
+
+const SEMUA_KARYAWAN: { bet: string; nama: string; dept: string; gedung: string }[] = 
+    Object.entries(DATA_KARYAWAN).flatMap(([gedung, list]) => 
+        list.map((karyawan) => ({ ...karyawan, gedung }))
+    );
 
 const Scanner = dynamic(
     () => import("@yudiel/react-qr-scanner").then((mod) => mod.Scanner),
@@ -34,30 +86,6 @@ function InfoRow({ label, nilai }: { label: string; nilai?: any }) {
         </div>
     );
 }
-
-const DAFTAR_GEDUNG = [
-    "Gedung Pusat Administrasi (GPA)",
-    "Gedung Diklat",
-    "Pabrik 1A",
-    "Pabrik 1B",
-    "Gedung MO",
-    "Gedung LC",
-];
-
-const DATA_KARYAWAN: Record<string, { bet: string; nama: string; dept: string }[]> = {
-    "Gedung Pusat Administrasi (GPA)": [
-        { bet: "PKC-101", nama: "Junaedi", dept: "TI" },
-        { bet: "PKC-102", nama: "Susi", dept: "Keuangan" },
-    ],
-    "Gedung Diklat": [
-        { bet: "PKC-201", nama: "Yoyo", dept: "Pelum" },
-        { bet: "PKC-202", nama: "Mumun", dept: "Sekretaris" },
-    ],
-    "Pabrik 1A":  [{ bet: "PKC-301", nama: "Velia", dept: "Humas" }],
-    "Pabrik 1B":  [{ bet: "PKC-401", nama: "Nazla", dept: "QC" }],
-    "Gedung MO":  [{ bet: "PKC-501", nama: "Zihan", dept: "MPSDM" }],
-    "Gedung LC":  [{ bet: "PKC-601", nama: "Bibah", dept: "Akuntansi" }],
-};
 
 function StatusBadge({ status }: { status: string }) {
     const map: Record<string, { bg: string; label: string }> = {
@@ -102,6 +130,19 @@ export default function SatpamDashboard() {
     const [isModalVipOpen, setIsModalVipOpen] = useState(false);
     const [isLoadingVip, setIsLoadingVip]     = useState(false);
     const [formVip, setFormVip] = useState({ namaTamu: "", asalInstansi: "", tujuan: "" });
+    const [openCombobox, setOpenCombobox] = useState(false);
+
+    const formatTanggalJam = (dateString: Date | string | null | undefined) => {
+        if (!dateString) return "-";
+        const date = new Date(dateString);
+        return date.toLocaleString("id-ID", {
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+        }).replace(/\./g, ':'); 
+    };
 
     const fetchTamu = async () => {
         try {
@@ -116,26 +157,26 @@ export default function SatpamDashboard() {
     };
 
     useEffect(() => { fetchTamu(); }, []);
-
+    
     const updateStatusTamu = async (
-        id: string, statusBaru: string, akses: string,
-        uidCard?: string, lokasi?: string, waktuAktual?: string
+        id: string, status: string, akses: string,
+        uidCard: string | undefined, log: string, waktu: string, dataTambahan?: { karyawanDituju?: string; departemen?: string; gedungTujuan?: string }
     ) => {
-        setDataTamu((prev) =>
-            prev.map((t) => t.id === id ? { ...t, statusKunjungan: statusBaru, aksesAktif: akses } : t)
+        setDataTamu((prevData) =>
+            prevData.map((tamu) => tamu.id === id ? { ...tamu, statusKunjungan: status, aksesAktif: akses, idNfc: uidNfc, ...(dataTambahan || {}) } : tamu)
         );
         try {
             const res = await fetch("/api/satpam/update-status", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    id, statusKunjungan: statusBaru, aksesAktif: akses,
-                    uidNfc: uidCard, lokasiTap: lokasi,
-                    waktuAktual: waktuAktual ?? new Date().toISOString(),
+                    id, statusKunjungan: status, aksesAktif: akses,
+                    uidNfc: uidCard, lokasiTap: log,
+                    waktuAktual: waktu ?? new Date().toISOString(), ...dataTambahan
                 }),
             });
             const result = await res.json();
-            if (!result.ok) alert(`Gagal menyimpan: ${result.message}`);
+            if (!res.ok) alert(`Gagal menyimpan: ${result.message}`);
         } catch (e) {
             console.error("Error updating:", e);
         } finally {
@@ -163,20 +204,19 @@ export default function SatpamDashboard() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(formVip),
             });
-            const responseData = await res.json();
-            if (res.ok && responseData.data) {
+            const dataRes = await res.json();
+            if (res.ok && dataRes.data) {
                 setIsModalVipOpen(false);
-                setFormVip({ namaTamu: "", asalInstansi: "", tujuan: "" });
-                const dataVip = responseData.data;
-                setTamuTerpilih(dataVip);
+                setTamuTerpilih(dataRes.data);
                 setModalAction("checkin");
-                setStepScan(2);
+                setStepScan(3);
+                setFormVip({ namaTamu: "", asalInstansi: "", tujuan: ""});
             } else {
-                alert(responseData.message || "Gagal mendaftar VIP");
+                alert("Gagal simpan VIP: " + (dataRes.message || "Cek terminal"));
             }
         } catch (err) {
             console.error("Error VIP:", err);
-            alert("Terjadi kesalahan sistem.");
+            alert("Error jaringan atau server saat menyimpan data VIP!");
         } finally {
             setIsLoadingVip(false);
         }
@@ -184,12 +224,13 @@ export default function SatpamDashboard() {
 
     const filteredTamu = dataTamu
         .filter((t) => t.namaTamu?.toLowerCase().includes(searchQuery.toLowerCase()))
-        .filter((t) => t.statusKunjungan !== "Menunggu" && t.statusKunjungan !== "MENUNGGU_GATE_UTAMA" && t.statusKunjungan !== "MENUNGGU_GATE_!")
-        .filter(t => {if (roleSatpam === "area") {
-            return t.gedungTujuan === lokasiArea || t.tipeTamu === "vip";
-        }
-        return true;
-    });
+        .filter((t) => ["Check-in", "Check-in Area", "Check-out", "SELESAI", "Check-out (Selesai)"].includes(t.statusKunjungan))
+        .filter(t => {
+            if (roleSatpam === "area") {
+                return t.gedungTujuan === lokasiArea || t.gedungTujuan === "VIP";
+            }
+            return true;
+        });
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 md:p-6">
@@ -301,7 +342,6 @@ export default function SatpamDashboard() {
                                     const st = tamu.statusKunjungan || "Menunggu";
                                     return (
                                         <TableRow key={tamu.id} className="hover:bg-slate-50 text-sm">
-                                            {/* No */}
                                             <TableCell className="px-3 py-2.5 text-slate-500 text-xs">{idx + 1}</TableCell>
 
                                             <TableCell className="px-3 py-2.5 font-mono text-xs text-slate-700 whitespace-nowrap">
@@ -309,11 +349,18 @@ export default function SatpamDashboard() {
                                             </TableCell>
 
                                             <TableCell className="px-3 py-2.5 font-mono text-xs text-slate-600 whitespace-nowrap">
-                                                {tamu.uidNfc || "-"}
+                                                {tamu.kartuNfc?.uid || tamu.idNfc || "-"}
                                             </TableCell>
 
-                                            <TableCell className="px-3 py-2.5 font-semibold text-slate-900 whitespace-nowrap">
-                                                {tamu.namaTamu}
+                                            <TableCell className="font-medium font-semibold text-slate-800">
+                                                <div className="flex items-center gap-2">
+                                                    {tamu.namaTamu}
+                                                    {tamu.gedungTujuan === "VIP" && (
+                                                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800 border border-amber-300 shadow-sm">
+                                                            VIP
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </TableCell>
 
                                             <TableCell className="px-3 py-2.5 text-slate-600 whitespace-nowrap">
@@ -329,9 +376,7 @@ export default function SatpamDashboard() {
                                             </TableCell>
 
                                             <TableCell className="px-3 py-2.5 text-slate-600 whitespace-nowrap">
-                                                {tamu.karyawanTujuan
-                                                    ? `${tamu.karyawanTujuan}${tamu.gedungTujuan ? ` · ${tamu.gedungTujuan}` : ""}`
-                                                    : tamu.gedungTujuan || "-"}
+                                                {tamu.karyawanDituju ? `${tamu.karyawanDituju} - ${tamu.departemen || ''}` : "-"}
                                             </TableCell>
 
                                             <TableCell className="px-3 py-2.5 text-xs text-slate-600 whitespace-nowrap">
@@ -431,10 +476,23 @@ export default function SatpamDashboard() {
                                 <div className="aspect-square bg-black rounded-xl overflow-hidden">
                                     <Scanner onScan={(result) => {
                                         if (result?.length) {
-                                            const qrValue = result[0].rawValue;
-                                            const found = dataTamu.find((t) => t.id.toString() === qrValue);
-                                            if (found) { setTamuTerpilih(found); setStepScan(2); }
-                                            else alert(`Data tamu tidak ditemukan! (QR: ${qrValue})`);
+                                            const rawQr = result[0].rawValue.trim(); 
+                                            const cleanId = rawQr.replace("PKC-", "").trim();
+                                            console.log("DATA TAMU:", dataTamu); 
+                                            const found = dataTamu.find((t) => 
+                                                t.id.toString() === rawQr || t.id.toString() === cleanId
+                                            );
+                                            
+                                            if (found) { 
+                                                setTamuTerpilih(found);
+                                                setSelectedGedung(found.gedungTujuan || ""); 
+                                                setTimeout(() => {
+                                                    setSelectedKaryawan(found.karyawanDituju || ""); 
+                                                }, 100);
+                                                setStepScan(2); 
+                                            } else {
+                                                alert(`Data tidak ditemukan! ...`);
+                                            }
                                         }
                                     }} />
                                 </div>
@@ -448,47 +506,110 @@ export default function SatpamDashboard() {
                         {stepScan === 2 && roleSatpam === "gateUtama" && (
                             <div className="space-y-5">
                                 <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 space-y-1">
-                                    <InfoRow label="Nama Lengkap"   nilai={tamuTerpilih?.namaTamu} />
-                                    <InfoRow label="NIK"            nilai={tamuTerpilih?.nik || tamuTerpilih?.noKtp} />
-                                    <InfoRow label="No. Handphone"  nilai={tamuTerpilih?.noTelp} />
-                                    <InfoRow label="Instansi"       nilai={tamuTerpilih?.asalInstansi} />
-                                    <InfoRow label="Tujuan Awal"    nilai={tamuTerpilih?.tujuanKunjungan} />
+                                    <InfoRow label="Nama Lengkap"   nilai={tamuTerpilih?.namaTamu || "-"} />
+                                    <InfoRow label="Instansi/Asal"  nilai={tamuTerpilih?.asalInstansi || "-"} />
+                                    <InfoRow label="Email"          nilai={tamuTerpilih?.email || "-"} />
+                                    <InfoRow label="NIK"            nilai={tamuTerpilih?.nik || tamuTerpilih?.noKtp || "-"} />
+                                    <InfoRow label="No. Handphone"  nilai={tamuTerpilih?.noTelp || "-"} />
+                                    <InfoRow label="Tujuan"         nilai={tamuTerpilih?.tujuanKunjungan || "-"} />
+                                    <InfoRow label="Karyawan Dituju" nilai={tamuTerpilih?.karyawanDituju || "-"} />
+                                    <InfoRow label="Dept. Tujuan"   nilai={tamuTerpilih?.departemen || "-"} />
+                                    
+                                    <div className="border-t border-blue-200 my-2 pt-2"></div>
+                                    
+                                    <InfoRow 
+                                        label="Waktu Kunjungan" 
+                                        nilai={`${formatTanggalJam(tamuTerpilih?.waktuCheckIn)} s/d ${formatTanggalJam(tamuTerpilih?.waktuCheckOut)}`} 
+                                    />
                                 </div>
+
                                 <div className="space-y-3 border-t pt-4">
-                                    <div className="space-y-1.5">
-                                        <Label>Gedung Tujuan Aktual</Label>
-                                        <select
-                                            className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            value={selectedGedung}
-                                            onChange={(e) => { setSelectedGedung(e.target.value); setSelectedKaryawan(""); }}
-                                        >
-                                            <option value="">-- Pilih Gedung --</option>
-                                            {DAFTAR_GEDUNG.map((g) => <option key={g}>{g}</option>)}
-                                        </select>
-                                    </div>
-                                    {selectedGedung && (
-                                        <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2">
-                                            <Label>Karyawan Dituju</Label>
-                                            <select
-                                                className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                value={selectedKaryawan}
-                                                onChange={(e) => setSelectedKaryawan(e.target.value)}
-                                            >
-                                                <option value="">-- Pilih Karyawan --</option>
-                                                {DATA_KARYAWAN[selectedGedung]?.map((k) => (
-                                                    <option key={k.bet} value={k.bet}>
-                                                        {k.nama} ({k.dept}) · {k.bet}
-                                                    </option>
-                                                ))}
-                                            </select>
+                                    {tamuTerpilih?.gedungTujuan !== "VIP" ? (
+                                        <>
+                                            <div className="space-y-1.5 mt-2">
+                                                <Label>Cari Karyawan Dituju</Label>
+                                                <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
+                                                    <PopoverTrigger asChild>
+                                                        <Button
+                                                            variant="outline"
+                                                            role="combobox"
+                                                            aria-expanded={openCombobox}
+                                                            className="w-full justify-between font-normal"
+                                                        >
+                                                            {selectedKaryawan
+                                                                ? `${selectedKaryawan} - ${SEMUA_KARYAWAN.find((k) => k.nama === selectedKaryawan)?.dept || "Manual"}`
+                                                                : "Ketik nama atau dept..."}
+                                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                        </Button>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent className="w-full p-0">
+                                                        <Command>
+                                                            <CommandInput placeholder="Cari karyawan..." />
+                                                            <CommandList>
+                                                                <CommandEmpty>Karyawan tidak ditemukan.</CommandEmpty>
+                                                                <CommandGroup>
+                                                                    {SEMUA_KARYAWAN.map((karyawan, idx) => (
+                                                                        <CommandItem
+                                                                            key={idx}
+                                                                            value={`${karyawan.nama} ${karyawan.dept} ${karyawan.gedung}`}
+                                                                            onSelect={() => {
+                                                                                setSelectedKaryawan(karyawan.nama);
+                                                                                setSelectedGedung(karyawan.gedung);
+                                                                                setOpenCombobox(false);
+                                                                            }}
+                                                                        >
+                                                                            <Check
+                                                                                className={cn(
+                                                                                    "mr-2 h-4 w-4",
+                                                                                    selectedKaryawan === karyawan.nama ? "opacity-100" : "opacity-0"
+                                                                                )}
+                                                                            />
+                                                                            {karyawan.nama} - {karyawan.dept} 
+                                                                            <span className="text-gray-400 ml-1 text-xs">({karyawan.gedung})</span>
+                                                                        </CommandItem>
+                                                                    ))}
+                                                                </CommandGroup>
+                                                            </CommandList>
+                                                        </Command>
+                                                    </PopoverContent>
+                                                </Popover>
+                                            </div>
+
+                                            <div className="space-y-1.5">
+                                                <Label>Gedung Tujuan Aktual</Label>
+                                                <Select 
+                                                    value={selectedGedung} 
+                                                    onValueChange={setSelectedGedung}
+                                                    disabled={!selectedKaryawan} 
+                                                >
+                                                    <SelectTrigger className={selectedGedung ? "bg-green-50 border-green-200 text-green-800 font-medium" : ""}>
+                                                        <SelectValue placeholder={selectedKaryawan ? "-- Pilih Gedung --" : "-- Pilih Karyawan Dulu --"} />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {DAFTAR_GEDUNG.map((gedung: string, idx: number) => (
+                                                            <SelectItem key={idx} value={gedung}>
+                                                                {gedung}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                {selectedGedung && (
+                                                    <p className="text-xs text-green-600 mt-1">✓ Gedung otomatis disesuaikan</p>
+                                                )}
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className="bg-amber-50 p-4 rounded-lg border border-amber-200 text-sm text-amber-800 text-center mt-4">
+                                            <strong className="block mb-1">Akses VIP Aktif</strong>
+                                            Tamu ini mendapatkan akses penuh ke seluruh kawasan PT Pupuk Kujang. Tidak perlu memilih gedung atau karyawan.
                                         </div>
                                     )}
                                 </div>
                                 <div className="flex gap-2 pt-2">
                                     <Button variant="outline" className="w-1/3" onClick={() => setStepScan(1)}>Sebelumnya</Button>
                                     <Button
-                                        className="w-2/3 bg-blue-600 hover:bg-blue-700"
-                                        disabled={!selectedGedung || !selectedKaryawan}
+                                        className="w-2/3 bg-blue-600 hover:bg-blue-700 text-white"
+                                        disabled={tamuTerpilih?.gedungTujuan !== "VIP" && (!selectedGedung || !selectedKaryawan)}
                                         onClick={() => setStepScan(3)}
                                     >
                                         Lanjut ke NFC
@@ -500,13 +621,14 @@ export default function SatpamDashboard() {
                         {stepScan === 2 && roleSatpam === "area" && (
                             <div className="space-y-5">
                                 <div className="bg-green-50 p-4 rounded-xl border border-green-100 space-y-1">
-                                    <InfoRow label="Nama Lengkap" nilai={tamuTerpilih?.namaTamu} />
-                                    <InfoRow label="Status Saat Ini" nilai={tamuTerpilih?.statusKunjungan} />
+                                    <InfoRow label="Nama Lengkap" nilai={tamuTerpilih?.namaTamu || "-"} />
+                                    <InfoRow label="Instansi/Asal" nilai={tamuTerpilih?.asalInstansi || "-"} />
+                                    <InfoRow label="Status Saat Ini" nilai={tamuTerpilih?.statusKunjungan || "-"} />
                                 </div>
                                 <p className="text-sm text-slate-600">Pastikan tamu memiliki keperluan untuk memasuki area dalam gedung.</p>
                                 <div className="flex gap-2 pt-2">
                                     <Button variant="outline" className="w-1/3" onClick={() => setStepScan(1)}>Sebelumnya</Button>
-                                    <Button className="w-2/3 bg-green-600 hover:bg-green-700" onClick={() => setStepScan(3)}>Berikan Akses Lobby</Button>
+                                    <Button className="w-2/3 bg-green-600 hover:bg-green-700 text-white" onClick={() => setStepScan(3)}>Berikan Akses Lobby</Button>
                                 </div>
                             </div>
                         )}
@@ -554,16 +676,44 @@ export default function SatpamDashboard() {
                                         className="w-2/3 bg-blue-600 hover:bg-blue-700"
                                         onClick={() => {
                                             if (!tamuTerpilih) return;
+                                            
                                             if (roleSatpam === "gateUtama") {
                                                 if (!uidNfc) { alert("Harap tap kartu NFC terlebih dahulu!"); return; }
-                                                const aksesArr: string[] = [];
-                                                if (aksesBeri.gateUtama) aksesArr.push("GATE_UTAMA");
-                                                if (aksesBeri.gateParkir) aksesArr.push(`PARKIR_${selectedGedung}`);
-                                                updateStatusTamu(tamuTerpilih.id, "Check-in", aksesArr.join(","), uidNfc, "Gate Utama Masuk", new Date().toISOString());
+                                                
+                                                let finalAkses = "";
+                                                if (tamuTerpilih.gedungTujuan === "VIP") {
+                                                    finalAkses = "ALL_AREA_ACCESS_VIP"; 
+                                                } else {
+                                                    const aksesArr: string[] = [];
+                                                    if (aksesBeri.gateUtama) aksesArr.push("GATE_UTAMA");
+                                                    if (aksesBeri.gateParkir) aksesArr.push(`PARKIR_${selectedGedung}`);
+                                                    finalAkses = aksesArr.join(",");
+                                                }
+
+                                                const departemenTerpilih = SEMUA_KARYAWAN.find(k => k.nama === selectedKaryawan)?.dept || "";
+
+                                                updateStatusTamu(
+                                                    tamuTerpilih.id, 
+                                                    "Check-in", 
+                                                    finalAkses, 
+                                                    uidNfc, 
+                                                    "Gate Utama Masuk", 
+                                                    new Date().toISOString(),
+                                                    {
+                                                        karyawanDituju: selectedKaryawan,
+                                                        departemen: departemenTerpilih,
+                                                        gedungTujuan: selectedGedung 
+                                                    }
+                                                );
                                             } else {
-                                                updateStatusTamu(tamuTerpilih.id, "Check-in Area",
+                                                updateStatusTamu(
+                                                    tamuTerpilih.id, 
+                                                    "Check-in Area",
                                                     tamuTerpilih.aksesAktif + `,LOBBY_${lokasiArea}`,
-                                                    uidNfc || undefined, `Lobby ${lokasiArea} Masuk`, new Date().toISOString());
+                                                    uidNfc || undefined, 
+                                                    `Lobby ${lokasiArea} Masuk`, 
+                                                    new Date().toISOString()
+                                                );
                                             }
                                             tutupModal();
                                         }}
@@ -585,10 +735,20 @@ export default function SatpamDashboard() {
                     <div className="aspect-square bg-black rounded-xl overflow-hidden">
                         <Scanner onScan={(result) => {
                             if (result?.length) {
-                                const qrValue = result[0].rawValue;
-                                const found = dataTamu.find((t) => t.id.toString() === qrValue);
-                                if (found) { setTamuTerpilih(found); setStepScan(2); setModalAction("checkout"); }
-                                else alert(`Data tamu tidak ditemukan! (QR: ${qrValue})`);
+                                const rawQr = result[0].rawValue.trim(); 
+                                const cleanId = rawQr.replace("PKC-", "").trim;
+                                console.log("DATA TAMU:", dataTamu); 
+                                const found = dataTamu.find((t) => 
+                                    t.id.toString() === rawQr || t.id.toString() === cleanId
+                                );
+                                
+                                if (found) { 
+                                    setTamuTerpilih(found); 
+                                    setStepScan(2); 
+                                    setModalAction("checkout"); 
+                                } else {
+                                    alert(`Data tidak ditemukan! \nKamera baca: "${rawQr}" \nSistem nyari ID: "${cleanId}"`);
+                                }
                             }
                         }} />
                     </div>
@@ -609,29 +769,59 @@ export default function SatpamDashboard() {
                         <div className="space-y-4">
                             {stepScan === 2 && (
                                 <>
-                                    <p className="text-sm text-slate-600">Pilih akses yang ingin dilepas dari kartu tamu:</p>
-                                    <div className="space-y-3 bg-slate-50 p-4 rounded-lg border border-slate-200">
-                                        {[
-                                            { id: "chk-utama",  label: "Gate Utama",       key: "gateUtama"  as const },
-                                            { id: "chk-parkir", label: "Gate Parkir Gedung", key: "gateParkir" as const },
-                                            { id: "chk-lobby",  label: "Gate Lobby (Area)",  key: "gateLobby"  as const },
-                                        ].map(({ id, label, key }) => (
-                                            <div key={id} className="flex items-center gap-2">
-                                                <Checkbox id={id} checked={aksesLepas[key]}
-                                                    onCheckedChange={(c) => setAksesLepas({ ...aksesLepas, [key]: !!c })} />
-                                                <Label htmlFor={id} className="cursor-pointer">{label}</Label>
+                                    <div className="space-y-1.5 mt-2">
+                                        <Label>Karyawan Dituju</Label>
+                                        <Select 
+                                            value={selectedKaryawan} 
+                                            onValueChange={(val) => {
+                                                setSelectedKaryawan(val);
+                                                    
+                                                const orangnya = SEMUA_KARYAWAN.find(k => k.nama === val);
+                                                if (orangnya) {
+                                                    setSelectedGedung(orangnya.gedung);
+                                                }
+                                            }}
+                                        >
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="-- Pilih Karyawan --" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {SEMUA_KARYAWAN.map((karyawan, idx) => (
+                                                        <SelectItem key={idx} value={karyawan.nama}>
+                                                            {karyawan.nama} - {karyawan.dept}
+                                                        </SelectItem>
+                                                    ))}
+
+                                                    {selectedKaryawan && !SEMUA_KARYAWAN.some(k => k.nama === selectedKaryawan) && (
+                                                        <SelectItem value={selectedKaryawan}>
+                                                            {selectedKaryawan} (Manual/Tidak Tersinkron)
+                                                        </SelectItem>
+                                                    )}
+                                                </SelectContent>
+                                        </Select>
+                                        </div>
+
+                                        <div className="space-y-1.5">
+                                            <Label>Gedung Tujuan Aktual</Label>
+                                                <Select 
+                                                    value={selectedGedung} 
+                                                    onValueChange={setSelectedGedung}
+                                                    disabled={!selectedKaryawan} 
+                                                >
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder={selectedKaryawan ? "-- Pilih Gedung --" : "-- Pilih Karyawan Dulu --"} />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {DAFTAR_GEDUNG.map((gedung, idx) => (
+                                                            <SelectItem key={idx} value={gedung}>
+                                                                {gedung}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
                                             </div>
-                                        ))}
-                                    </div>
-                                    <Button variant="secondary" className="w-full text-xs"
-                                        onClick={() => setAksesLepas({ gateUtama: true, gateParkir: true, gateLobby: true })}>
-                                        Pilih Semua (Lepas Keseluruhan)
-                                    </Button>
-                                    <Button className="w-full bg-red-600 hover:bg-red-700 text-white" onClick={() => setStepScan(3)}>
-                                        Lanjut Tap NFC
-                                    </Button>
-                                </>
-                            )}
+                                        </>
+                                    )}
                             {stepScan === 3 && (
                                 <div className="space-y-4">
                                     <div className="bg-red-50 p-4 rounded-lg border border-red-100">
@@ -710,7 +900,7 @@ export default function SatpamDashboard() {
                             <InfoRow label="Email"            nilai={tamuTerpilih?.email} />
                             <InfoRow label="Instansi"         nilai={tamuTerpilih?.asalInstansi} />
                             <InfoRow label="Tujuan Kunjungan" nilai={tamuTerpilih?.tujuanKunjungan} />
-                            <InfoRow label="Gedung Aktual"    nilai={tamuTerpilih?.gedungTujuan} />
+                            <InfoRow label="Gedung Aktual"    nilai={tamuTerpilih?.gedungTujuan || tamuTerpilih?.gedungAktual || "-"} />
                             <InfoRow label="Karyawan Dituju"  nilai={tamuTerpilih?.karyawanTujuan || tamuTerpilih?.karyawanDituju} />
                             <div className="border-t border-slate-200 my-1" />
                             <InfoRow label="ID NFC"           nilai={tamuTerpilih?.uidNfc || tamuTerpilih?.nfcId} />
@@ -719,25 +909,17 @@ export default function SatpamDashboard() {
                             <InfoRow label="Waktu Aktual Masuk"   nilai={fmtDt(tamuTerpilih?.aktualCheckIn)} />
                             <InfoRow label="Waktu Aktual Keluar"  nilai={fmtDt(tamuTerpilih?.aktualCheckOut)} />
                         </div>
-                        <div className="border-t border-slate-200 pt-4 mt-2">
-                            <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">Rencana Kunjungan (Sesuai Form)</p>
-                            <div className="grid grid-cols-2 gap-3 bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
-                                <div>
-                                    <span className="block text-slate-500 text-[10px] uppercase">Tanggal Daftar</span>
-                                    <span className="font-semibold text-sm text-slate-800">
-                                        {tamuTerpilih?.tanggalKunjungan 
-                                            ? new Date(tamuTerpilih.tanggalKunjungan).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) 
-                                            : "-"}
-                                    </span>
-                                </div>
-                                <div>
-                                    <span className="block text-slate-500 text-[10px] uppercase">Jam Kunjungan</span>
-                                    <span className="font-semibold text-sm text-slate-800">
-                                        {tamuTerpilih?.waktuCheckIn ? new Date(tamuTerpilih.waktuCheckIn).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : "-"} 
-                                        {" s/d "} 
-                                        {tamuTerpilih?.waktuCheckOut ? new Date(tamuTerpilih.waktuCheckOut).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : "-"}
-                                    </span>
-                                </div>
+                        <div className="mt-4 pt-4 border-t border-gray-100">
+                            <p className="text-xs font-bold text-slate-500 mb-3 tracking-wider">
+                                RENCANA KUNJUNGAN (SESUAI FORM)
+                            </p>
+                            <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                                <span className="text-xs text-slate-500 block mb-1">Waktu Kunjungan Valid</span>
+                                <span className="text-sm font-semibold text-slate-800 block">
+                                    {formatTanggalJam(tamuTerpilih?.waktuCheckIn)} <br className="hidden md:block"/> 
+                                    <span className="text-slate-500 font-normal mx-1">s/d</span> <br className="block md:hidden" />
+                                    {formatTanggalJam(tamuTerpilih?.waktuCheckOut)}
+                                </span>
                             </div>
                         </div>
 
@@ -749,7 +931,7 @@ export default function SatpamDashboard() {
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2 text-amber-600">
-                            ✨ Jalur Cepat VIP
+                            Jalur Cepat VIP
                         </DialogTitle>
                     </DialogHeader>
                     <form onSubmit={handleDaftarVip} className="space-y-4 pt-2">

@@ -25,6 +25,14 @@ export async function GET() {
               lte: endOfToday,
             },
           },
+          {
+            waktuCheckIn: {
+              lte: endOfToday,
+            },
+            waktuCheckOut: {
+              gte: startOfToday,
+            },
+          },
         ],
       },
       orderBy: {

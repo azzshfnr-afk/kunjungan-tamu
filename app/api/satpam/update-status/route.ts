@@ -1,19 +1,21 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-interface BodyUpdateStatus {
-  id: string | number;
-  statusKunjungan: string;
-  aksesAktif: string;
-  uidNfc?: string;
-  lokasiTap?: string;
-  waktuAktual?: string;
-}
-
 export async function POST(req: Request) {
   try {
-    const body = (await req.json()) as BodyUpdateStatus;
-    const { id, statusKunjungan, aksesAktif, uidNfc, lokasiTap, waktuAktual } = body;
+    const body = await req.json();
+    
+    const { 
+        id, 
+        statusKunjungan, 
+        aksesAktif, 
+        uidNfc, 
+        lokasiTap, 
+        waktuAktual, 
+        karyawanDituju, 
+        departemen, 
+        gedungTujuan 
+    } = body;
 
     if (!id) {
       return NextResponse.json(
@@ -37,6 +39,7 @@ export async function POST(req: Request) {
 
     if (statusKunjungan === "Check-in") {
       let kartuId: number | null = null;
+      
       if (uidNfc) {
         const kartu = await prisma.kartuNfc.findUnique({
           where: { uidKartu: uidNfc },
@@ -55,17 +58,22 @@ export async function POST(req: Request) {
               tamuId: Number(id),
             },
           });
-          kartuId = kartu.id;
+          kartuId = kartu.id; 
         }
       }
 
       const updateTamu = await prisma.tamu.update({
-        where: { id: Number(id) },
+        where: { id: Number(id) }, 
         data: {
-          statusKunjungan,
-          aksesAktif,
-          aktualCheckIn: waktuSekarang,       
-          nfcId: uidNfc ?? tamuSaatIni.nfcId, 
+          statusKunjungan: statusKunjungan,
+          aksesAktif: aksesAktif,
+          
+          nfcId: uidNfc, 
+          
+          karyawanDituju: karyawanDituju,
+          departemen: departemen,
+          gedungTujuan: gedungTujuan,
+          
           ...(kartuId ? { kartuNfcId: kartuId } : {}),
         },
       });
@@ -146,7 +154,7 @@ export async function POST(req: Request) {
         data: {
           statusKunjungan,
           aksesAktif,
-          kartuNfcId: null,
+          kartuNfcId: null, 
           aktualCheckOut: waktuSekarang, 
         },
       });
