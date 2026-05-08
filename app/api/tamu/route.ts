@@ -171,14 +171,12 @@ export async function GET(request: Request) {
       karyawan: t.karyawanDituju,
       tujuanKunjungan: t.tujuanKunjungan,
       status: t.status,
-      tipeTamu: t.tipeTamu,
       statusKunjungan: t.statusKunjungan,
       tanggalKunjungan: t.tanggalKunjungan,
       visitDate: t.waktuCheckIn,
       visitTime: t.waktuCheckIn
         ? new Date(t.waktuCheckIn).toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' })
         : "-",
-      // aktual buat satpam nich
       checkin: t.aktualCheckIn ?? null,
       checkout: t.aktualCheckOut ?? null,
     }));

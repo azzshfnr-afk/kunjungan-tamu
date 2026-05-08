@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { FaCrown, } from "react-icons/fa";
 import { Check, ChevronsUpDown } from "lucide-react";
-import { cn } from "@/lib/utils"; // Pastiin path ini sesuai sama project lu
+import { cn } from "@/lib/utils"; 
 import {
     Command,
     CommandEmpty,
@@ -46,6 +46,13 @@ const DAFTAR_GEDUNG: string[] = [
     "Gedung LC",
 ];
 
+interface Karyawan {
+    id: string; 
+    nama: string;
+    dept: string;
+    gedung: string;
+}
+
 const DATA_KARYAWAN: Record<string, { bet: string; nama: string; dept: string }[]> = {
     "Gedung Pusat Administrasi (GPA)": [
         { bet: "PKC-101", nama: "Junaedi", dept: "TI" },
@@ -55,16 +62,16 @@ const DATA_KARYAWAN: Record<string, { bet: string; nama: string; dept: string }[
         { bet: "PKC-201", nama: "Yoyo", dept: "Agrosolution" },
         { bet: "PKC-202", nama: "Mumun", dept: "Sekretaris" },
     ],
-    "Pabrik 1A":  [{ bet: "PKC-301", nama: "Velia", dept: "Humas" }],
-    "Pabrik 1B":  [{ bet: "PKC-401", nama: "Nazla", dept: "QC" }],
-    "Gedung MO":  [{ bet: "PKC-501", nama: "Zihan", dept: "MPSDM" }],
-    "Gedung LC":  [{ bet: "PKC-601", nama: "Bibah", dept: "Akuntansi" }],
 };
 
-const SEMUA_KARYAWAN: { bet: string; nama: string; dept: string; gedung: string }[] = 
-    Object.entries(DATA_KARYAWAN).flatMap(([gedung, list]) => 
-        list.map((karyawan) => ({ ...karyawan, gedung }))
-    );
+const SEMUA_KARYAWAN: Karyawan[] = Object.entries(DATA_KARYAWAN).flatMap(([gedung, list]) => 
+    list.map((karyawan) => ({ 
+        id: karyawan.bet, 
+        nama: karyawan.nama, 
+        dept: karyawan.dept, 
+        gedung 
+    }))
+);
 
 const Scanner = dynamic(
     () => import("@yudiel/react-qr-scanner").then((mod) => mod.Scanner),
@@ -131,6 +138,10 @@ export default function SatpamDashboard() {
     const [isLoadingVip, setIsLoadingVip]     = useState(false);
     const [formVip, setFormVip] = useState({ namaTamu: "", asalInstansi: "", tujuan: "" });
     const [openCombobox, setOpenCombobox] = useState(false);
+    const [selectedDepartemen, setSelectedDepartemen] = useState<string>("");
+    const [selectedKaryawanId, setSelectedKaryawanId] = useState<string | null>(null);
+
+    const [gedungAutoFill, setGedungAutoFill] = useState<string>("");
 
     const formatTanggalJam = (dateString: Date | string | null | undefined) => {
         if (!dateString) return "-";
@@ -345,7 +356,7 @@ export default function SatpamDashboard() {
                                             <TableCell className="px-3 py-2.5 text-slate-500 text-xs">{idx + 1}</TableCell>
 
                                             <TableCell className="px-3 py-2.5 font-mono text-xs text-slate-700 whitespace-nowrap">
-                                                {tamu.id || "-"}
+                                                {tamu.id ? `PKC-${tamu.id}` : "-"}
                                             </TableCell>
 
                                             <TableCell className="px-3 py-2.5 font-mono text-xs text-slate-600 whitespace-nowrap">
@@ -506,129 +517,95 @@ export default function SatpamDashboard() {
                         {stepScan === 2 && roleSatpam === "gateUtama" && (
                             <div className="space-y-5">
                                 <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 space-y-1">
-                                    <InfoRow label="Nama Lengkap"   nilai={tamuTerpilih?.namaTamu || "-"} />
-                                    <InfoRow label="Instansi/Asal"  nilai={tamuTerpilih?.asalInstansi || "-"} />
-                                    <InfoRow label="Email"          nilai={tamuTerpilih?.email || "-"} />
-                                    <InfoRow label="NIK"            nilai={tamuTerpilih?.nik || tamuTerpilih?.noKtp || "-"} />
-                                    <InfoRow label="No. Handphone"  nilai={tamuTerpilih?.noTelp || "-"} />
-                                    <InfoRow label="Tujuan"         nilai={tamuTerpilih?.tujuanKunjungan || "-"} />
+                                    <InfoRow label="Nama Lengkap" nilai={tamuTerpilih?.namaTamu || "-"} />
+                                    <InfoRow label="Instansi/Asal" nilai={tamuTerpilih?.asalInstansi || "-"} />
+                                    <InfoRow label="Email" nilai={tamuTerpilih?.email || "-"} />
+                                    <InfoRow label="NIK" nilai={tamuTerpilih?.nik || tamuTerpilih?.noKtp || "-"} />
+                                    <InfoRow label="No. Handphone" nilai={tamuTerpilih?.noTelp || "-"} />
+                                    <InfoRow label="Tujuan" nilai={tamuTerpilih?.tujuanKunjungan || "-"} />
                                     <InfoRow label="Karyawan Dituju" nilai={tamuTerpilih?.karyawanDituju || "-"} />
-                                    <InfoRow label="Dept. Tujuan"   nilai={tamuTerpilih?.departemen || "-"} />
-                                    
+                                    <InfoRow label="Dept. Tujuan" nilai={tamuTerpilih?.departemen || "-"} />
                                     <div className="border-t border-blue-200 my-2 pt-2"></div>
-                                    
                                     <InfoRow 
                                         label="Waktu Kunjungan" 
                                         nilai={`${formatTanggalJam(tamuTerpilih?.waktuCheckIn)} s/d ${formatTanggalJam(tamuTerpilih?.waktuCheckOut)}`} 
                                     />
                                 </div>
 
-                                <div className="space-y-3 border-t pt-4">
-                                    {tamuTerpilih?.gedungTujuan !== "VIP" ? (
-                                        <>
-                                            <div className="space-y-1.5 mt-2">
-                                                <Label>Cari Karyawan Dituju</Label>
-                                                <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
-                                                    <PopoverTrigger asChild>
-                                                        <Button
-                                                            variant="outline"
-                                                            role="combobox"
-                                                            aria-expanded={openCombobox}
-                                                            className="w-full justify-between font-normal"
-                                                        >
-                                                            {selectedKaryawan
-                                                                ? `${selectedKaryawan} - ${SEMUA_KARYAWAN.find((k) => k.nama === selectedKaryawan)?.dept || "Manual"}`
-                                                                : "Ketik nama atau dept..."}
-                                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                                        </Button>
-                                                    </PopoverTrigger>
-                                                    <PopoverContent className="w-full p-0">
-                                                        <Command>
-                                                            <CommandInput placeholder="Cari karyawan..." />
-                                                            <CommandList>
-                                                                <CommandEmpty>Karyawan tidak ditemukan.</CommandEmpty>
-                                                                <CommandGroup>
-                                                                    {SEMUA_KARYAWAN.map((karyawan, idx) => (
-                                                                        <CommandItem
-                                                                            key={idx}
-                                                                            value={`${karyawan.nama} ${karyawan.dept} ${karyawan.gedung}`}
-                                                                            onSelect={() => {
-                                                                                setSelectedKaryawan(karyawan.nama);
-                                                                                setSelectedGedung(karyawan.gedung);
-                                                                                setOpenCombobox(false);
-                                                                            }}
-                                                                        >
-                                                                            <Check
-                                                                                className={cn(
-                                                                                    "mr-2 h-4 w-4",
-                                                                                    selectedKaryawan === karyawan.nama ? "opacity-100" : "opacity-0"
-                                                                                )}
-                                                                            />
-                                                                            {karyawan.nama} - {karyawan.dept} 
-                                                                            <span className="text-gray-400 ml-1 text-xs">({karyawan.gedung})</span>
-                                                                        </CommandItem>
-                                                                    ))}
-                                                                </CommandGroup>
-                                                            </CommandList>
-                                                        </Command>
-                                                    </PopoverContent>
-                                                </Popover>
-                                            </div>
+                                <div className="space-y-4">
+                                    <div className="space-y-1.5 mt-2">
+                                        <Label>Cari Karyawan Dituju</Label>
+                                        <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
+                                            <PopoverTrigger asChild>
+                                                <Button
+                                                    variant="outline" role="combobox" aria-expanded={openCombobox} className="w-full justify-between font-normal text-left">
+                                                    {selectedKaryawan 
+                                                        ? `${selectedKaryawan} - ${selectedDepartemen}` 
+                                                        : "Ketik nama karyawan..."}
+                                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-[400px] p-0" align="start">
+                                                <Command>
+                                                    <CommandInput placeholder="Cari nama atau departemen..." />
+                                                    <CommandList>
+                                                        <CommandEmpty>Karyawan tidak ditemukan.</CommandEmpty>
+                                                        <CommandGroup>
+                                                            {SEMUA_KARYAWAN.map((karyawan) => (
+                                                                <CommandItem 
+                                                                    key={karyawan.id} 
+                                                                    value={`${karyawan.nama} ${karyawan.dept} ${karyawan.gedung}`} 
+                                                                    onSelect={() => {
+                                                                        setSelectedKaryawan(karyawan.nama);
+                                                                        setSelectedDepartemen(karyawan.dept);
+                                                                        setSelectedKaryawanId(karyawan.id);
+                                                                        setSelectedGedung(karyawan.gedung); 
+                                                                        setOpenCombobox(false);
+                                                                    }}
+                                                                >
+                                                                    <Check className={cn("mr-2 h-4 w-4", selectedKaryawan === karyawan.nama ? "opacity-100" : "opacity-0")} />
+                                                                    <div className="flex flex-col">
+                                                                        <span>{karyawan.nama} - <span className="font-semibold">{karyawan.dept}</span></span>
+                                                                        <span className="text-[10px] text-muted-foreground">{karyawan.gedung}</span>
+                                                                    </div>
+                                                                </CommandItem>
+                                                            ))}
+                                                        </CommandGroup>
+                                                    </CommandList>
+                                                </Command>
+                                            </PopoverContent>
+                                        </Popover>
+                                    </div>
 
-                                            <div className="space-y-1.5">
-                                                <Label>Gedung Tujuan Aktual</Label>
-                                                <Select 
-                                                    value={selectedGedung} 
-                                                    onValueChange={setSelectedGedung}
-                                                    disabled={!selectedKaryawan} 
-                                                >
-                                                    <SelectTrigger className={selectedGedung ? "bg-green-50 border-green-200 text-green-800 font-medium" : ""}>
-                                                        <SelectValue placeholder={selectedKaryawan ? "-- Pilih Gedung --" : "-- Pilih Karyawan Dulu --"} />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        {DAFTAR_GEDUNG.map((gedung: string, idx: number) => (
-                                                            <SelectItem key={idx} value={gedung}>
-                                                                {gedung}
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                                {selectedGedung && (
-                                                    <p className="text-xs text-green-600 mt-1">✓ Gedung otomatis disesuaikan</p>
-                                                )}
+                                    {selectedKaryawan && (
+                                        <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                                            <Label className="text-xs font-bold text-slate-500 mb-2 block">DATA KARYAWAN TERPILIH</Label>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div>
+                                                    <Label className="text-[10px] text-slate-400">Departemen</Label>
+                                                    <Input value={selectedDepartemen} readOnly className="h-8 bg-slate-100 text-xs font-medium focus-visible:ring-0 cursor-default"/>
+                                                </div>
+                                                <div>
+                                                    <Label className="text-[10px] text-slate-400">ID Karyawan</Label>
+                                                    <Input value={selectedKaryawanId || "-"} readOnly className="h-8 bg-slate-100 text-xs font-mono text-blue-600 focus-visible:ring-0 cursor-default"/>
+                                                </div>
                                             </div>
-                                        </>
-                                    ) : (
-                                        <div className="bg-amber-50 p-4 rounded-lg border border-amber-200 text-sm text-amber-800 text-center mt-4">
-                                            <strong className="block mb-1">Akses VIP Aktif</strong>
-                                            Tamu ini mendapatkan akses penuh ke seluruh kawasan PT Pupuk Kujang. Tidak perlu memilih gedung atau karyawan.
+                                            <p className="text-[11px] text-blue-600 mt-2 italic">
+                                                *Data ini akan otomatis tercatat sebagai penanggung jawab kunjungan.
+                                            </p>
                                         </div>
                                     )}
                                 </div>
-                                <div className="flex gap-2 pt-2">
+                                
+                                <div className="flex gap-2">
                                     <Button variant="outline" className="w-1/3" onClick={() => setStepScan(1)}>Sebelumnya</Button>
-                                    <Button
-                                        className="w-2/3 bg-blue-600 hover:bg-blue-700 text-white"
-                                        disabled={tamuTerpilih?.gedungTujuan !== "VIP" && (!selectedGedung || !selectedKaryawan)}
+                                    <Button 
+                                        className="w-2/3 bg-blue-600 hover:bg-blue-700 text-white" 
+                                        disabled={selectedGedung.length === 0 || (tamuTerpilih?.gedungTujuan !== "VIP" && !selectedKaryawan)} 
                                         onClick={() => setStepScan(3)}
                                     >
                                         Lanjut ke NFC
                                     </Button>
-                                </div>
-                            </div>
-                        )}
-
-                        {stepScan === 2 && roleSatpam === "area" && (
-                            <div className="space-y-5">
-                                <div className="bg-green-50 p-4 rounded-xl border border-green-100 space-y-1">
-                                    <InfoRow label="Nama Lengkap" nilai={tamuTerpilih?.namaTamu || "-"} />
-                                    <InfoRow label="Instansi/Asal" nilai={tamuTerpilih?.asalInstansi || "-"} />
-                                    <InfoRow label="Status Saat Ini" nilai={tamuTerpilih?.statusKunjungan || "-"} />
-                                </div>
-                                <p className="text-sm text-slate-600">Pastikan tamu memiliki keperluan untuk memasuki area dalam gedung.</p>
-                                <div className="flex gap-2 pt-2">
-                                    <Button variant="outline" className="w-1/3" onClick={() => setStepScan(1)}>Sebelumnya</Button>
-                                    <Button className="w-2/3 bg-green-600 hover:bg-green-700 text-white" onClick={() => setStepScan(3)}>Berikan Akses Lobby</Button>
                                 </div>
                             </div>
                         )}
@@ -909,11 +886,12 @@ export default function SatpamDashboard() {
                             <InfoRow label="Waktu Aktual Masuk"   nilai={fmtDt(tamuTerpilih?.aktualCheckIn)} />
                             <InfoRow label="Waktu Aktual Keluar"  nilai={fmtDt(tamuTerpilih?.aktualCheckOut)} />
                         </div>
-                        <div className="mt-4 pt-4 border-t border-gray-100">
+
+                       <div className="mt-4 pt-4 border-t border-gray-100">
                             <p className="text-xs font-bold text-slate-500 mb-3 tracking-wider">
                                 RENCANA KUNJUNGAN (SESUAI FORM)
                             </p>
-                            <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                            <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 mb-4">
                                 <span className="text-xs text-slate-500 block mb-1">Waktu Kunjungan Valid</span>
                                 <span className="text-sm font-semibold text-slate-800 block">
                                     {formatTanggalJam(tamuTerpilih?.waktuCheckIn)} <br className="hidden md:block"/> 
@@ -921,8 +899,19 @@ export default function SatpamDashboard() {
                                     {formatTanggalJam(tamuTerpilih?.waktuCheckOut)}
                                 </span>
                             </div>
-                        </div>
 
+                            <p className="text-xs font-bold text-green-600 mb-3 tracking-wider">
+                                AKTUAL KUNJUNGAN (SISTEM)
+                            </p>
+                            <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                                <span className="text-xs text-green-700 block mb-1">Waktu Check-in Aktual</span>
+                                <span className="text-sm font-semibold text-green-900 block">
+                                    {tamuTerpilih?.aktualCheckIn 
+                                        ? formatTanggalJam(tamuTerpilih.aktualCheckIn) 
+                                        : "Tamu belum Check-in"}
+                                </span>
+                            </div>
+                        </div>
                     </div>
                 </DialogContent>
             </Dialog>
