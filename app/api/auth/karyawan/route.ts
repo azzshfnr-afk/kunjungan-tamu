@@ -1,4 +1,4 @@
-    import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
 const SSO_BASE_URL = process.env.SSO_BASE_URL!;
@@ -31,30 +31,38 @@ export async function POST(req: NextRequest) {
 
     const ssoData = await ssoRes.json();
 
-    if (!ssoRes.ok) {
+    if (!ssoRes.ok || !ssoData.success) {
       return NextResponse.json(
         { message: ssoData?.message || "Login gagal." },
         { status: ssoRes.status }
       );
     }
 
-
-    const token = ssoData?.token || ssoData?.data?.token || ssoData?.access_token;
-
-    if (!token) {
-      return NextResponse.json(
-        { message: "Token tidak ditemukan dari SSO." },
-        { status: 500 }
-      );
-    }
+    const { access_token, user } = ssoData;
 
     const cookieStore = await cookies();
-    cookieStore.set("sso_token", token, {
+    cookieStore.set("sso_token", access_token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
       maxAge: 60 * 60 * 8, // 8 jam
+    });
+
+    cookieStore.set("sso_user", JSON.stringify({
+      id: user.id,
+      name: user.name,
+      username: user.username,
+      pic: user.pic,
+      email: user.email,
+      phone_number: user.phone_number,
+      organization: user.organization,
+    }), {
+      httpOnly: false,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 8,
     });
 
     return NextResponse.json({ message: "Login berhasil." }, { status: 200 });
