@@ -5,12 +5,18 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     
-    const rawId = String(body.id);
-    const cleanId = Number(rawId.replace("PKC-", ""));
+    const rawId = body.id; 
+    
+    const cleanId = parseInt(String(rawId).replace("PKC-", "").trim());
+
+    if (isNaN(cleanId)) {
+      console.error("ID GAGAL DIPROSES:", rawId);
+      return NextResponse.json({ ok: false, message: "ID Tamu tidak valid" }, { status: 400 });
+    }
 
     const { 
         statusKunjungan, aksesAktif, uidNfc, lokasiTap, waktuAktual, 
-        karyawanId, karyawanDituju, departemen, gedungTujuan
+        karyawanDituju, departemen, gedungTujuan
     } = body;
 
     const waktuSekarang = waktuAktual ? new Date(waktuAktual) : new Date();
@@ -30,15 +36,11 @@ export async function POST(req: Request) {
         data: {
           statusKunjungan: statusKunjungan,
           aksesAktif: aksesAktif,
-          
           nfcId: uidNfc,                 
           aktualCheckIn: waktuSekarang,  
-          
-          karyawanId: karyawanId ? Number(karyawanId) : null, 
           karyawanDituju: karyawanDituju,
           departemen: departemen,
           gedungTujuan: gedungTujuan, 
-          
           ...(kartuIdInDb ? { kartuNfcId: kartuIdInDb } : {}),
         },
       });
@@ -50,10 +52,11 @@ export async function POST(req: Request) {
       where: { id: cleanId },
       data: { statusKunjungan, aksesAktif },
     });
+    
     return NextResponse.json({ ok: true, data: updateTamuBiasa });
 
-  } catch (error) {
-    console.error("Error:", error);
-    return NextResponse.json({ ok: false, message: "Error" }, { status: 500 });
+  } catch (error: any) {
+    console.error("Error detail:", error);
+    return NextResponse.json({ ok: false, message: error.message || "Gagal menyimpan data" }, { status: 500 });
   }
 }

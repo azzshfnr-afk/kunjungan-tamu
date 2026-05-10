@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { FaCrown, } from "react-icons/fa";
 import { Check, ChevronsUpDown } from "lucide-react";
-import { cn } from "@/lib/utils"; 
+import { cn, formatIdTamu } from "@/lib/utils"; 
 import {
     Command,
     CommandEmpty,
@@ -170,24 +170,36 @@ export default function SatpamDashboard() {
     useEffect(() => { fetchTamu(); }, []);
     
     const updateStatusTamu = async (
-        id: string, status: string, akses: string,
-        uidCard: string | undefined, log: string, waktu: string, dataTambahan?: { karyawanDituju?: string; departemen?: string; gedungTujuan?: string }
+    id: string, status: string, akses: string,
+    uidCard: string | undefined, log: string, waktu: string, 
+    dataTambahan?: { karyawanDituju?: string; departemen?: string; gedungTujuan?: string }
     ) => {
         setDataTamu((prevData) =>
-            prevData.map((tamu) => tamu.id === id ? { ...tamu, statusKunjungan: status, aksesAktif: akses, idNfc: uidNfc, ...(dataTambahan || {}) } : tamu)
+            prevData.map((tamu) => 
+                tamu.id === id 
+                ? { ...tamu, statusKunjungan: status, aksesAktif: akses, nfcId: uidCard, ...(dataTambahan || {}) } 
+                : tamu
+            )
         );
+
         try {
             const res = await fetch("/api/satpam/update-status", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    id, statusKunjungan: status, aksesAktif: akses,
-                    uidNfc: uidCard, lokasiTap: log,
-                    waktuAktual: waktu ?? new Date().toISOString(), ...dataTambahan
+                    id, 
+                    statusKunjungan: status, 
+                    aksesAktif: akses,
+                    uidNfc: uidCard, 
+                    lokasiTap: log,
+                    waktuAktual: waktu ?? new Date().toISOString(), 
+                    ...dataTambahan
                 }),
             });
+            
             const result = await res.json();
             if (!res.ok) alert(`Gagal menyimpan: ${result.message}`);
+            
         } catch (e) {
             console.error("Error updating:", e);
         } finally {
@@ -258,7 +270,7 @@ export default function SatpamDashboard() {
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2 bg-white border border-slate-200 rounded-lg px-3 py-2 shadow-sm">
-                        <span className="text-xs text-slate-500 font-medium">Mode:</span>
+                        <span className="text-xs text-slate-500 font-medium">Satpam:</span>
                         <Button
                             size="sm" className="h-7 text-xs"
                             variant={roleSatpam === "gateUtama" ? "default" : "outline"}
@@ -360,7 +372,7 @@ export default function SatpamDashboard() {
                                             </TableCell>
 
                                             <TableCell className="px-3 py-2.5 font-mono text-xs text-slate-600 whitespace-nowrap">
-                                                {tamu.kartuNfc?.uid || tamu.idNfc || "-"}
+                                                {tamu.nfcId || tamu.kartuNfc?.uidKartu || tamu.idNfc || "-"}
                                             </TableCell>
 
                                             <TableCell className="font-medium font-semibold text-slate-800">
@@ -517,6 +529,7 @@ export default function SatpamDashboard() {
                         {stepScan === 2 && roleSatpam === "gateUtama" && (
                             <div className="space-y-5">
                                 <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 space-y-1">
+                                    <InfoRow label="ID Tamu" nilai={formatIdTamu(tamuTerpilih?.id)} />
                                     <InfoRow label="Nama Lengkap" nilai={tamuTerpilih?.namaTamu || "-"} />
                                     <InfoRow label="Instansi/Asal" nilai={tamuTerpilih?.asalInstansi || "-"} />
                                     <InfoRow label="Email" nilai={tamuTerpilih?.email || "-"} />
@@ -871,6 +884,7 @@ export default function SatpamDashboard() {
                             </div>
                         )}
                         <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-1">
+                            <InfoRow label="ID Tamu" nilai={formatIdTamu(tamuTerpilih?.id)} />
                             <InfoRow label="Nama Lengkap"     nilai={tamuTerpilih?.namaTamu} />
                             <InfoRow label="NIK"              nilai={tamuTerpilih?.nik || tamuTerpilih?.noKtp} />
                             <InfoRow label="No. Handphone"    nilai={tamuTerpilih?.noTelp} />

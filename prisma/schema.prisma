@@ -27,6 +27,7 @@ model Tamu {
   statusKunjungan  String?   @default("MENUNGGU_GATE_1")
   gedungTujuan     String?
   aksesAktif       String?
+  karyawanId       String?
 
   aktualCheckIn  DateTime?
   aktualCheckOut DateTime?

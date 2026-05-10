@@ -77,7 +77,7 @@ export async function POST(request: Request) {
         tujuanKunjungan,
         waktuCheckIn,
         waktuCheckOut,
-        tanggalKunjungan, // ← tambah ini
+        tanggalKunjungan, 
         fotoKtp: fotoKtpUrl,
         anggotaRombongan: {
           create: anggotaRombonganParsed.map((a: any) => ({
@@ -91,6 +91,8 @@ export async function POST(request: Request) {
 
     if (email !== "-" && email.includes("@")) {
       try {
+        const formatId = `PKC-${hasil.id}`; 
+
         const mailOptions = {
           from: `"Admin Kunjungan" <${process.env.EMAIL_USER}>`,
           to: email,
@@ -98,21 +100,22 @@ export async function POST(request: Request) {
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
                 <div style="background-color: #4CAF50; color: white; padding: 20px; text-align: center;">
-                    <h2 style="margin: 0; font-size: 24px; font-weight: bold;">Tiket Kunjungan Disetujui</h2>
+                    <h2 style="margin: 0; font-size: 24px; font-weight: bold;">Tiket Kunjungan Tamu</h2>
                     <p style="margin: 8px 0 0 0; font-size: 14px;">PT Pupuk Kujang Cikampek</p>
                 </div>
                 <div style="padding: 30px; color: #333; background-color: #ffffff;">
                     <p>Halo <strong>${namaTamu}</strong>,</p>
                     <p>Registrasi kunjungan Anda telah berhasil. Berikut detailnya:</p>
                     <table style="width: 100%; margin-top: 20px; border-collapse: collapse;">
-                        <tr><td style="padding: 8px 0; color: #666; border-bottom: 1px solid #eee;">ID Kunjungan</td><td style="font-weight: bold; border-bottom: 1px solid #eee;">${hasil.id}</td></tr>
+                        <tr><td style="padding: 8px 0; color: #666; border-bottom: 1px solid #eee;">ID Kunjungan</td><td style="font-weight: bold; border-bottom: 1px solid #eee; color: #4CAF50;">${formatId}</td></tr>
                         <tr><td style="padding: 8px 0; color: #666; border-bottom: 1px solid #eee;">Tujuan</td><td style="font-weight: bold; border-bottom: 1px solid #eee;">${departemen} (${karyawanDituju})</td></tr>
                         <tr><td style="padding: 8px 0; color: #666; border-bottom: 1px solid #eee;">Tanggal</td><td style="font-weight: bold; border-bottom: 1px solid #eee;">${tglMasuk}</td></tr>
                         <tr><td style="padding: 8px 0; color: #666; border-bottom: 1px solid #eee;">Waktu</td><td style="font-weight: bold; border-bottom: 1px solid #eee;">${jamMasuk} WIB</td></tr>
                     </table>
                     <div style="margin-top: 30px; padding: 20px; border: 2px dashed #4CAF50; text-align: center; border-radius: 10px;">
-                        <p style="font-size: 14px; color: #555;">Scan QR Code ini di Security Gate 1:</p>
-                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${hasil.id}" alt="QR Code" style="display: block; margin: 15px auto;" />
+                        <p style="font-size: 14px; color: #555;">Scan QR Code ini di Security Gate Utama:</p>
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${formatId}" alt="QR Code" style="display: block; margin: 15px auto;" />
+                        <p style="font-size: 18px; font-weight: bold; color: #4CAF50;">${formatId}</p>
                     </div>
                 </div>
             </div>
@@ -124,8 +127,7 @@ export async function POST(request: Request) {
       }
     }
 
-    return NextResponse.json({ ok: true, data: { id: hasil.id } });
-
+    return NextResponse.json({ ok: true, data: { id: `PKC-${hasil.id}` } });
   } catch (error: any) {
     console.error("ERROR API POST:", error);
     return NextResponse.json({ ok: false, message: error.message || "Gagal menyimpan data." }, { status: 500 });

@@ -35,13 +35,13 @@ export async function GET() {
           },
         ],
       },
-      orderBy: {
-        waktuCheckIn: "asc",
-      },
       include: {
         kartuNfc: true,
       },
-    });
+      orderBy: {
+        createdAt: 'desc',
+      },
+  });
 
     return NextResponse.json(
       { message: "Sukses", data: dataTamu },
