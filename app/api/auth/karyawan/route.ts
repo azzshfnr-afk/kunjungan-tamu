@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
-const SSO_BASE_URL = process.env.SSO_URL!; 
+const SSO_BASE_URL = process.env.SSO_BASE_URL!; 
 const SSO_APPLICATION = process.env.SSO_APPLICATION!;
 
 export async function POST(req: NextRequest) {

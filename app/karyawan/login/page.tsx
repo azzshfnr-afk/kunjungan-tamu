@@ -71,7 +71,7 @@ export default function KaryawanLoginPage() {
 
         <div className="relative z-10 p-8">
           <p className="text-white text-base font-medium mb-3">
-            Employee interface for Managing Kujang guests
+            Employee interface for Managing Kujang Guests
           </p>
           <div className="flex items-center gap-2">
 
