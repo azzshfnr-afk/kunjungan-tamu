@@ -36,6 +36,7 @@ model Tamu {
   kartuNfc   KartuNfc? @relation(fields: [kartuNfcId], references: [id])
 
   logTracking LogTracking[]
+  riwayatTap Json? @default("[]")
 
   anggotaRombongan AnggotaRombongan[]
 

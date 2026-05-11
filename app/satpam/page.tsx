@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { FaCrown, } from "react-icons/fa";
 import { Check, ChevronsUpDown } from "lucide-react";
-import { cn, formatIdTamu } from "@/lib/utils"; 
+import { cn } from "@/lib/utils"; 
 import {
     Command,
     CommandEmpty,
@@ -127,7 +127,8 @@ export default function SatpamDashboard() {
     const [stepScan, setStepScan]       = useState(1);
     const [modalAction, setModalAction] = useState<"checkin" | "checkout" | "detail" | "scan_checkout" | null>(null);
     const [tamuTerpilih, setTamuTerpilih] = useState<any>(null);
-    const [selectedGedung, setSelectedGedung]     = useState("");
+    const [selectedGedung, setSelectedGedung] = useState<string>(""); 
+    const [aksesTambahan, setAksesTambahan] = useState<string[]>([]);
     const [selectedKaryawan, setSelectedKaryawan] = useState("");
     const [uidNfc, setUidNfc] = useState("");
     const [aksesBeri, setAksesBeri]   = useState({ gateUtama: true, gateParkir: true });
@@ -142,6 +143,10 @@ export default function SatpamDashboard() {
     const [selectedKaryawanId, setSelectedKaryawanId] = useState<string | null>(null);
 
     const [gedungAutoFill, setGedungAutoFill] = useState<string>("");
+
+    const DAFTAR_GEDUNG_KUJANG = [
+        "Gedung Pusat Administrasi (GPA)", "Gedung Diklat", "Pabrik 1A", "Pabrik 1B", "Gedung MO", "Gedung LC",
+    ];
 
     const formatTanggalJam = (dateString: Date | string | null | undefined) => {
         if (!dateString) return "-";
@@ -177,7 +182,7 @@ export default function SatpamDashboard() {
         setDataTamu((prevData) =>
             prevData.map((tamu) => 
                 tamu.id === id 
-                ? { ...tamu, statusKunjungan: status, aksesAktif: akses, nfcId: uidCard, ...(dataTambahan || {}) } 
+                ? { ...tamu, statusKunjungan: status, aksesAktif: akses, idNfc: uidCard, ...(dataTambahan || {}) } 
                 : tamu
             )
         );
@@ -187,12 +192,14 @@ export default function SatpamDashboard() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    id, 
-                    statusKunjungan: status, 
+                    id: tamuTerpilih.id, 
+                    statusKunjungan: "Check-in", 
                     aksesAktif: akses,
                     uidNfc: uidCard, 
-                    lokasiTap: log,
+                    lokasiTap: roleSatpam === "gateUtama" ? "Gate Utama" : `Gedung ${roleSatpam}`,
                     waktuAktual: waktu ?? new Date().toISOString(), 
+                    gedungTujuan: selectedGedung,
+                    selectedGedungs: aksesTambahan,
                     ...dataTambahan
                 }),
             });
@@ -204,6 +211,7 @@ export default function SatpamDashboard() {
             console.error("Error updating:", e);
         } finally {
             await fetchTamu();
+            tutupModal();
         }
     };
 
@@ -216,6 +224,12 @@ export default function SatpamDashboard() {
         setUidNfc("");
         setAksesBeri({ gateUtama: true, gateParkir: true });
         setAksesLepas({ gateUtama: true, gateParkir: true, gateLobby: true });
+    };
+
+    const formatIdTamu = (id: any) => {
+        if (!id) return "-";
+        const numericId = String(id).replace("PKC-", "");
+        return `PKC-${numericId.padStart(4, '0')}`;
     };
 
     const handleDaftarVip = async (e: React.FormEvent) => {
@@ -250,7 +264,10 @@ export default function SatpamDashboard() {
         .filter((t) => ["Check-in", "Check-in Area", "Check-out", "SELESAI", "Check-out (Selesai)"].includes(t.statusKunjungan))
         .filter(t => {
             if (roleSatpam === "area") {
-                return t.gedungTujuan === lokasiArea || t.gedungTujuan === "VIP";
+                const isGedungUtama = t.gedungTujuan === lokasiArea;
+                const isAksesTambahan = t.selectedGedungs?.includes(lokasiArea);
+                const isVip = t.gedungTujuan === "VIP";
+                return isGedungUtama || isAksesTambahan || isVip;
             }
             return true;
         });
@@ -371,6 +388,10 @@ export default function SatpamDashboard() {
                                                 {tamu.id ? `PKC-${tamu.id}` : "-"}
                                             </TableCell>
 
+                                            <TableCell className="font-bold text-slate-700">
+                                                {formatIdTamu(tamu.id)}
+                                            </TableCell>
+
                                             <TableCell className="px-3 py-2.5 font-mono text-xs text-slate-600 whitespace-nowrap">
                                                 {tamu.nfcId || tamu.kartuNfc?.uidKartu || tamu.idNfc || "-"}
                                             </TableCell>
@@ -481,8 +502,8 @@ export default function SatpamDashboard() {
             </div>
 
             <Dialog open={modalAction === "checkin"} onOpenChange={(open) => !open && tutupModal()}>
-                <DialogContent className="sm:max-w-md p-0 overflow-hidden">
-                    <div className="bg-slate-50 px-6 py-4 border-b">
+                <DialogContent className="sm:max-w-md p-0 overflow-hidden flex flex-col max-h-[90vh]">
+                    <div className="bg-slate-50 px-6 py-4 border-b shrink-0">
                         <DialogTitle className="text-lg font-semibold">
                             {roleSatpam === "gateUtama" ? "Check-in Gate Utama" : `Check-in Area (${lokasiArea})`}
                         </DialogTitle>
@@ -493,17 +514,20 @@ export default function SatpamDashboard() {
                         </p>
                     </div>
 
-                    <div className="p-6">
+                    <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
                         {stepScan === 1 && (
                             <div className="space-y-4 text-center">
                                 <div className="aspect-square bg-black rounded-xl overflow-hidden">
                                     <Scanner onScan={(result) => {
                                         if (result?.length) {
-                                            const rawQr = result[0].rawValue.trim(); 
-                                            const cleanId = rawQr.replace("PKC-", "").trim();
-                                            console.log("DATA TAMU:", dataTamu); 
+                                            const rawQr = result[0].rawValue.trim();
+                                            const numericId = rawQr.replace(/\D/g, "");
+                                            const idMurni = parseInt(numericId); 
+                                            console.log("DATA TAMU:", idMurni); 
                                             const found = dataTamu.find((t) => 
-                                                t.id.toString() === rawQr || t.id.toString() === cleanId
+                                                t.id === idMurni ||
+                                                t.id.toString() === idMurni.toString() ||
+                                                t.id.toString() === rawQr
                                             );
                                             
                                             if (found) { 
@@ -514,7 +538,7 @@ export default function SatpamDashboard() {
                                                 }, 100);
                                                 setStepScan(2); 
                                             } else {
-                                                alert(`Data tidak ditemukan! ...`);
+                                                alert(`Data tidak ditemukan! ${rawQr} (Parsed: ${idMurni})`);
                                             }
                                         }
                                     }} />
@@ -527,7 +551,7 @@ export default function SatpamDashboard() {
                         )}
 
                         {stepScan === 2 && roleSatpam === "gateUtama" && (
-                            <div className="space-y-5">
+                            <div className="space-y-5 pb-6">
                                 <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 space-y-1">
                                     <InfoRow label="ID Tamu" nilai={formatIdTamu(tamuTerpilih?.id)} />
                                     <InfoRow label="Nama Lengkap" nilai={tamuTerpilih?.namaTamu || "-"} />
@@ -608,6 +632,28 @@ export default function SatpamDashboard() {
                                             </p>
                                         </div>
                                     )}
+
+                                    <div className="space-y-2 mt-4 pt-2 border-t border-slate-100">
+                                        <Label className="text-xs font-bold text-slate-700 block mb-2">PILIH AKSES KAWASAN LAIN (Opsional)</Label>
+                                        <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-lg border border-slate-200">
+                                            {DAFTAR_GEDUNG_KUJANG.map((gedung) => (
+                                                <div key={gedung} className="flex items-center space-x-2">
+                                                    <Checkbox 
+                                                    id={gedung} 
+                                                    checked={aksesTambahan.includes(gedung)}
+                                                    onCheckedChange={(checked) => {
+                                                        if (checked) {
+                                                        setAksesTambahan([...aksesTambahan, gedung]);
+                                                        } else {
+                                                        setAksesTambahan(aksesTambahan.filter((g) => g !== gedung));
+                                                        }
+                                                    }}
+                                                    />
+                                                    <label htmlFor={gedung}>{gedung}</label>
+                                                </div>
+                                                ))}
+                                        </div>
+                                    </div>
                                 </div>
                                 
                                 <div className="flex gap-2">
@@ -618,6 +664,44 @@ export default function SatpamDashboard() {
                                         onClick={() => setStepScan(3)}
                                     >
                                         Lanjut ke NFC
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+                        {stepScan === 2 && roleSatpam === "area" && (
+                            <div className="space-y-5">
+                                <div className="bg-green-50 p-4 rounded-xl border border-green-100 space-y-1">
+                                    <InfoRow label="ID Tamu" nilai={formatIdTamu(tamuTerpilih?.id)} />
+                                    <InfoRow label="Nama Lengkap" nilai={tamuTerpilih?.namaTamu || "-"} />
+                                    <InfoRow label="Instansi/Asal" nilai={tamuTerpilih?.asalInstansi || "-"} />
+                                    <InfoRow label="Email" nilai={tamuTerpilih?.email || "-"} />
+                                    <InfoRow label="NIK" nilai={tamuTerpilih?.nik || tamuTerpilih?.noKtp || "-"} />
+                                    <InfoRow label="No. Handphone" nilai={tamuTerpilih?.noTelp || "-"} />
+                                    <InfoRow label="Tujuan" nilai={tamuTerpilih?.tujuanKunjungan || "-"} />
+                                    <InfoRow label="Karyawan Dituju" nilai={tamuTerpilih?.karyawanDituju || "-"} />
+                                    <InfoRow label="Dept. Tujuan" nilai={tamuTerpilih?.departemen || "-"} />
+                                    <div className="border-t border-blue-200 my-2 pt-2"></div>
+                                    <InfoRow 
+                                        label="Waktu Kunjungan" 
+                                        nilai={`${formatTanggalJam(tamuTerpilih?.waktuCheckIn)} s/d ${formatTanggalJam(tamuTerpilih?.waktuCheckOut)}`} 
+                                    />
+                                </div>
+                                
+                                <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                                    <p className="text-sm text-slate-700">
+                                        Pastikan tamu memiliki keperluan untuk memasuki area dalam gedung ini sesuai dengan data di atas.
+                                    </p>
+                                </div>
+                                
+                                <div className="flex gap-2 pt-2">
+                                    <Button variant="outline" className="w-1/3" onClick={() => setStepScan(1)}>
+                                        Sebelumnya
+                                    </Button>
+                                    <Button 
+                                        className="w-2/3 bg-green-600 hover:bg-green-700 text-white" 
+                                        onClick={() => setStepScan(3)}
+                                    >
+                                        Lanjut Berikan Akses Area
                                     </Button>
                                 </div>
                             </div>
@@ -890,15 +974,15 @@ export default function SatpamDashboard() {
                             <InfoRow label="No. Handphone"    nilai={tamuTerpilih?.noTelp} />
                             <InfoRow label="Email"            nilai={tamuTerpilih?.email} />
                             <InfoRow label="Instansi"         nilai={tamuTerpilih?.asalInstansi} />
-                            <InfoRow label="Tujuan Kunjungan" nilai={tamuTerpilih?.tujuanKunjungan} />
+                            <InfoRow label="Rencana Kunjungan" nilai={tamuTerpilih?.tujuanKunjungan} />
                             <InfoRow label="Gedung Aktual"    nilai={tamuTerpilih?.gedungTujuan || tamuTerpilih?.gedungAktual || "-"} />
                             <InfoRow label="Karyawan Dituju"  nilai={tamuTerpilih?.karyawanTujuan || tamuTerpilih?.karyawanDituju} />
                             <div className="border-t border-slate-200 my-1" />
                             <InfoRow label="ID NFC"           nilai={tamuTerpilih?.uidNfc || tamuTerpilih?.nfcId} />
                             <InfoRow label="Status"           nilai={tamuTerpilih?.statusKunjungan || "Menunggu Gate Utama"} />
                             <InfoRow label="Akses Aktif"      nilai={tamuTerpilih?.aksesAktif || "Belum Ada"} />
-                            <InfoRow label="Waktu Aktual Masuk"   nilai={fmtDt(tamuTerpilih?.aktualCheckIn)} />
-                            <InfoRow label="Waktu Aktual Keluar"  nilai={fmtDt(tamuTerpilih?.aktualCheckOut)} />
+                            <InfoRow label="Waktu Check-in Aktual"   nilai={fmtDt(tamuTerpilih?.aktualCheckIn)} />
+                            <InfoRow label="Waktu Check-out Aktual"  nilai={fmtDt(tamuTerpilih?.aktualCheckOut)} />
                         </div>
 
                        <div className="mt-4 pt-4 border-t border-gray-100">
@@ -906,7 +990,7 @@ export default function SatpamDashboard() {
                                 RENCANA KUNJUNGAN (SESUAI FORM)
                             </p>
                             <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 mb-4">
-                                <span className="text-xs text-slate-500 block mb-1">Waktu Kunjungan Valid</span>
+                                <span className="text-xs text-slate-500 block mb-1">Waktu Check-in s/d Check-out</span>
                                 <span className="text-sm font-semibold text-slate-800 block">
                                     {formatTanggalJam(tamuTerpilih?.waktuCheckIn)} <br className="hidden md:block"/> 
                                     <span className="text-slate-500 font-normal mx-1">s/d</span> <br className="block md:hidden" />
@@ -914,16 +998,36 @@ export default function SatpamDashboard() {
                                 </span>
                             </div>
 
-                            <p className="text-xs font-bold text-green-600 mb-3 tracking-wider">
-                                AKTUAL KUNJUNGAN (SISTEM)
+                            <p className="text-xs font-bold text-green-600 mb-3 tracking-wider mt-4">
+                                RIWAYAT TAP AKTUAL (SISTEM)
                             </p>
-                            <div className="bg-green-50 p-3 rounded-lg border border-green-200">
-                                <span className="text-xs text-green-700 block mb-1">Waktu Check-in Aktual</span>
-                                <span className="text-sm font-semibold text-green-900 block">
-                                    {tamuTerpilih?.aktualCheckIn 
-                                        ? formatTanggalJam(tamuTerpilih.aktualCheckIn) 
-                                        : "Tamu belum Check-in"}
-                                </span>
+                            <div className="bg-green-50 p-3 rounded-lg border border-green-200 space-y-2">
+                                {tamuTerpilih?.riwayatTap ? (
+                                    (typeof tamuTerpilih.riwayatTap === 'string' 
+                                        ? tamuTerpilih.riwayatTap.split(',') 
+                                        : tamuTerpilih.riwayatTap
+                                    ).map((log: any, index: number) => (
+                                        <div key={index} className="flex justify-between items-center border-b border-green-100 pb-2 last:border-0 last:pb-0">
+                                            <div>
+                                                <span className="text-[11px] font-bold text-green-800 block">
+                                                    {typeof log === 'string' ? log : log.lokasi}
+                                                </span>
+                                                <span className="text-[11px] text-green-600">
+                                                    Status: {typeof log === 'string' ? 'Berhasil' : log.status}
+                                                </span>
+                                            </div>
+                                            <div className="text-right">
+                                                <span className="text-xs font-semibold text-green-900 block">
+                                                    {log.waktu ? formatTanggalJam(log.waktu) : "-"}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <span className="text-sm font-semibold text-green-900 block italic text-center p-2">
+                                        Belum ada riwayat tap NFC.
+                                    </span>
+                                )}
                             </div>
                         </div>
                     </div>

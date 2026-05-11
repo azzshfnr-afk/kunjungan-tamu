@@ -162,6 +162,7 @@ export default function HalamanRegistrasi() {
             });
             const result = await response.json();
             if (result.ok) {
+                const numericId = String(result.data.id).replace("PKC-", "");
                 const realId = `PKC-${String(result.data.id).padStart(4, '0')}`;
                 setIdKunjungan(realId);
                 setBerhasilSubmit(true);

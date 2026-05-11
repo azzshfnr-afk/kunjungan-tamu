@@ -213,7 +213,7 @@ export default function CekKunjunganPage() {
                                             <QRCodeSVG value={hasilKunjungan.idKunjungan} size={140} level={"H"} includeMargin={true} />
                                         </div>
                                         <p className="text-xs text-gray-600 leading-relaxed">
-                                            Tunjukkan QR ini kepada petugas di Gate 1 untuk ditukar dengan Kartu Akses NFC. QR Code ini hanya berlaku untuk 1 kali scan dan akan hangus setelah digunakan.
+                                            Tunjukkan QR ini kepada petugas di Gate Utama untuk ditukar dengan Kartu Akses NFC. QR Code ini hanya berlaku untuk 1 kali scan dan akan hangus setelah digunakan.
                                         </p>
                                         <p className="text-sm font-bold text-gray-900 mt-1">
                                             ID: {hasilKunjungan.idKunjungan}
