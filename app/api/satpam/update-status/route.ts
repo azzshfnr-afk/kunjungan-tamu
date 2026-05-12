@@ -12,7 +12,7 @@ export async function POST(req: Request) {
     }
 
     const { 
-        statusKunjungan, aksesAktif, uidNfc, lokasiTap, waktuAktual, 
+        id, statusKunjungan, selectedGedungs, uidNfc, lokasiTap, waktuAktual, aksesAktif, aksesTambahan, 
         karyawanDituju, departemen, gedungTujuan, selectedGedung
     } = body;
 
@@ -42,16 +42,18 @@ export async function POST(req: Request) {
         }
       }
 
+      const aksesString = Array.isArray(aksesTambahan) ? aksesTambahan.join(", ") : "";
       const updateTamu = await prisma.tamu.update({
         where: { id: cleanId },
         data: {
-          statusKunjungan,
-          aksesAktif,
+          statusKunjungan: statusKunjungan,
+          aksesAktif: aksesAktif,
+          selectedGedungs,
           nfcId: uidNfc,                 
-          aktualCheckIn: waktuSekarang,  
-          karyawanDituju,
-          departemen,
-          gedungTujuan: finalGedungTujuan, 
+          aktualCheckIn: statusKunjungan === "Check-in" ? new Date(waktuAktual) : undefined,  
+          karyawanDituju: karyawanDituju,
+          departemen: departemen,
+          gedungTujuan: gedungTujuan, 
           riwayatTap: riwayatBaru, 
           ...(kartuIdInDb ? { kartuNfcId: kartuIdInDb } : {}),
         }, 
@@ -63,8 +65,8 @@ export async function POST(req: Request) {
     const updateTamuBiasa = await prisma.tamu.update({
       where: { id: cleanId },
       data: { 
-        statusKunjungan, 
-        aksesAktif,
+        statusKunjungan: "Masuk Area",
+        selectedGedungs,
         riwayatTap: riwayatBaru 
       },
     });

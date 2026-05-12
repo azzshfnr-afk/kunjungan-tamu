@@ -17,8 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import {
-    ScanLine, CreditCard, LogOut, SearchIcon,
-    Eye, QrCode, LogIn,
+    SearchIcon, ScanLine, QrCode, LogIn, LogOut, Eye, Star, CreditCard
 } from "lucide-react";
 import { FaCrown, } from "react-icons/fa";
 import { Check, ChevronsUpDown } from "lucide-react";
@@ -144,10 +143,6 @@ export default function SatpamDashboard() {
 
     const [gedungAutoFill, setGedungAutoFill] = useState<string>("");
 
-    const DAFTAR_GEDUNG_KUJANG = [
-        "Gedung Pusat Administrasi (GPA)", "Gedung Diklat", "Pabrik 1A", "Pabrik 1B", "Gedung MO", "Gedung LC",
-    ];
-
     const formatTanggalJam = (dateString: Date | string | null | undefined) => {
         if (!dateString) return "-";
         const date = new Date(dateString);
@@ -175,16 +170,15 @@ export default function SatpamDashboard() {
     useEffect(() => { fetchTamu(); }, []);
     
     const updateStatusTamu = async (
-    id: string, status: string, akses: string,
-    uidCard: string | undefined, log: string, waktu: string, 
-    dataTambahan?: { karyawanDituju?: string; departemen?: string; gedungTujuan?: string }
+        id: any, 
+        status: string, 
+        uidCard: string | undefined, 
+        log: string, 
+        waktu: string, 
+        dataTambahan?: any
     ) => {
-        setDataTamu((prevData) =>
-            prevData.map((tamu) => 
-                tamu.id === id 
-                ? { ...tamu, statusKunjungan: status, aksesAktif: akses, idNfc: uidCard, ...(dataTambahan || {}) } 
-                : tamu
-            )
+        setDataTamu((prev) => 
+            prev.map((t) => t.id === id ? { ...t, statusKunjungan: status, ...dataTambahan } : t)
         );
 
         try {
@@ -192,25 +186,23 @@ export default function SatpamDashboard() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    id: tamuTerpilih.id, 
-                    statusKunjungan: "Check-in", 
-                    aksesAktif: akses,
+                    id, 
+                    statusKunjungan: status, 
                     uidNfc: uidCard, 
-                    lokasiTap: roleSatpam === "gateUtama" ? "Gate Utama" : `Gedung ${roleSatpam}`,
-                    waktuAktual: waktu ?? new Date().toISOString(), 
-                    gedungTujuan: selectedGedung,
-                    selectedGedungs: aksesTambahan,
+                    lokasiTap: log, 
+                    waktuAktual: waktu, 
                     ...dataTambahan
                 }),
             });
             
-            const result = await res.json();
-            if (!res.ok) alert(`Gagal menyimpan: ${result.message}`);
-            
-        } catch (e) {
-            console.error("Error updating:", e);
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.message || "Gagal update");
+            }
+            await fetchTamu(); 
+        } catch (e: any) {
+            alert("Error: " + e.message);
         } finally {
-            await fetchTamu();
             tutupModal();
         }
     };
@@ -259,23 +251,29 @@ export default function SatpamDashboard() {
         }
     };
 
-    const filteredTamu = dataTamu
-        .filter((t) => t.namaTamu?.toLowerCase().includes(searchQuery.toLowerCase()))
-        .filter((t) => ["Check-in", "Check-in Area", "Check-out", "SELESAI", "Check-out (Selesai)"].includes(t.statusKunjungan))
-        .filter(t => {
+    const filteredTamu = Array.isArray(dataTamu) 
+        ? dataTamu.filter((tamu) => {
+            if (!tamu) return false;
+            const matchesSearch = tamu.namaTamu?.toLowerCase().includes(searchQuery.toLowerCase()) ?? true;
+            const st = tamu.statusKunjungan || "";
+            const matchesStatus = ["Menunggu", "Check-in", "Check-in Area", "Masuk Area"].includes(st);
             if (roleSatpam === "area") {
-                const isGedungUtama = t.gedungTujuan === lokasiArea;
-                const isAksesTambahan = t.selectedGedungs?.includes(lokasiArea);
-                const isVip = t.gedungTujuan === "VIP";
-                return isGedungUtama || isAksesTambahan || isVip;
+                const isTujuanUtama = tamu.gedungTujuan === lokasiArea;
+                const isVip = tamu.gedungTujuan === "VIP";
+                const aksesStr = String(tamu.aksesAktif || "");
+                const isAksesTambahan = aksesStr.includes(lokasiArea);
+                return matchesSearch && matchesStatus && (isTujuanUtama || isVip || isAksesTambahan);
             }
-            return true;
-        });
+            return matchesSearch && matchesStatus;
+        })
+        : [];
 
+    // --- RETURN UI (Tampilan Dashboard Lu) ---
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 md:p-6">
             <div className="mx-auto max-w-[1600px] bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
-
+                
+                {/* Header Section */}
                 <div className="border-b border-slate-200 bg-slate-50 px-6 py-4 flex flex-wrap items-center justify-between gap-3">
                     <div>
                         <h1 className="text-xl font-bold text-slate-900">
@@ -285,212 +283,88 @@ export default function SatpamDashboard() {
                         </h1>
                         <p className="text-sm text-slate-500 mt-0.5">Sistem Manajemen Pengunjung · PT Pupuk Kujang</p>
                     </div>
-
                     <div className="flex flex-wrap items-center gap-2 bg-white border border-slate-200 rounded-lg px-3 py-2 shadow-sm">
                         <span className="text-xs text-slate-500 font-medium">Satpam:</span>
-                        <Button
-                            size="sm" className="h-7 text-xs"
-                            variant={roleSatpam === "gateUtama" ? "default" : "outline"}
-                            onClick={() => setRoleSatpam("gateUtama")}
-                        >
-                            Gate Utama
-                        </Button>
-                        <Button
-                            size="sm" className="h-7 text-xs"
-                            variant={roleSatpam === "area" ? "default" : "outline"}
-                            onClick={() => setRoleSatpam("area")}
-                        >
-                            Area / Gedung
-                        </Button>
+                        <Button size="sm" className="h-7 text-xs" variant={roleSatpam === "gateUtama" ? "default" : "outline"} onClick={() => setRoleSatpam("gateUtama")}> Gate Utama </Button>
+                        <Button size="sm" className="h-7 text-xs" variant={roleSatpam === "area" ? "default" : "outline"} onClick={() => setRoleSatpam("area")}> Area / Gedung </Button>
                         {roleSatpam === "area" && (
-                            <select
-                                className="h-7 text-xs rounded-md border border-slate-300 bg-white px-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                value={lokasiArea}
-                                onChange={(e) => setLokasiArea(e.target.value)}
-                            >
-                                {DAFTAR_GEDUNG.map((g) => <option key={g}>{g}</option>)}
+                            <select className="h-7 text-xs rounded-md border border-slate-300 bg-white px-2 focus:outline-none focus:ring-2 focus:ring-blue-500" value={lokasiArea} onChange={(e) => setLokasiArea(e.target.value)} > 
+                                {DAFTAR_GEDUNG.map((g) => <option key={g}>{g}</option>)} 
                             </select>
                         )}
                     </div>
                 </div>
 
+                {/* Search & Actions Bar */}
                 <div className="px-6 py-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-100">
                     <div className="relative w-full sm:w-72">
                         <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                        <Input
-                            placeholder="Cari nama tamu…"
-                            className="pl-9 h-9 text-sm border-slate-300"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
+                        <Input placeholder="Cari nama tamu…" className="pl-9 h-9 text-sm border-slate-300" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}/>
                     </div>
                     <div className="flex flex-wrap gap-2">
                         {roleSatpam === "gateUtama" && (
-                            <Button
-                                className="h-9 bg-amber-500 hover:bg-amber-600 text-white text-sm"
-                                onClick={() => setIsModalVipOpen(true)}
-                            >
-                                <FaCrown className="mr-2 h-4 w-4" /> Registrasi VIP
+                            <Button className="h-9 bg-amber-500 hover:bg-amber-600 text-white text-sm" onClick={() => setIsModalVipOpen(true)}>
+                                <FaCrown className="mr-2 h-4 w-4" /> Registrasi VIP 
                             </Button>
                         )}
-                        <Button
-                            className="h-9 bg-blue-600 hover:bg-blue-700 text-white text-sm"
-                            onClick={() => { setStepScan(1); setModalAction("checkin"); }}
-                        >
-                            <ScanLine className="mr-2 h-4 w-4" /> Scan Check-in
+                        <Button className="h-9 bg-blue-600 hover:bg-blue-700 text-white text-sm" onClick={() => { setStepScan(1); setModalAction("checkin"); }}>
+                            <ScanLine className="mr-2 h-4 w-4" /> Scan Check-in 
                         </Button>
-                        <Button
-                            variant="destructive" className="h-9 text-sm"
-                            onClick={() => { setStepScan(1); setModalAction("scan_checkout"); }}
-                        >
-                            <QrCode className="mr-2 h-4 w-4" /> Scan Check-out
+                        <Button variant="destructive" className="h-9 text-sm" onClick={() => { setStepScan(1); setModalAction("scan_checkout"); }}>
+                            <QrCode className="mr-2 h-4 w-4" /> Scan Check-out 
                         </Button>
                     </div>
                 </div>
 
+                {/* Table Data */}
                 <div className="overflow-x-auto">
                     <Table>
                         <TableHeader>
                             <TableRow className="bg-slate-50 hover:bg-slate-50">
-                                {[
-                                    "No", "ID Tamu", "ID NFC", "Nama Tamu", "Instansi",
-                                    "Email", "Rencana Kunjungan", "Tujuan Karyawan & Dept",
-                                    "Waktu Check-in", "Waktu Check-out", "Status", "Aksi", "Detail",
-                                ].map((h) => (
-                                    <TableHead key={h} className="text-xs font-semibold text-slate-700 whitespace-nowrap px-3 py-3">
-                                        {h}
-                                    </TableHead>
+                                {["No", "ID Tamu", "Format ID", "ID NFC", "Nama Tamu", "Instansi", "Email", "Rencana Kunjungan", "Tujuan Karyawan", "Check-in", "Check-out", "Status", "Aksi", "Detail"].map((h) => (
+                                    <TableHead key={h} className="text-xs font-semibold text-slate-700 whitespace-nowrap px-3 py-3"> {h} </TableHead>
                                 ))}
                             </TableRow>
                         </TableHeader>
-
                         <TableBody>
                             {isLoading ? (
-                                <TableRow>
-                                    <TableCell colSpan={13} className="text-center py-12 text-slate-400 animate-pulse">
-                                        Memuat data…
-                                    </TableCell>
-                                </TableRow>
+                                <TableRow><TableCell colSpan={14} className="text-center py-12 text-slate-400 animate-pulse"> Memuat data… </TableCell></TableRow>
                             ) : filteredTamu.length === 0 ? (
-                                <TableRow>
-                                    <TableCell colSpan={13} className="text-center py-10 text-slate-400">
-                                        Tidak ada data tamu
-                                    </TableCell>
-                                </TableRow>
+                                <TableRow><TableCell colSpan={14} className="text-center py-10 text-slate-400"> Tidak ada data tamu </TableCell></TableRow>
                             ) : (
                                 filteredTamu.map((tamu, idx) => {
                                     const st = tamu.statusKunjungan || "Menunggu";
                                     return (
-                                        <TableRow key={tamu.id} className="hover:bg-slate-50 text-sm">
+                                        <TableRow key={tamu.id || idx} className="hover:bg-slate-50 text-sm">
                                             <TableCell className="px-3 py-2.5 text-slate-500 text-xs">{idx + 1}</TableCell>
-
-                                            <TableCell className="px-3 py-2.5 font-mono text-xs text-slate-700 whitespace-nowrap">
-                                                {tamu.id ? `PKC-${tamu.id}` : "-"}
-                                            </TableCell>
-
-                                            <TableCell className="font-bold text-slate-700">
-                                                {formatIdTamu(tamu.id)}
-                                            </TableCell>
-
-                                            <TableCell className="px-3 py-2.5 font-mono text-xs text-slate-600 whitespace-nowrap">
-                                                {tamu.nfcId || tamu.kartuNfc?.uidKartu || tamu.idNfc || "-"}
-                                            </TableCell>
-
-                                            <TableCell className="font-medium font-semibold text-slate-800">
+                                            <TableCell className="px-3 py-2.5 font-mono text-xs text-slate-700 whitespace-nowrap">{tamu.id || "-"}</TableCell>
+                                            <TableCell className="font-bold text-slate-700">{formatIdTamu(tamu.id)}</TableCell>
+                                            <TableCell className="px-3 py-2.5 font-mono text-xs text-slate-600">{tamu.nfcId || "-"}</TableCell>
+                                            <TableCell className="font-semibold text-slate-800">
                                                 <div className="flex items-center gap-2">
-                                                    {tamu.namaTamu}
-                                                    {tamu.gedungTujuan === "VIP" && (
-                                                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800 border border-amber-300 shadow-sm">
-                                                            VIP
-                                                        </span>
+                                                    {tamu.namaTamu || "-"}
+                                                    {tamu.gedungTujuan === "VIP" && <span className="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full text-[10px] font-bold border border-amber-300">VIP</span>}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="px-3 py-2.5 text-slate-600">{tamu.asalInstansi || "-"}</TableCell>
+                                            <TableCell className="px-3 py-2.5 text-slate-600 text-xs">{tamu.email || "-"}</TableCell>
+                                            <TableCell className="px-3 py-2.5 text-slate-600 truncate max-w-[150px]">{tamu.tujuanKunjungan || "-"}</TableCell>
+                                            <TableCell className="px-3 py-2.5 text-slate-600">{tamu.karyawanDituju || "-"}</TableCell>
+                                            <TableCell className="px-3 py-2.5 text-xs">{fmtDt(tamu.waktuCheckIn)}</TableCell>
+                                            <TableCell className="px-3 py-2.5 text-xs">{fmtDt(tamu.waktuCheckOut)}</TableCell>
+                                            <TableCell><StatusBadge status={st} /></TableCell>
+                                            <TableCell>
+                                                <div className="flex gap-1">
+                                                    {roleSatpam === "gateUtama" && st === "Menunggu" && (
+                                                        <Button size="sm" className="h-7 text-xs bg-blue-600" onClick={() => { setTamuTerpilih(tamu); setStepScan(2); setModalAction("checkin"); }}>Check-in</Button>
+                                                    )}
+                                                    {roleSatpam === "area" && st === "Check-in" && (
+                                                        <Button size="sm" className="h-7 text-xs bg-green-600" onClick={() => { setTamuTerpilih(tamu); setStepScan(2); setModalAction("checkin"); }}>Masuk Area</Button>
                                                     )}
                                                 </div>
                                             </TableCell>
-
-                                            <TableCell className="px-3 py-2.5 text-slate-600 whitespace-nowrap">
-                                                {tamu.asalInstansi || "-"}
-                                            </TableCell>
-
-                                            <TableCell className="px-3 py-2.5 text-slate-600 text-xs whitespace-nowrap">
-                                                {tamu.email || "-"}
-                                            </TableCell>
-
-                                            <TableCell className="px-3 py-2.5 text-slate-600 max-w-[180px] whitespace-nowrap overflow-hidden text-ellipsis">
-                                                {tamu.tujuanKunjungan || "-"}
-                                            </TableCell>
-
-                                            <TableCell className="px-3 py-2.5 text-slate-600 whitespace-nowrap">
-                                                {tamu.karyawanDituju ? `${tamu.karyawanDituju} - ${tamu.departemen || ''}` : "-"}
-                                            </TableCell>
-
-                                            <TableCell className="px-3 py-2.5 text-xs text-slate-600 whitespace-nowrap">
-                                                {fmtDt(tamu.waktuCheckIn || tamu.tanggalCheckIn)}
-                                            </TableCell>
-
-                                            <TableCell className="px-3 py-2.5 text-xs text-slate-600 whitespace-nowrap">
-                                                {fmtDt(tamu.waktuCheckOut)}
-                                            </TableCell>
-
-                                            <TableCell className="px-3 py-2.5">
-                                                <StatusBadge status={st} />
-                                            </TableCell>
-
-                                            <TableCell className="px-3 py-2.5">
-                                                <div className="flex items-center gap-1.5 flex-wrap">
-                                                    {roleSatpam === "gateUtama" && (
-                                                        <>
-                                                            {st === "Menunggu" && (
-                                                                <Button
-                                                                    size="sm"
-                                                                    className="h-7 text-xs bg-blue-600 hover:bg-blue-700 whitespace-nowrap"
-                                                                    onClick={() => { setTamuTerpilih(tamu); setStepScan(2); setModalAction("checkin"); }}
-                                                                >
-                                                                    <LogIn className="mr-1 h-3 w-3" /> Check-in
-                                                                </Button>
-                                                            )}
-                                                            {(st === "Check-in" || st === "Check-in Area") && (
-                                                                <Button
-                                                                    size="sm" variant="destructive"
-                                                                    className="h-7 text-xs whitespace-nowrap"
-                                                                    onClick={() => { setTamuTerpilih(tamu); setStepScan(2); setModalAction("checkout"); }}
-                                                                >
-                                                                    <LogOut className="mr-1 h-3 w-3" /> Check-out
-                                                                </Button>
-                                                            )}
-                                                        </>
-                                                    )}
-                                                    {roleSatpam === "area" && (
-                                                        <>
-                                                            {st === "Check-in" && (
-                                                                <Button
-                                                                    size="sm"
-                                                                    className="h-7 text-xs bg-green-600 hover:bg-green-700 whitespace-nowrap"
-                                                                    onClick={() => { setTamuTerpilih(tamu); setStepScan(2); setModalAction("checkin"); }}
-                                                                >
-                                                                    <LogIn className="mr-1 h-3 w-3" /> Masuk Area
-                                                                </Button>
-                                                            )}
-                                                            <Button
-                                                                size="sm" variant="destructive"
-                                                                className="h-7 text-xs whitespace-nowrap"
-                                                                disabled={st !== "Check-in Area"}
-                                                                onClick={() => { setTamuTerpilih(tamu); setModalAction("checkout"); }}
-                                                            >
-                                                                <LogOut className="mr-1 h-3 w-3" /> Keluar Area
-                                                            </Button>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            </TableCell>
-
-                                            <TableCell className="px-3 py-2.5 text-center">
-                                                <Button
-                                                    variant="ghost" size="icon"
-                                                    className="h-7 w-7 text-slate-500 hover:bg-slate-100 rounded-md"
-                                                    onClick={() => { setTamuTerpilih(tamu); setModalAction("detail"); }}
-                                                >
-                                                    <Eye className="h-4 w-4" />
-                                                </Button>
+                                            <TableCell className="text-center">
+                                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setTamuTerpilih(tamu); setModalAction("detail"); }}><Eye className="h-4 w-4" /></Button>
                                             </TableCell>
                                         </TableRow>
                                     );
@@ -500,7 +374,6 @@ export default function SatpamDashboard() {
                     </Table>
                 </div>
             </div>
-
             <Dialog open={modalAction === "checkin"} onOpenChange={(open) => !open && tutupModal()}>
                 <DialogContent className="sm:max-w-md p-0 overflow-hidden flex flex-col max-h-[90vh]">
                     <div className="bg-slate-50 px-6 py-4 border-b shrink-0">
@@ -513,7 +386,6 @@ export default function SatpamDashboard() {
                                 : "Step 3 — Tap Kartu NFC & Beri Akses"}
                         </p>
                     </div>
-
                     <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
                         {stepScan === 1 && (
                             <div className="space-y-4 text-center">
@@ -529,7 +401,6 @@ export default function SatpamDashboard() {
                                                 t.id.toString() === idMurni.toString() ||
                                                 t.id.toString() === rawQr
                                             );
-                                            
                                             if (found) { 
                                                 setTamuTerpilih(found);
                                                 setSelectedGedung(found.gedungTujuan || ""); 
@@ -636,7 +507,7 @@ export default function SatpamDashboard() {
                                     <div className="space-y-2 mt-4 pt-2 border-t border-slate-100">
                                         <Label className="text-xs font-bold text-slate-700 block mb-2">PILIH AKSES KAWASAN LAIN (Opsional)</Label>
                                         <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-lg border border-slate-200">
-                                            {DAFTAR_GEDUNG_KUJANG.map((gedung) => (
+                                            {DAFTAR_GEDUNG.map((gedung) => (
                                                 <div key={gedung} className="flex items-center space-x-2">
                                                     <Checkbox 
                                                     id={gedung} 
@@ -750,43 +621,44 @@ export default function SatpamDashboard() {
                                         className="w-2/3 bg-blue-600 hover:bg-blue-700"
                                         onClick={() => {
                                             if (!tamuTerpilih) return;
-                                            
+
                                             if (roleSatpam === "gateUtama") {
                                                 if (!uidNfc) { alert("Harap tap kartu NFC terlebih dahulu!"); return; }
                                                 
-                                                let finalAkses = "";
+                                                const aksesArr: string[] = [];
                                                 if (tamuTerpilih.gedungTujuan === "VIP") {
-                                                    finalAkses = "ALL_AREA_ACCESS_VIP"; 
+                                                    aksesArr.push("ALL_AREA_ACCESS_VIP");
                                                 } else {
-                                                    const aksesArr: string[] = [];
-                                                    if (aksesBeri.gateUtama) aksesArr.push("GATE_UTAMA");
-                                                    if (aksesBeri.gateParkir) aksesArr.push(`PARKIR_${selectedGedung}`);
-                                                    finalAkses = aksesArr.join(",");
+                                                    if (aksesBeri.gateUtama) aksesArr.push("Gate_Utama");
+                                                    if (aksesBeri.gateParkir) aksesArr.push(`Parkir_${selectedGedung}`);
                                                 }
-
-                                                const departemenTerpilih = SEMUA_KARYAWAN.find(k => k.nama === selectedKaryawan)?.dept || "";
+                                                const finalAkses = aksesArr.join(",");
 
                                                 updateStatusTamu(
-                                                    tamuTerpilih.id, 
-                                                    "Check-in", 
-                                                    finalAkses, 
-                                                    uidNfc, 
-                                                    "Gate Utama Masuk", 
+                                                    tamuTerpilih.id,         
+                                                    "Check-in",              
+                                                    uidNfc || "",     
+                                                    "Gate Utama",            
                                                     new Date().toISOString(),
-                                                    {
+                                                    {                        
                                                         karyawanDituju: selectedKaryawan,
-                                                        departemen: departemenTerpilih,
-                                                        gedungTujuan: selectedGedung 
+                                                        departemen: selectedDepartemen, 
+                                                        gedungTujuan: selectedGedung,
+                                                        aksesAktif: finalAkses || ""
                                                     }
                                                 );
                                             } else {
+                                                const aksesBaru = tamuTerpilih.aksesAktif 
+                                                    ? `${tamuTerpilih.aksesAktif},Lobby_${lokasiArea}` 
+                                                    : `LOBBY_${lokasiArea}`;
+
                                                 updateStatusTamu(
-                                                    tamuTerpilih.id, 
-                                                    "Check-in Area",
-                                                    tamuTerpilih.aksesAktif + `,LOBBY_${lokasiArea}`,
-                                                    uidNfc || undefined, 
+                                                    tamuTerpilih.id,             
+                                                    "Check-in Area",             
+                                                    uidNfc || "",         
                                                     `Lobby ${lokasiArea} Masuk`, 
-                                                    new Date().toISOString()
+                                                    new Date().toISOString(),
+                                                    { aksesAktif: aksesBaru || "" }
                                                 );
                                             }
                                             tutupModal();
@@ -826,8 +698,15 @@ export default function SatpamDashboard() {
                             }
                         }} />
                     </div>
-                    <Button variant="outline" size="sm" className="text-[10px] w-full mt-2"
-                        onClick={() => { if (dataTamu.length) setTamuTerpilih(dataTamu[0]); setStepScan(2); setModalAction("checkout"); }}>
+                    <Button variant="outline" size="sm" className="text-[10px] w-full mt-2" onClick={() => { 
+                            if (tamuTerpilih) {
+                                setStepScan(2); 
+                                setModalAction("checkout");
+                            } else {
+                                alert("Pilih tamu terlebih dahulu");
+                            }
+                        }}
+                    >
                         (Dev) Lewati Kamera
                     </Button>
                 </DialogContent>
@@ -1034,60 +913,81 @@ export default function SatpamDashboard() {
                 </DialogContent>
             </Dialog>
 
-            <Dialog open={isModalVipOpen} onOpenChange={(open) => { if (!open) { setIsModalVipOpen(false); setFormVip({ namaTamu: "", asalInstansi: "", tujuan: "" }); } }}>
+            {/* Modal Registrasi VIP */}
+            <Dialog 
+                open={isModalVipOpen} 
+                onOpenChange={(open) => { 
+                    if (!open) { 
+                        setIsModalVipOpen(false); 
+                        setFormVip({ namaTamu: "", asalInstansi: "", tujuan: "" }); 
+                    } 
+                }}
+            >
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2 text-amber-600">
-                            Jalur Cepat VIP
+                            <Star className="h-5 w-5 fill-amber-600" /> Jalur Cepat VIP
                         </DialogTitle>
                     </DialogHeader>
-                    <form onSubmit={handleDaftarVip} className="space-y-4 pt-2">
-                        <div className="space-y-1.5">
-                            <Label>Nama Lengkap</Label>
-                            <Input
-                                required
-                                placeholder="Contoh: Bapak Menteri X"
+                    
+                    <div className="space-y-4 py-2">
+                        <div className="space-y-2">
+                            <Label htmlFor="vip-nama">Nama Tamu / Rombongan</Label>
+                            <Input 
+                                id="vip-nama" 
+                                placeholder="Contoh: Direksi Bank Mandiri" 
                                 value={formVip.namaTamu}
-                                onChange={(e) => setFormVip({ ...formVip, namaTamu: e.target.value })}
+                                onChange={(e) => setFormVip({...formVip, namaTamu: e.target.value})}
                             />
                         </div>
-                        <div className="space-y-1.5">
-                            <Label>Instansi / Asal</Label>
-                            <Input
-                                required
-                                placeholder="Contoh: Kementerian Y"
+                        <div className="space-y-2">
+                            <Label htmlFor="vip-instansi">Asal Instansi</Label>
+                            <Input 
+                                id="vip-instansi" 
+                                placeholder="Contoh: PT. Bank Mandiri (Persero)" 
                                 value={formVip.asalInstansi}
-                                onChange={(e) => setFormVip({ ...formVip, asalInstansi: e.target.value })}
+                                onChange={(e) => setFormVip({...formVip, asalInstansi: e.target.value})}
                             />
                         </div>
-                        <div className="space-y-1.5">
-                            <Label>Tujuan Kunjungan</Label>
-                            <Input
-                                required
-                                placeholder="Contoh: Ruang Direktur Utama"
+                        <div className="space-y-2">
+                            <Label htmlFor="vip-tujuan">Tujuan Kunjungan</Label>
+                            <Input 
+                                id="vip-tujuan" 
+                                placeholder="Contoh: Meeting Direksi" 
                                 value={formVip.tujuan}
-                                onChange={(e) => setFormVip({ ...formVip, tujuan: e.target.value })}
+                                onChange={(e) => setFormVip({...formVip, tujuan: e.target.value})}
                             />
                         </div>
-                        <DialogFooter className="pt-2 flex gap-2">
-                            <Button
-                                type="button" variant="outline"
-                                disabled={isLoadingVip}
-                                onClick={() => { setIsModalVipOpen(false); setFormVip({ namaTamu: "", asalInstansi: "", tujuan: "" }); }}
-                            >
-                                Batal
-                            </Button>
-                            <Button
-                                type="submit"
-                                className="bg-amber-500 hover:bg-amber-600 text-white"
-                                disabled={isLoadingVip}
-                            >
-                                {isLoadingVip ? "Memproses…" : "Simpan & Scan NFC"}
-                            </Button>
-                        </DialogFooter>
-                    </form>
+                        
+                        <div className="bg-amber-50 p-3 rounded-lg border border-amber-200">
+                            <p className="text-[11px] text-amber-700 leading-relaxed">
+                                <strong>Catatan VIP:</strong> Tamu VIP akan otomatis mendapatkan akses <strong>Full Area</strong> tanpa perlu memilih karyawan secara manual.
+                            </p>
+                        </div>
+                    </div>
+
+                    <DialogFooter className="flex gap-2 pt-2">
+                        <Button 
+                            variant="outline" 
+                            className="flex-1" 
+                            disabled={isLoadingVip}
+                            onClick={() => {
+                                setIsModalVipOpen(false);
+                                setFormVip({ namaTamu: "", asalInstansi: "", tujuan: "" });
+                            }}
+                        >
+                            Batal
+                        </Button>
+                        <Button 
+                            className="flex-1 bg-amber-600 hover:bg-amber-700 text-white"
+                            disabled={isLoadingVip || !formVip.namaTamu || !formVip.asalInstansi}
+                            onClick={handleDaftarVip} // <--- PAKAI FUNGSI YANG UDAH LU BIKIN DI ATAS
+                        >
+                            {isLoadingVip ? "Memproses..." : "Proses Check-in VIP"}
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
-        </div>
+        </div> // Penutup div utama dashboard
     );
-}
+} // Penutup function SatpamDashboard
