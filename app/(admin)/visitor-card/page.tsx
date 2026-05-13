@@ -23,7 +23,8 @@ import {
   AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-type TipeTamu = "regular" | "vip";
+type TipeTamu   = "regular" | "vip";
+type FilterTipe = "semua" | "vip" | "regular";
 
 type Visitor = {
   id: string;
@@ -54,16 +55,9 @@ function Detail({ label, value }: { label: string; value: string }) {
   );
 }
 
-function RegularCard({
-  card,
-  onDelete,
-}: {
-  card: Visitor;
-  onDelete: (id: string) => void;
-}) {
+function RegularCard({ card, onDelete }: { card: Visitor; onDelete: (id: string) => void }) {
   return (
     <div className="bg-white p-5 rounded-xl shadow-md border hover:shadow-lg transition">
-      {/* Top */}
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-center gap-2">
           <div className="bg-blue-100 text-blue-600 p-2 rounded-lg">
@@ -75,62 +69,42 @@ function RegularCard({
         </div>
         <Actions card={card} onDelete={onDelete} />
       </div>
-
       <div className="space-y-1 text-sm">
         <p className="font-semibold text-slate-800">{card.name}</p>
         <p className="text-gray-500">{card.instansi}</p>
         <p className="text-gray-500">{formatDateTime(card.visitDate)}</p>
-        <p className="text-xs text-gray-400">
-          Check-in: {formatDateTime(card.checkin)}
-        </p>
+        <p className="text-xs text-gray-400">Check-in: {formatDateTime(card.checkin)}</p>
       </div>
     </div>
   );
 }
 
-function VipCard({
-  card,
-  onDelete,
-}: {
-  card: Visitor;
-  onDelete: (id: string) => void;
-}) {
+function VipCard({ card, onDelete }: { card: Visitor; onDelete: (id: string) => void }) {
   return (
     <div className="relative bg-gradient-to-br from-amber-50 to-yellow-50 p-5 rounded-xl shadow-md border border-amber-200 hover:shadow-lg transition overflow-hidden">
-      {/* Dekorasi sudut */}
       <div className="absolute top-0 right-0 w-20 h-20 bg-amber-100 rounded-bl-full opacity-50" />
-
       <div className="flex justify-between items-center mb-4 relative">
         <div className="flex items-center gap-2">
           <div className="bg-amber-100 text-amber-600 p-2 rounded-lg">
             <Star size={18} className="fill-amber-400 text-amber-500" />
           </div>
           <span className="text-xs font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-300">
-            VIP
+            ★ VIP
           </span>
         </div>
         <Actions card={card} onDelete={onDelete} />
       </div>
-
       <div className="space-y-1 text-sm relative">
         <p className="font-bold text-slate-800 text-base">{card.name}</p>
         <p className="text-amber-700 font-medium">{card.instansi}</p>
         <p className="text-gray-500">{formatDateTime(card.visitDate)}</p>
-        <p className="text-xs text-gray-400">
-          Check-in: {formatDateTime(card.checkin)}
-        </p>
+        <p className="text-xs text-gray-400">Check-in: {formatDateTime(card.checkin)}</p>
       </div>
     </div>
   );
 }
 
-function Actions({
-  card,
-  onDelete,
-}: {
-  card: Visitor;
-  onDelete: (id: string) => void;
-}) {
+function Actions({ card, onDelete }: { card: Visitor; onDelete: (id: string) => void }) {
   return (
     <div className="flex gap-2">
       <Sheet>
@@ -152,13 +126,13 @@ function Actions({
             <SheetDescription>Informasi lengkap tamu</SheetDescription>
           </SheetHeader>
           <div className="p-5 mt-6 space-y-3 text-sm">
-            <Detail label="Nama"             value={card.name} />
-            <Detail label="Instansi"         value={card.instansi} />
-            <Detail label="Email"            value={card.email} />
-            <Detail label="No HP"            value={card.phone} />
-            <Detail label="Tipe Tamu"        value={card.tipeTamu === "vip" ? "VIP" : "Reguler"} />
+            <Detail label="Nama"              value={card.name} />
+            <Detail label="Instansi"          value={card.instansi} />
+            <Detail label="Email"             value={card.email} />
+            <Detail label="No HP"             value={card.phone} />
+            <Detail label="Tipe Tamu"         value={card.tipeTamu === "vip" ? "VIP" : "Reguler"} />
             <Detail label="Tanggal Kunjungan" value={formatDateTime(card.visitDate)} />
-            <Detail label="Check-in"         value={formatDateTime(card.checkin)} />
+            <Detail label="Check-in"          value={formatDateTime(card.checkin)} />
           </div>
           <SheetFooter className="mt-6">
             <SheetClose asChild>
@@ -191,11 +165,54 @@ function Actions({
   );
 }
 
+function CardGrid({ data, onDelete }: { data: Visitor[]; onDelete: (id: string) => void }) {
+  const vipData     = data.filter((d) => d.tipeTamu === "vip");
+  const regularData = data.filter((d) => d.tipeTamu !== "vip");
+
+  return (
+    <div className="space-y-8">
+      {vipData.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <Star size={16} className="fill-amber-400 text-amber-500" />
+            <h2 className="text-sm font-semibold text-amber-700">Tamu VIP</h2>
+            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-600 border border-amber-200">
+              {vipData.length} tamu
+            </span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {vipData.map((card) => (
+              <VipCard key={card.id} card={card} onDelete={onDelete} />
+            ))}
+          </div>
+        </div>
+      )}
+      {regularData.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <IdCardLanyard size={16} className="text-blue-500" />
+            <h2 className="text-sm font-semibold text-blue-700">Tamu Reguler</h2>
+            <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-600 border border-blue-200">
+              {regularData.length} tamu
+            </span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {regularData.map((card) => (
+              <RegularCard key={card.id} card={card} onDelete={onDelete} />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function VisitorCardPage() {
-  const [search, setSearch]   = useState("");
-  const [tab, setTab]         = useState("today");
-  const [data, setData]       = useState<Visitor[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [search, setSearch]         = useState("");
+  const [tab, setTab]               = useState("today");
+  const [filterTipe, setFilterTipe] = useState<FilterTipe>("semua");
+  const [data, setData]             = useState<Visitor[]>([]);
+  const [loading, setLoading]       = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -216,6 +233,12 @@ export default function VisitorCardPage() {
     fetchData();
   }, []);
 
+  // Reset filter tipe saat pindah tab
+  const handleTabChange = (val: string) => {
+    setTab(val);
+    setFilterTipe("semua");
+  };
+
   const todayISO = new Date().toISOString().split("T")[0];
 
   const filteredTab = data.filter((item) => {
@@ -226,12 +249,14 @@ export default function VisitorCardPage() {
   });
 
   const filteredData = filteredTab.filter((item) => {
-    const keyword = search.toLowerCase();
-    return (
-      item.name.toLowerCase().includes(keyword) ||
-      item.instansi.toLowerCase().includes(keyword) ||
-      item.email.toLowerCase().includes(keyword)
-    );
+    const keyword     = search.toLowerCase();
+    const matchSearch =
+      (item.name || "").toLowerCase().includes(keyword) ||
+      (item.instansi || "").toLowerCase().includes(keyword) ||
+      (item.email || "").toLowerCase().includes(keyword);
+    const matchTipe =
+      filterTipe === "semua" ? true : item.tipeTamu === filterTipe;
+    return matchSearch && matchTipe;
   });
 
   const deleteCard = async (id: string) => {
@@ -243,8 +268,8 @@ export default function VisitorCardPage() {
     }
   };
 
-  const vipData     = filteredData.filter((d) => d.tipeTamu === "vip");
-  const regularData = filteredData.filter((d) => d.tipeTamu !== "vip");
+  const totalVip     = filteredTab.filter((d) => d.tipeTamu === "vip").length;
+  const totalRegular = filteredTab.filter((d) => d.tipeTamu !== "vip").length;
 
   return (
     <>
@@ -275,61 +300,59 @@ export default function VisitorCardPage() {
         </div>
       </div>
 
-      <Tabs value={tab} onValueChange={setTab}>
-        <TabsList>
-          <TabsTrigger value="today" className="text-xs transition-all data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm">
-            Hari Ini
-          </TabsTrigger>
-          <TabsTrigger value="upcoming" className="text-xs transition-all data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm">
-            Mendatang
-          </TabsTrigger>
-          <TabsTrigger value="all" className="text-xs transition-all data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm">
-            Semua
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2">
+        <Tabs value={tab} onValueChange={handleTabChange}>
+          <TabsList>
+            <TabsTrigger value="today" className="text-xs transition-all data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm">
+              Hari Ini
+            </TabsTrigger>
+            <TabsTrigger value="upcoming" className="text-xs transition-all data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm">
+              Mendatang
+            </TabsTrigger>
+            <TabsTrigger value="all" className="text-xs transition-all data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm">
+              Semua
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        {/* Toggle filter tipe — muncul di semua tab */}
+        <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+          {([
+            { val: "semua",   label: "Semua",   count: totalVip + totalRegular },
+            { val: "vip",     label: "★ VIP",   count: totalVip },
+            { val: "regular", label: "Reguler", count: totalRegular },
+          ] as { val: FilterTipe; label: string; count: number }[]).map(({ val, label, count }) => (
+            <button
+              key={val}
+              onClick={() => setFilterTipe(val)}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-all ${
+                filterTipe === val
+                  ? val === "vip"
+                    ? "bg-amber-100 text-amber-700 shadow-sm"
+                    : "bg-white text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {label}
+              <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
+                filterTipe === val
+                  ? val === "vip" ? "bg-amber-200 text-amber-800" : "bg-slate-100 text-slate-600"
+                  : "bg-muted-foreground/20 text-muted-foreground"
+              }`}>
+                {count}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
 
       {loading ? (
         <p className="mt-6 text-muted-foreground animate-pulse">Memuat data...</p>
       ) : filteredData.length === 0 ? (
         <p className="mt-6 text-center text-muted-foreground">Data tidak ditemukan</p>
       ) : (
-        <div className="mt-6 space-y-8">
-
-          {vipData.length > 0 && (
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <Star size={16} className="fill-amber-400 text-amber-500" />
-                <h2 className="text-sm font-semibold text-amber-700">Tamu VIP</h2>
-                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-600 border border-amber-200">
-                  {vipData.length} tamu
-                </span>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {vipData.map((card) => (
-                  <VipCard key={card.id} card={card} onDelete={deleteCard} />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {regularData.length > 0 && (
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <IdCardLanyard size={16} className="text-blue-500" />
-                <h2 className="text-sm font-semibold text-blue-700">Tamu Reguler</h2>
-                <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-600 border border-blue-200">
-                  {regularData.length} tamu
-                </span>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {regularData.map((card) => (
-                  <RegularCard key={card.id} card={card} onDelete={deleteCard} />
-                ))}
-              </div>
-            </div>
-          )}
-
+        <div className="mt-6">
+          <CardGrid data={filteredData} onDelete={deleteCard} />
         </div>
       )}
     </>

@@ -200,6 +200,7 @@ export async function GET(request: Request) {
       departemen: t.departemen,
       karyawan: t.karyawanDituju,
       tujuanKunjungan: t.tujuanKunjungan,
+      tipeTamu: t.tipeTamu ?? "regular",
       status: t.status,
       statusKunjungan: t.statusKunjungan,
       tanggalKunjungan: t.tanggalKunjungan,

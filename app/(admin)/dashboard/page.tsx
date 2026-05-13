@@ -160,6 +160,7 @@ export default function Page() {
       }));
 
       setDashboardData(parsed);
+      console.log(parsed.map(p => ({ name: p.name, tipeTamu: p.tipeTamu })));
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Terjadi kesalahan");
     } finally {
@@ -293,7 +294,7 @@ export default function Page() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[50px] text-center">No</TableHead>
-                    <TableHead>ID (PKC)</TableHead>
+                    <TableHead>ID</TableHead>
                     <TableHead>Tipe</TableHead>
                     <TableHead>Nama</TableHead>
                     <TableHead>Instansi</TableHead>
@@ -318,7 +319,7 @@ export default function Page() {
                         className={item.tipeTamu === "vip" ? "bg-amber-50 hover:bg-amber-100" : ""}
                       >
                         <TableCell className="text-center">{index + 1}</TableCell>
-                        <TableCell className="font-mono text-xs">PKC-{item.id}</TableCell>
+                        <TableCell className="font-mono text-xs font-semibold">PKC-{item.id}</TableCell>
                         <TableCell><TipeBadge tipe={item.tipeTamu} /></TableCell>
                         <TableCell className="font-medium">{item.name}</TableCell>
                         <TableCell>{item.instansi}</TableCell>
@@ -365,7 +366,7 @@ export default function Page() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[50px] text-center">No</TableHead>
-                    <TableHead>ID (PKC)</TableHead>
+                    <TableHead>ID</TableHead>
                     <TableHead>Tipe</TableHead>
                     <TableHead>Nama</TableHead>
                     <TableHead>Instansi</TableHead>
@@ -389,7 +390,7 @@ export default function Page() {
                         className={item.tipeTamu === "vip" ? "bg-amber-50 hover:bg-amber-100" : ""}
                       >
                         <TableCell className="text-center">{index + 1}</TableCell>
-                        <TableCell className="font-mono text-xs">PKC-{item.id}</TableCell>
+                        <TableCell className="font-mono text-xs font-semibold">PKC-{item.id}</TableCell>
                         <TableCell><TipeBadge tipe={item.tipeTamu} /></TableCell>
                         <TableCell className="font-medium">{item.name}</TableCell>
                         <TableCell>{item.instansi}</TableCell>

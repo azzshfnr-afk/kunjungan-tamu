@@ -15,7 +15,7 @@ export async function POST(req: Request) {
         waktuCheckOut: new Date(),
         statusKunjungan: "Menunggu",
         aksesAktif: "SEMUA_KAWASAN_KUJANG",
-        
+        tipeTamu: "vip",
         nik: "-",
         noTelp: "-",
         email: "-",
