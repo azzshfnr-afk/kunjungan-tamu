@@ -48,6 +48,8 @@ function isToday(dateString: string | null | undefined) {
 }
 
 function isWaiting(t: any) {
+    if (t.status === "Diterima" || t.status === "Ditolak") return false;
+
   return (
     t.status === "Menunggu" ||
     t.status === "Menunggu Kedatangan" ||
@@ -212,6 +214,7 @@ export default function DashboardClient({ namaKaryawan }: Props) {
       const res = await fetch("/api/tamu");
       if (!res.ok) throw new Error("Gagal mengambil data tamu.");
       const data: any[] = await res.json();
+      console.log("raw status:", data.slice(0,3).map(t => ({ id: t.id, status: t.status, statusKunjungan: t.statusKunjungan })));
 
       const waiting:   Guest[]        = [];
       const processed: HistoryGuest[] = [];
