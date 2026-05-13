@@ -252,21 +252,26 @@ export default function SatpamDashboard() {
     };
 
     const filteredTamu = Array.isArray(dataTamu) 
-        ? dataTamu.filter((tamu) => {
-            if (!tamu) return false;
-            const matchesSearch = tamu.namaTamu?.toLowerCase().includes(searchQuery.toLowerCase()) ?? true;
-            const st = tamu.statusKunjungan || "";
-            const matchesStatus = ["Menunggu", "Check-in", "Check-in Area", "Masuk Area"].includes(st);
-            if (roleSatpam === "area") {
-                const isTujuanUtama = tamu.gedungTujuan === lokasiArea;
-                const isVip = tamu.gedungTujuan === "VIP";
-                const aksesStr = String(tamu.aksesAktif || "");
-                const isAksesTambahan = aksesStr.includes(lokasiArea);
-                return matchesSearch && matchesStatus && (isTujuanUtama || isVip || isAksesTambahan);
-            }
-            return matchesSearch && matchesStatus;
-        })
-        : [];
+    ? dataTamu.filter((tamu) => {
+        if (!tamu) return false;
+        const matchesSearch = tamu.namaTamu?.toLowerCase().includes(searchQuery.toLowerCase()) ?? true;
+        const st = tamu.statusKunjungan || "";
+
+        // TAMBAHKAN "Check-out" di sini biar gak ilang dari tabel
+        const matchesStatus = ["Menunggu", "Check-in", "Check-in Area", "Masuk Area", "Check-out"].includes(st);
+
+        if (roleSatpam === "area") {
+            const isTujuanUtama = tamu.gedungTujuan === lokasiArea;
+            const isVip = tamu.gedungTujuan === "VIP";
+            const aksesStr = String(tamu.aksesAktif || "").toLowerCase();
+            const areaCari = lokasiArea.toLowerCase().trim();
+            const isAksesTambahan = aksesStr.includes(areaCari);
+            
+            return matchesSearch && matchesStatus && (isTujuanUtama || isVip || isAksesTambahan);
+        }
+        return matchesSearch && matchesStatus;
+    })
+    : [];
 
     // --- RETURN UI (Tampilan Dashboard Lu) ---
     return (
@@ -355,11 +360,38 @@ export default function SatpamDashboard() {
                                             <TableCell><StatusBadge status={st} /></TableCell>
                                             <TableCell>
                                                 <div className="flex gap-1">
-                                                    {roleSatpam === "gateUtama" && st === "Menunggu" && (
-                                                        <Button size="sm" className="h-7 text-xs bg-blue-600" onClick={() => { setTamuTerpilih(tamu); setStepScan(2); setModalAction("checkin"); }}>Check-in</Button>
+                                                    {/* --- LOGIKA GATE UTAMA --- */}
+                                                    {roleSatpam === "gateUtama" && (
+                                                        <>
+                                                            {st === "Menunggu" && (
+                                                                <Button size="sm" className="h-7 text-xs bg-blue-600" onClick={() => { setTamuTerpilih(tamu); setStepScan(2); setModalAction("checkin"); }}>
+                                                                    Check-in
+                                                                </Button>
+                                                            )}
+                                                            {/* Tambahin ini: Biar pas statusnya Check-in (atau di dalam area), Gate Utama bisa Checkout-in */}
+                                                            {(st === "Check-in" || st === "Check-in Area") && (
+                                                                <Button size="sm" variant="destructive" className="h-7 text-xs" onClick={() => { setTamuTerpilih(tamu); setStepScan(1); setModalAction("scan_checkout"); }}>
+                                                                    Check-out
+                                                                </Button>
+                                                            )}
+                                                        </>
                                                     )}
-                                                    {roleSatpam === "area" && st === "Check-in" && (
-                                                        <Button size="sm" className="h-7 text-xs bg-green-600" onClick={() => { setTamuTerpilih(tamu); setStepScan(2); setModalAction("checkin"); }}>Masuk Area</Button>
+
+                                                    {/* --- LOGIKA AREA --- */}
+                                                    {roleSatpam === "area" && (
+                                                        <>
+                                                            {st === "Check-in" && (
+                                                                <Button size="sm" className="h-7 text-xs bg-green-600" onClick={() => { setTamuTerpilih(tamu); setStepScan(2); setModalAction("checkin"); }}>
+                                                                    Masuk Area
+                                                                </Button>
+                                                            )}
+                                                            {/* Tambahin ini: Tombol buat tamu yang lagi di dalem gedung biar bisa Checkout */}
+                                                            {st === "Check-in Area" && (
+                                                                <Button size="sm" variant="destructive" className="h-7 text-xs" onClick={() => { setTamuTerpilih(tamu); setStepScan(1); setModalAction("scan_checkout"); }}>
+                                                                    Keluar Area
+                                                                </Button>
+                                                            )}
+                                                        </>
                                                     )}
                                                 </div>
                                             </TableCell>
@@ -392,13 +424,12 @@ export default function SatpamDashboard() {
                                 <div className="aspect-square bg-black rounded-xl overflow-hidden">
                                     <Scanner onScan={(result) => {
                                         if (result?.length) {
-                                            const rawQr = result[0].rawValue.trim();
+                                            const rawQr = result[0].rawValue.toString().trim();
                                             const numericId = rawQr.replace(/\D/g, "");
                                             const idMurni = parseInt(numericId); 
-                                            console.log("DATA TAMU:", idMurni); 
+                                            console.log("DATA TAMU:", { rawQr, idMurni});
                                             const found = dataTamu.find((t) => 
-                                                t.id === idMurni ||
-                                                t.id.toString() === idMurni.toString() ||
+                                                Number(t.id) === idMurni ||
                                                 t.id.toString() === rawQr
                                             );
                                             if (found) { 
@@ -649,8 +680,8 @@ export default function SatpamDashboard() {
                                                 );
                                             } else {
                                                 const aksesBaru = tamuTerpilih.aksesAktif 
-                                                    ? `${tamuTerpilih.aksesAktif},Lobby_${lokasiArea}` 
-                                                    : `LOBBY_${lokasiArea}`;
+                                                    ? `${tamuTerpilih.aksesAktif}, Lobby_${lokasiArea}` 
+                                                    : `Lobby_${lokasiArea}`;
 
                                                 updateStatusTamu(
                                                     tamuTerpilih.id,             
@@ -681,12 +712,16 @@ export default function SatpamDashboard() {
                     <div className="aspect-square bg-black rounded-xl overflow-hidden">
                         <Scanner onScan={(result) => {
                             if (result?.length) {
-                                const rawQr = result[0].rawValue.trim(); 
-                                const cleanId = rawQr.replace("PKC-", "").trim;
-                                console.log("DATA TAMU:", dataTamu); 
-                                const found = dataTamu.find((t) => 
-                                    t.id.toString() === rawQr || t.id.toString() === cleanId
-                                );
+                                const rawQr = result[0].rawValue.toString().trim(); 
+                                const cleanId = rawQr.replace("PKC-", "").trim(); 
+                                
+                                console.log("DATA TAMU:", { rawQr, cleanId }); 
+
+                                const found = dataTamu.find((t) => {
+                                    const scanndIdMurni = cleanId.replace(/^0+/, "");
+                                    const dbIdMurni = t.id.toString().replace("PKC-", "").replace(/^0+/, "");
+                                    return dbIdMurni === scanndIdMurni;
+                                });
                                 
                                 if (found) { 
                                     setTamuTerpilih(found); 
@@ -696,7 +731,8 @@ export default function SatpamDashboard() {
                                     alert(`Data tidak ditemukan! \nKamera baca: "${rawQr}" \nSistem nyari ID: "${cleanId}"`);
                                 }
                             }
-                        }} />
+                        }}
+                    />
                     </div>
                     <Button variant="outline" size="sm" className="text-[10px] w-full mt-2" onClick={() => { 
                             if (tamuTerpilih) {
@@ -788,10 +824,21 @@ export default function SatpamDashboard() {
                                     </div>
                                     <div className="flex gap-2">
                                         <Button variant="outline" className="flex-1" onClick={() => setStepScan(2)}>Kembali</Button>
-                                        <Button variant="destructive" className="flex-1" onClick={() => {
-                                            updateStatusTamu(tamuTerpilih.id, "Check-out", "NONAKTIF", uidNfc, "Gate Utama Keluar", new Date().toISOString());
-                                            tutupModal();
-                                        }}>
+                                        <Button 
+                                            variant="destructive" 
+                                            className="flex-1" 
+                                            onClick={() => {
+                                                updateStatusTamu(
+                                                    tamuTerpilih.id, 
+                                                    "Check-out", // Pakai Check-out
+                                                    uidNfc || "", 
+                                                    "Gate Utama Keluar", 
+                                                    new Date().toISOString(),
+                                                    { aksesAktif: "" } // Hapus semua akses
+                                                );
+                                                tutupModal();
+                                            }}
+                                        >
                                             Selesaikan Check-out
                                         </Button>
                                     </div>
@@ -816,14 +863,20 @@ export default function SatpamDashboard() {
                             </div>
                             <DialogFooter className="flex gap-2">
                                 <Button variant="outline" onClick={tutupModal}>Batal</Button>
-                                <Button variant="destructive" onClick={() => {
-                                    updateStatusTamu(
-                                        tamuTerpilih.id, "Check-in",
-                                        tamuTerpilih.aksesAktif.replace(`,LOBBY_${lokasiArea}`, ""),
-                                        uidNfc, `Lobby ${lokasiArea} Keluar`, new Date().toISOString()
-                                    );
-                                    tutupModal();
-                                }}>
+                                <Button 
+                                    variant="destructive" 
+                                    onClick={() => {
+                                        updateStatusTamu(
+                                            tamuTerpilih.id, 
+                                            "Check-out", // Ganti jadi Check-out kalau mau langsung selesai
+                                            uidNfc || "", 
+                                            `Lobby ${lokasiArea} Keluar (Selesai)`, 
+                                            new Date().toISOString(),
+                                            { aksesAktif: "" } 
+                                        );
+                                        tutupModal();
+                                    }}
+                                >
                                     Cabut Akses & Selesai
                                 </Button>
                             </DialogFooter>
@@ -913,7 +966,6 @@ export default function SatpamDashboard() {
                 </DialogContent>
             </Dialog>
 
-            {/* Modal Registrasi VIP */}
             <Dialog 
                 open={isModalVipOpen} 
                 onOpenChange={(open) => { 

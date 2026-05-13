@@ -62,16 +62,37 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true, data: updateTamu });
     }
 
-    const updateTamuBiasa = await prisma.tamu.update({
+    const updateData: any = {
+      statusKunjungan: statusKunjungan, // Ambil status sesuai kiriman frontend
+      selectedGedungs,
+      riwayatTap: riwayatBaru,
+      aksesAktif: aksesAktif || "",
+    };
+
+    // LOGIKA KHUSUS CHECK-OUT
+    if (statusKunjungan === "Check-out") {
+      updateData.aktualCheckOut = waktuSekarang;
+      updateData.nfcId = ""; // Kosongkan NFC
+      updateData.aksesAktif = ""; // Cabut semua akses
+      
+      // Update status kartu NFC jadi TERSEDIA lagi (opsional tapi bagus)
+      if (uidNfc) {
+        const kartu = await prisma.kartuNfc.findUnique({ where: { uidKartu: uidNfc } });
+        if (kartu) {
+          await prisma.kartuNfc.update({ 
+            where: { id: kartu.id }, 
+            data: { status: "TERSEDIA" } 
+          });
+        }
+      }
+    }
+
+    const updateTamuFinal = await prisma.tamu.update({
       where: { id: cleanId },
-      data: { 
-        statusKunjungan: "Masuk Area",
-        selectedGedungs,
-        riwayatTap: riwayatBaru 
-      },
+      data: updateData,
     });
     
-    return NextResponse.json({ ok: true, data: updateTamuBiasa });
+    return NextResponse.json({ ok: true, data: updateTamuFinal });
 
   } catch (error: any) {
     console.error("Error detail:", error);
