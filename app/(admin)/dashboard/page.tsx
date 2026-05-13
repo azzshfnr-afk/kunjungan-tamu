@@ -132,7 +132,6 @@ export default function Page() {
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 8 }, (_, i) => (currentYear - 2 + i).toString());
 
-  // Clock real-time
   useEffect(() => {
     const interval = setInterval(() => setCurrentDateTime(new Date()), 1000);
     return () => clearInterval(interval);
@@ -146,18 +145,18 @@ export default function Page() {
       const result: VisitorApi[] = await res.json();
 
       const parsed: Visitor[] = result.map((item) => ({
-        id:        item.id,
-        name:      item.name,
-        instansi:  item.instansi,
-        email:     item.email,
+        id:         item.id,
+        name:       item.name,
+        instansi:   item.instansi,
+        email:      item.email,
         departemen: item.departemen,
-        karyawan:  item.karyawan,
-        visitTime: item.visitTime,
-        visitDate: new Date(item.visitDate),
-        statusDb:  item.status ?? "Menunggu",
-        checkin:   formatJam(item.checkin),
-        checkout:  formatJam(item.checkout),
-        tipeTamu:  item.tipeTamu === "vip" ? "vip" : "regular", 
+        karyawan:   item.karyawan,
+        visitTime:  item.visitTime,
+        visitDate:  new Date(item.visitDate),
+        statusDb:   item.status ?? "Menunggu",
+        checkin:    formatJam(item.checkin),
+        checkout:   formatJam(item.checkout),
+        tipeTamu:   item.tipeTamu === "vip" ? "vip" : "regular",
       }));
 
       setDashboardData(parsed);
@@ -191,9 +190,9 @@ export default function Page() {
   });
 
   const upcomingData = filteredByYear.filter((item) => {
-    const itemDate   = new Date(item.visitDate.toDateString());
+    const itemDate    = new Date(item.visitDate.toDateString());
     const currentDate = new Date(todayString);
-    const keyword    = search.toLowerCase();
+    const keyword     = search.toLowerCase();
     const matchesSearch =
       (item.name || "").toLowerCase().includes(keyword) ||
       String(item.id || "").toLowerCase().includes(keyword) ||
@@ -206,7 +205,6 @@ export default function Page() {
   const pending = filteredByYear.filter((i) => getStatus(i) === "Pending").length;
   const ditolak = filteredByYear.filter((i) => getStatus(i) === "Ditolak").length;
 
-  
   return (
     <div className="flex flex-col space-y-6 w-full">
 
@@ -290,9 +288,6 @@ export default function Page() {
               </div>
             </div>
 
-            {/* Legend */}
-
-
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
@@ -323,7 +318,7 @@ export default function Page() {
                         className={item.tipeTamu === "vip" ? "bg-amber-50 hover:bg-amber-100" : ""}
                       >
                         <TableCell className="text-center">{index + 1}</TableCell>
-                        <TableCell className="font-mono text-xs">{item.id}</TableCell>
+                        <TableCell className="font-mono text-xs">PKC-{item.id}</TableCell>
                         <TableCell><TipeBadge tipe={item.tipeTamu} /></TableCell>
                         <TableCell className="font-medium">{item.name}</TableCell>
                         <TableCell>{item.instansi}</TableCell>
@@ -365,8 +360,6 @@ export default function Page() {
               </div>
             </div>
 
-
-
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
@@ -396,7 +389,7 @@ export default function Page() {
                         className={item.tipeTamu === "vip" ? "bg-amber-50 hover:bg-amber-100" : ""}
                       >
                         <TableCell className="text-center">{index + 1}</TableCell>
-                        <TableCell className="font-mono text-xs">{item.id}</TableCell>
+                        <TableCell className="font-mono text-xs">PKC-{item.id}</TableCell>
                         <TableCell><TipeBadge tipe={item.tipeTamu} /></TableCell>
                         <TableCell className="font-medium">{item.name}</TableCell>
                         <TableCell>{item.instansi}</TableCell>

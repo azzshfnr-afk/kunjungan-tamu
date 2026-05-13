@@ -508,7 +508,7 @@ export default function LaporanPage() {
                   }`}
                 >
                   <td className="px-3 py-2.5 text-gray-500 text-xs">{(page - 1) * rowsPerPage + index + 1}</td>
-                  <td className="px-3 py-2.5 font-mono text-xs text-gray-600">{item.id}</td>
+                  <td className="px-3 py-2.5 font-mono text-xs font-bold text-gray-600">PKC-{item.id}</td>
                   <td className="px-3 py-2.5"><TipeBadge tipe={item.tipeTamu} /></td>
                   <td className="px-3 py-2.5 font-semibold text-gray-900 whitespace-nowrap">{item.name}</td>
                   <td className="px-3 py-2.5 text-gray-600 whitespace-nowrap">{item.instansi}</td>
@@ -599,7 +599,7 @@ export default function LaporanPage() {
 
             <div className="bg-gray-50 rounded-xl border border-gray-200 p-4 space-y-1">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Identitas Tamu</p>
-              <InfoRow label="ID Tamu"       nilai={detailTamu?.id} />
+              <InfoRow label="ID Tamu"       nilai={detailTamu?.id? `PKC-${detailTamu.id}` : undefined} />
               <InfoRow label="Nama Lengkap"  nilai={detailTamu?.name} />
               <InfoRow label="Tipe Tamu"     nilai={detailTamu?.tipeTamu === "vip" ? "VIP" : "Reguler"} />
               <InfoRow label="NIK"           nilai={detailTamu?.nik} />
