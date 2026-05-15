@@ -297,9 +297,11 @@ export default function DashboardClient({ namaKaryawan }: Props) {
       <div>
         <h2 className="text-xl font-bold text-slate-800">Ringkasan Aktivitas</h2>
         <p className="text-sm text-slate-500">
-          {namaKaryawan
-            ? `Menampilkan tamu untuk: ${namaKaryawan}`
-            : "Berikut adalah data kunjungan tamu untuk hari ini."}
+          {namaKaryawan ? (
+            <>Menampilkan tamu untuk: <span className="font-semibold text-slate-700">{namaKaryawan}</span></>
+          ) : (
+            "Berikut adalah data kunjungan tamu untuk hari ini."
+          )}
         </p>
       </div>
 
