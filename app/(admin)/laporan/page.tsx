@@ -4,7 +4,8 @@ import * as React from "react";
 import { useState } from "react";
 import {
   Calendar, FileText, Search, MoreHorizontal,
-  Download, FileSpreadsheet, Sheet,
+  Download, FileSpreadsheet, Sheet, UsersRound,
+  ChevronDown, ChevronRight,
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -30,6 +31,12 @@ type StatusType     = "Pending" | "Check-in" | "Selesai" | "Ditolak";
 type TipeTamu       = "regular" | "vip";
 type DownloadFormat = "excel" | "pdf" | "csv";
 
+type AnggotaRombongan = {
+  nama: string;
+  email: string;
+  noTelp: string;
+};
+
 type Visitor = {
   id: string;
   name: string;
@@ -49,9 +56,8 @@ type Visitor = {
   gedungTujuan?: string;
   aksesAktif?: string;
   fotoKtp?: string;
+  anggotaRombongan?: AnggotaRombongan[];
 };
-
-
 
 function getStatus(item: Visitor): StatusType {
   if (item.rejected)                  return "Ditolak";
@@ -76,7 +82,6 @@ function formatDateTime(dt?: string | null) {
     hour: "2-digit", minute: "2-digit",
   });
 }
-
 
 function StatusBadge({ status }: { status: StatusType }) {
   const styles: Record<StatusType, string> = {
@@ -116,7 +121,6 @@ function InfoRow({ label, nilai }: { label: string; nilai?: string | null }) {
   );
 }
 
-
 type DateRangePickerProps = {
   startDate?: Date;
   endDate?: Date;
@@ -127,7 +131,6 @@ type DateRangePickerProps = {
 
 function DateRangePicker({ startDate, endDate, setStartDate, setEndDate, onApply }: DateRangePickerProps) {
   const [open, setOpen] = useState(false);
-
   return (
     <div className="relative">
       <button
@@ -139,7 +142,6 @@ function DateRangePicker({ startDate, endDate, setStartDate, setEndDate, onApply
           ? `${format(startDate, "dd MMM yyyy")} – ${format(endDate, "dd MMM yyyy")}`
           : "Pilih Tanggal"}
       </button>
-
       {open && (
         <div className="absolute right-0 z-50 mt-2 space-y-3 rounded-xl border bg-background p-4 shadow-lg">
           <div className="flex gap-4">
@@ -166,7 +168,6 @@ function DateRangePicker({ startDate, endDate, setStartDate, setEndDate, onApply
   );
 }
 
-
 const FORMAT_META: Record<DownloadFormat, { label: string; ext: string; icon: React.ReactNode }> = {
   excel: { label: "Excel", ext: "xls",  icon: <FileSpreadsheet className="h-4 w-4 text-green-600" /> },
   pdf:   { label: "PDF",   ext: "pdf",  icon: <FileText        className="h-4 w-4 text-red-500"   /> },
@@ -174,20 +175,47 @@ const FORMAT_META: Record<DownloadFormat, { label: string; ext: string; icon: Re
 };
 
 function buildRows(data: Visitor[]) {
-  return data.map((item) => ({
-    ID:           item.id,
-    Tipe:         item.tipeTamu === "vip" ? "VIP" : "Reguler",
-    Nama:         item.name,
-    Instansi:     item.instansi,
-    Email:        item.email,
-    Departemen:   item.departemen,
-    Karyawan:     item.karyawan,
-    "Tgl Dari":   formatDate(item.date),
-    "Tgl Sampai": item.dateTo ? formatDate(item.dateTo) : formatDate(item.date),
-    "Check-in":   formatDateTime(item.checkin),
-    "Check-out":  formatDateTime(item.checkout),
-    Status:       getStatus(item),
-  }));
+  const rows: Record<string, string>[] = [];
+
+  data.forEach((item) => {
+    rows.push({
+      ID:              `PKC-${item.id}`,
+      Tipe:            item.tipeTamu === "vip" ? "VIP" : "Reguler",
+      "Jenis Baris":   "Tamu Utama",
+      Nama:            item.name,
+      Instansi:        item.instansi,
+      Email:           item.email,
+      "No. Telepon":   item.noTelp ?? "-",
+      Departemen:      item.departemen,
+      Karyawan:        item.karyawan,
+      "Tgl Dari":      formatDate(item.date),
+      "Tgl Sampai":    item.dateTo ? formatDate(item.dateTo) : formatDate(item.date),
+      "Check-in":      formatDateTime(item.checkin),
+      "Check-out":     formatDateTime(item.checkout),
+      Status:          getStatus(item),
+    });
+
+    (item.anggotaRombongan ?? []).forEach((a, i) => {
+      rows.push({
+        ID:              `PKC-${item.id}`,
+        Tipe:            item.tipeTamu === "vip" ? "VIP" : "Reguler",
+        "Jenis Baris":   `Anggota Rombongan ${i + 1}`,
+        Nama:            a.nama,
+        Instansi:        item.instansi,
+        Email:           a.email,
+        "No. Telepon":   a.noTelp,
+        Departemen:      item.departemen,
+        Karyawan:        item.karyawan,
+        "Tgl Dari":      formatDate(item.date),
+        "Tgl Sampai":    item.dateTo ? formatDate(item.dateTo) : formatDate(item.date),
+        "Check-in":      "-",
+        "Check-out":     "-",
+        Status:          getStatus(item),
+      });
+    });
+  });
+
+  return rows;
 }
 
 function triggerDownload(blob: Blob, filename: string) {
@@ -198,20 +226,18 @@ function triggerDownload(blob: Blob, filename: string) {
 }
 
 function downloadCSV(data: Visitor[], filename: string) {
-  const rows    = buildRows(data);
+  const rows = buildRows(data);
   if (!rows.length) return;
   const headers = Object.keys(rows[0]);
   const csv = [
     headers.join(","),
-    ...rows.map((r) =>
-      headers.map((h) => `"${(r as Record<string, string>)[h] ?? ""}"`).join(",")
-    ),
+    ...rows.map((r) => headers.map((h) => `"${r[h] ?? ""}"`).join(",")),
   ].join("\n");
   triggerDownload(new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" }), filename);
 }
 
 function downloadExcel(data: Visitor[], filename: string) {
-  const rows    = buildRows(data);
+  const rows = buildRows(data);
   if (!rows.length) return;
   const headers = Object.keys(rows[0]);
   const html = `
@@ -223,7 +249,9 @@ function downloadExcel(data: Visitor[], filename: string) {
         <thead><tr>${headers.map((h) => `<th>${h}</th>`).join("")}</tr></thead>
         <tbody>
           ${rows.map((r) =>
-            `<tr>${headers.map((h) => `<td>${(r as Record<string, string>)[h] ?? ""}</td>`).join("")}</tr>`
+            `<tr style="${r["Jenis Baris"] !== "Tamu Utama" ? "background:#f0fdf4;" : ""}">
+              ${headers.map((h) => `<td>${r[h] ?? ""}</td>`).join("")}
+            </tr>`
           ).join("")}
         </tbody>
       </table></body>
@@ -232,7 +260,7 @@ function downloadExcel(data: Visitor[], filename: string) {
 }
 
 function downloadPDF(data: Visitor[]) {
-  const rows    = buildRows(data);
+  const rows = buildRows(data);
   if (!rows.length) return;
   const headers = Object.keys(rows[0]);
   const html = `<!DOCTYPE html><html>
@@ -243,9 +271,10 @@ function downloadPDF(data: Visitor[]) {
         h2    { font-size: 16px; margin-bottom: 8px; }
         p     { font-size: 12px; color: #555; margin-bottom: 16px; }
         table { border-collapse: collapse; width: 100%; }
-        th    { background: #16a34a; color: #fff; padding: 7px 8px; font-size: 11px; border: 1px solid #15803d; text-align: left; }
-        td    { border: 1px solid #ddd; padding: 6px 8px; font-size: 11px; }
-        tr:nth-child(even) { background: #f0fdf4; }
+        th    { background: #16a34a; color: #fff; padding: 7px 8px; font-size: 10px; border: 1px solid #15803d; text-align: left; }
+        td    { border: 1px solid #ddd; padding: 5px 7px; font-size: 10px; }
+        .utama { background: #ffffff; }
+        .anggota { background: #f0fdf4; color: #166534; }
       </style>
     </head>
     <body>
@@ -255,7 +284,9 @@ function downloadPDF(data: Visitor[]) {
         <thead><tr>${headers.map((h) => `<th>${h}</th>`).join("")}</tr></thead>
         <tbody>
           ${rows.map((r) =>
-            `<tr>${headers.map((h) => `<td>${(r as Record<string, string>)[h] ?? ""}</td>`).join("")}</tr>`
+            `<tr class="${r["Jenis Baris"] === "Tamu Utama" ? "utama" : "anggota"}">
+              ${headers.map((h) => `<td>${r[h] ?? ""}</td>`).join("")}
+            </tr>`
           ).join("")}
         </tbody>
       </table>
@@ -269,6 +300,113 @@ function downloadPDF(data: Visitor[]) {
 }
 
 
+function RombonganExpandRow({ anggota, colSpan }: { anggota: AnggotaRombongan[]; colSpan: number }) {
+  return (
+    <tr>
+      <td colSpan={colSpan} className="py-0 px-0 bg-slate-50/80 border-b border-dashed border-slate-200">
+        <div className="px-6 py-3">
+          <div className="flex items-center gap-2 mb-2.5">
+            <UsersRound className="h-3.5 w-3.5 text-slate-400" />
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              Anggota Rombongan ({anggota.length} orang)
+            </span>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {anggota.map((a, i) => (
+              <div key={i} className="flex items-start gap-2.5 rounded-lg border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[10px] font-bold text-slate-500">
+                  {i + 1}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-slate-700">{a.nama}</p>
+                  <p className="truncate text-xs text-slate-400">{a.email}</p>
+                  <p className="text-xs text-slate-400">{a.noTelp}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+function LaporanRow({
+  item, index, onDetail,
+}: {
+  item: Visitor;
+  index: number;
+  onDetail: () => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const hasRombongan = (item.anggotaRombongan ?? []).length > 0;
+
+  return (
+    <React.Fragment>
+      <tr
+        className={`border-b transition-colors ${
+          item.tipeTamu === "vip" ? "bg-amber-50 hover:bg-amber-100" : "hover:bg-gray-50"
+        } ${hasRombongan ? "cursor-pointer" : ""}`}
+        onClick={() => hasRombongan && setExpanded((v) => !v)}
+      >
+        <td className="px-3 py-2.5 text-gray-500 text-xs">{index + 1}</td>
+        <td className="px-3 py-2.5 font-mono text-xs font-bold text-gray-600">PKC-{item.id}</td>
+        <td className="px-3 py-2.5"><TipeBadge tipe={item.tipeTamu} /></td>
+        <td className="px-3 py-2.5 font-semibold text-gray-900 whitespace-nowrap">
+          <div className="flex items-center gap-1.5">
+            {item.name}
+            {hasRombongan && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
+                <UsersRound className="h-3 w-3" />
+                +{item.anggotaRombongan!.length}
+              </span>
+            )}
+          </div>
+        </td>
+        <td className="px-3 py-2.5 text-gray-600 whitespace-nowrap">{item.instansi}</td>
+        <td className="px-3 py-2.5 text-gray-600 text-xs">{item.email}</td>
+        <td className="px-3 py-2.5 text-gray-600 whitespace-nowrap">{item.departemen}</td>
+        <td className="px-3 py-2.5 text-gray-600 whitespace-nowrap">{item.karyawan}</td>
+        <td className="px-3 py-2.5 whitespace-nowrap">
+          <span className="text-gray-800 font-medium">{formatDate(item.date)}</span>
+          {item.dateTo ? (
+            <><span className="mx-1 text-gray-400">–</span><span className="text-gray-800 font-medium">{formatDate(item.dateTo)}</span></>
+          ) : (
+            <span className="ml-1 text-gray-400 text-xs">(1 hari)</span>
+          )}
+        </td>
+        <td className="px-3 py-2.5 text-xs text-blue-600 font-medium whitespace-nowrap">
+          {item.checkin ? formatDateTime(item.checkin) : "-"}
+        </td>
+        <td className="px-3 py-2.5 text-xs text-red-500 font-medium whitespace-nowrap">
+          {item.checkout ? formatDateTime(item.checkout) : "-"}
+        </td>
+        <td className="px-3 py-2.5"><StatusBadge status={getStatus(item)} /></td>
+        <td className="px-3 py-2.5 text-center" onClick={(e) => e.stopPropagation()}>
+          <button
+            onClick={onDetail}
+            className="inline-flex items-center justify-center h-7 w-7 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-colors"
+          >
+            <MoreHorizontal className="h-4 w-4" />
+          </button>
+        </td>
+        <td className="px-2 text-center w-8">
+          {hasRombongan && (
+            <span className="text-slate-400">
+              {expanded
+                ? <ChevronDown className="h-4 w-4 inline" />
+                : <ChevronRight className="h-4 w-4 inline" />}
+            </span>
+          )}
+        </td>
+      </tr>
+
+      {hasRombongan && expanded && (
+        <RombonganExpandRow anggota={item.anggotaRombongan!} colSpan={14} />
+      )}
+    </React.Fragment>
+  );
+}
 
 export default function LaporanPage() {
   const currentYear = new Date().getFullYear();
@@ -307,7 +445,6 @@ export default function LaporanPage() {
       appliedStartDate && appliedEndDate
         ? itemDate >= appliedStartDate && itemDate <= appliedEndDate
         : true;
-
     return (
       inRange &&
       (selectedYear === "Semua" || String(itemDate.getFullYear()) === selectedYear) &&
@@ -329,24 +466,23 @@ export default function LaporanPage() {
   async function handleConfirmDownload() {
     if (!downloadFormat) return;
     setIsDownloading(true);
-
     const { ext, label } = FORMAT_META[downloadFormat];
     const filename = `laporan_kunjungan_${format(new Date(), "yyyyMMdd_HHmm")}.${ext}`;
-
     await new Promise((r) => setTimeout(r, 600));
-
     try {
       if (downloadFormat === "csv")   downloadCSV(sortedData, filename);
       if (downloadFormat === "excel") downloadExcel(sortedData, filename);
       if (downloadFormat === "pdf")   downloadPDF(sortedData);
 
+
+      const totalRows = sortedData.reduce(
+        (acc, item) => acc + 1 + (item.anggotaRombongan?.length ?? 0), 0
+      );
       toast.success("Download berhasil!", {
-        description: `${sortedData.length} data diunduh sebagai ${label}`,
+        description: `${totalRows} baris data diunduh sebagai ${label}`,
       });
     } catch {
-      toast.error("Download gagal", {
-        description: "Terjadi kesalahan saat mengunduh. Coba lagi.",
-      });
+      toast.error("Download gagal", { description: "Terjadi kesalahan saat mengunduh. Coba lagi." });
     } finally {
       setIsDownloading(false);
       setConfirmDialogOpen(false);
@@ -387,12 +523,9 @@ export default function LaporanPage() {
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           />
         </div>
-
         <div className="flex flex-wrap items-center gap-3">
           <Select value={selectedYear} onValueChange={(v) => { setSelectedYear(v); setPage(1); }}>
-            <SelectTrigger className="w-[110px]">
-              <SelectValue placeholder="Tahun" />
-            </SelectTrigger>
+            <SelectTrigger className="w-[110px]"><SelectValue placeholder="Tahun" /></SelectTrigger>
             <SelectContent>
               {years.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}
             </SelectContent>
@@ -415,7 +548,7 @@ export default function LaporanPage() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuLabel className="text-xs text-muted-foreground">
-                {sortedData.length} data (filter aktif)
+                {sortedData.length} tamu (termasuk rombongan)
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               {(["excel", "pdf", "csv"] as DownloadFormat[]).map((fmt) => (
@@ -438,14 +571,13 @@ export default function LaporanPage() {
             </DialogTitle>
             <DialogDescription>
               Anda akan mengunduh{" "}
-              <span className="font-semibold text-foreground">{sortedData.length} data</span>{" "}
-              sesuai filter aktif sebagai file{" "}
+              <span className="font-semibold text-foreground">{sortedData.length} tamu</span>{" "}
+              (anggota rombongan ikut tercetak) sebagai{" "}
               <span className="font-semibold text-foreground">
                 {downloadFormat ? FORMAT_META[downloadFormat].label : ""}
               </span>.
             </DialogDescription>
           </DialogHeader>
-
           {hasActiveFilter && (
             <div className="rounded-lg bg-muted p-3 text-xs space-y-1 text-muted-foreground">
               <p className="font-semibold text-foreground mb-1">Filter aktif:</p>
@@ -456,40 +588,30 @@ export default function LaporanPage() {
               {search && <p>• Pencarian: "{search}"</p>}
             </div>
           )}
-
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setConfirmDialogOpen(false)} disabled={isDownloading}>
               Batal
             </Button>
             <Button onClick={handleConfirmDownload} disabled={isDownloading} className="gap-2">
               {isDownloading ? (
-                <>
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  Mengunduh…
-                </>
+                <><span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />Mengunduh…</>
               ) : (
-                <>
-                  <Download className="h-4 w-4" />
-                  Ya, Download
-                </>
+                <><Download className="h-4 w-4" />Ya, Download</>
               )}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-     
       <div className="rounded-xl border bg-background shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-gray-50 text-left">
                 {["No","ID","Tipe","Nama","Instansi","Email","Departemen","Karyawan",
-                  "Tgl Kunjungan (Dari – Sampai)","Check-in","Check-out","Status","Detail",
+                  "Tgl Kunjungan (Dari – Sampai)","Check-in","Check-out","Status","Detail","",
                 ].map((h) => (
-                  <th key={h} className="whitespace-nowrap px-3 py-3 text-xs font-semibold text-gray-700">
-                    {h}
-                  </th>
+                  <th key={h} className="whitespace-nowrap px-3 py-3 text-xs font-semibold text-gray-700">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -501,53 +623,18 @@ export default function LaporanPage() {
                   </td>
                 </tr>
               ) : paginatedData.map((item, index) => (
-                <tr
+                <LaporanRow
                   key={item.id}
-                  className={`border-b transition-colors ${
-                    item.tipeTamu === "vip" ? "bg-amber-50 hover:bg-amber-100" : "hover:bg-gray-50"
-                  }`}
-                >
-                  <td className="px-3 py-2.5 text-gray-500 text-xs">{(page - 1) * rowsPerPage + index + 1}</td>
-                  <td className="px-3 py-2.5 font-mono text-xs font-bold text-gray-600">PKC-{item.id}</td>
-                  <td className="px-3 py-2.5"><TipeBadge tipe={item.tipeTamu} /></td>
-                  <td className="px-3 py-2.5 font-semibold text-gray-900 whitespace-nowrap">{item.name}</td>
-                  <td className="px-3 py-2.5 text-gray-600 whitespace-nowrap">{item.instansi}</td>
-                  <td className="px-3 py-2.5 text-gray-600 text-xs">{item.email}</td>
-                  <td className="px-3 py-2.5 text-gray-600 whitespace-nowrap">{item.departemen}</td>
-                  <td className="px-3 py-2.5 text-gray-600 whitespace-nowrap">{item.karyawan}</td>
-                  <td className="px-3 py-2.5 whitespace-nowrap">
-                    <span className="text-gray-800 font-medium">{formatDate(item.date)}</span>
-                    {item.dateTo ? (
-                      <>
-                        <span className="mx-1 text-gray-400">–</span>
-                        <span className="text-gray-800 font-medium">{formatDate(item.dateTo)}</span>
-                      </>
-                    ) : (
-                      <span className="ml-1 text-gray-400 text-xs">(1 hari)</span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2.5 text-xs text-blue-600 font-medium whitespace-nowrap">
-                    {item.checkin ? formatDateTime(item.checkin) : "-"}
-                  </td>
-                  <td className="px-3 py-2.5 text-xs text-red-500 font-medium whitespace-nowrap">
-                    {item.checkout ? formatDateTime(item.checkout) : "-"}
-                  </td>
-                  <td className="px-3 py-2.5"><StatusBadge status={getStatus(item)} /></td>
-                  <td className="px-3 py-2.5 text-center">
-                    <button
-                      onClick={() => setDetailTamu(item)}
-                      className="inline-flex items-center justify-center h-7 w-7 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-colors"
-                    >
-                      <MoreHorizontal className="h-4 w-4" />
-                    </button>
-                  </td>
-                </tr>
+                  item={item}
+                  index={(page - 1) * rowsPerPage + index}
+                  onDetail={() => setDetailTamu(item)}
+                />
               ))}
             </tbody>
           </table>
         </div>
 
-        
+
         <div className="flex items-center justify-between border-t px-4 py-3 flex-wrap gap-3">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <span>Tampilkan</span>
@@ -560,21 +647,16 @@ export default function LaporanPage() {
               </SelectContent>
             </Select>
             <span>baris</span>
-            <span className="ml-2 text-gray-400">({sortedData.length} total data)</span>
+            <span className="ml-2 text-gray-400">({sortedData.length} total tamu)</span>
           </div>
           <div className="flex items-center gap-2">
             <p className="text-sm text-muted-foreground">Halaman {page} dari {totalPages || 1}</p>
-            <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(page - 1)}>
-              Sebelumnya
-            </Button>
-            <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
-              Berikutnya
-            </Button>
+            <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(page - 1)}>Sebelumnya</Button>
+            <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>Berikutnya</Button>
           </div>
         </div>
       </div>
 
-      
       <Dialog open={!!detailTamu} onOpenChange={(open) => !open && setDetailTamu(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -599,7 +681,7 @@ export default function LaporanPage() {
 
             <div className="bg-gray-50 rounded-xl border border-gray-200 p-4 space-y-1">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Identitas Tamu</p>
-              <InfoRow label="ID Tamu"       nilai={detailTamu?.id? `PKC-${detailTamu.id}` : undefined} />
+              <InfoRow label="ID Tamu"       nilai={detailTamu?.id ? `PKC-${detailTamu.id}` : undefined} />
               <InfoRow label="Nama Lengkap"  nilai={detailTamu?.name} />
               <InfoRow label="Tipe Tamu"     nilai={detailTamu?.tipeTamu === "vip" ? "VIP" : "Reguler"} />
               <InfoRow label="NIK"           nilai={detailTamu?.nik} />
@@ -625,6 +707,34 @@ export default function LaporanPage() {
                 }
               />
             </div>
+
+            {(detailTamu?.anggotaRombongan ?? []).length > 0 && (
+              <div className="rounded-xl border border-green-200 bg-green-50/50 p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <UsersRound className="h-4 w-4 text-green-600" />
+                  <p className="text-xs font-semibold text-green-700 uppercase tracking-wide">
+                    Anggota Rombongan ({detailTamu!.anggotaRombongan!.length} orang)
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  {detailTamu!.anggotaRombongan!.map((anggota, i) => (
+                    <div
+                      key={i}
+                      className="flex items-start gap-2.5 rounded-lg border border-green-100 bg-white px-3 py-2.5"
+                    >
+                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green-100 text-[10px] font-bold text-green-700">
+                        {i + 1}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-slate-800">{anggota.nama}</p>
+                        <p className="text-xs text-slate-500">{anggota.email}</p>
+                        <p className="text-xs text-slate-400">{anggota.noTelp}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="bg-gray-50 rounded-xl border border-gray-200 p-4 space-y-1">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Status & Akses</p>

@@ -2,12 +2,8 @@
 
 import { useState, useEffect } from "react";
 import {
-  IdCardLanyard,
-  Trash2,
-  Eye,
-  Search,
-  IdCard,
-  Star,
+  IdCardLanyard, Trash2, Eye, Search, IdCard, Star,
+  UsersRound, ChevronDown, ChevronRight,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -23,8 +19,9 @@ import {
   AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-type TipeTamu   = "regular" | "vip";
-type FilterTipe = "semua" | "vip" | "regular";
+type TipeTamu        = "regular" | "vip";
+type FilterTipe      = "semua" | "vip" | "regular";
+type AnggotaRombongan = { nama: string; email: string; noTelp: string };
 
 type Visitor = {
   id: string;
@@ -36,6 +33,7 @@ type Visitor = {
   visitTime: string;
   checkin: string | null;
   tipeTamu: TipeTamu;
+  anggotaRombongan?: AnggotaRombongan[];
 };
 
 const formatDateTime = (date: string | null) => {
@@ -55,52 +53,109 @@ function Detail({ label, value }: { label: string; value: string }) {
   );
 }
 
-function RegularCard({ card, onDelete }: { card: Visitor; onDelete: (id: string) => void }) {
+function RombonganExpand({ anggota }: { anggota: AnggotaRombongan[] }) {
+  const [open, setOpen] = useState(false);
+
   return (
-    <div className="bg-white p-5 rounded-xl shadow-md border hover:shadow-lg transition">
-      <div className="flex justify-between items-center mb-4">
-        <div className="flex items-center gap-2">
-          <div className="bg-blue-100 text-blue-600 p-2 rounded-lg">
-            <IdCardLanyard size={18} />
-          </div>
-          <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
-            Reguler
-          </span>
+    <div className="mt-3 pt-3 border-t border-dashed border-slate-200">
+      <button
+        onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
+        className="flex w-full items-center justify-between text-xs font-medium text-slate-500 hover:text-slate-700 transition-colors"
+      >
+        <span className="flex items-center gap-1.5">
+          <UsersRound className="h-3.5 w-3.5" />
+          {anggota.length} Anggota Rombongan
+        </span>
+        {open
+          ? <ChevronDown className="h-3.5 w-3.5" />
+          : <ChevronRight className="h-3.5 w-3.5" />}
+      </button>
+
+      {open && (
+        <div className="mt-2.5 space-y-2">
+          {anggota.map((a, i) => (
+            <div key={i} className="flex items-start gap-2 rounded-lg bg-slate-50 border border-slate-100 px-2.5 py-2">
+              <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-200 text-[10px] font-bold text-slate-500">
+                {i + 1}
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-slate-700 truncate">{a.nama}</p>
+                <p className="text-[11px] text-slate-400 truncate">{a.email}</p>
+                <p className="text-[11px] text-slate-400">{a.noTelp}</p>
+              </div>
+            </div>
+          ))}
         </div>
-        <Actions card={card} onDelete={onDelete} />
-      </div>
-      <div className="space-y-1 text-sm">
-        <p className="font-semibold text-slate-800">{card.name}</p>
-        <p className="text-gray-500">{card.instansi}</p>
-        <p className="text-gray-500">{formatDateTime(card.visitDate)}</p>
-        <p className="text-xs text-gray-400">Check-in: {formatDateTime(card.checkin)}</p>
-      </div>
+      )}
     </div>
   );
 }
 
-function VipCard({ card, onDelete }: { card: Visitor; onDelete: (id: string) => void }) {
+function DetailSheet({ card }: { card: Visitor }) {
+  const hasRombongan = (card.anggotaRombongan ?? []).length > 0;
+
   return (
-    <div className="relative bg-gradient-to-br from-amber-50 to-yellow-50 p-5 rounded-xl shadow-md border border-amber-200 hover:shadow-lg transition overflow-hidden">
-      <div className="absolute top-0 right-0 w-20 h-20 bg-amber-100 rounded-bl-full opacity-50" />
-      <div className="flex justify-between items-center mb-4 relative">
-        <div className="flex items-center gap-2">
-          <div className="bg-amber-100 text-amber-600 p-2 rounded-lg">
-            <Star size={18} className="fill-amber-400 text-amber-500" />
-          </div>
-          <span className="text-xs font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-300">
-            ★ VIP
-          </span>
+    <SheetContent>
+      <SheetHeader>
+        <SheetTitle className="flex items-center gap-2">
+          Detail Tamu
+          {card.tipeTamu === "vip" && (
+            <span className="text-xs font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-300">
+              ★ VIP
+            </span>
+          )}
+          {hasRombongan && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500 border border-slate-200">
+              <UsersRound className="h-3 w-3" />
+              +{card.anggotaRombongan!.length}
+            </span>
+          )}
+        </SheetTitle>
+        <SheetDescription>Informasi lengkap tamu</SheetDescription>
+      </SheetHeader>
+
+      <div className="p-5 mt-6 space-y-4 text-sm overflow-y-auto max-h-[calc(100vh-180px)]">
+        <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 space-y-3">
+          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Identitas Tamu</p>
+          <Detail label="Nama"              value={card.name} />
+          <Detail label="Instansi"          value={card.instansi} />
+          <Detail label="Email"             value={card.email} />
+          <Detail label="No HP"             value={card.phone} />
+          <Detail label="Tipe Tamu"         value={card.tipeTamu === "vip" ? "VIP" : "Reguler"} />
+          <Detail label="Tanggal Kunjungan" value={formatDateTime(card.visitDate)} />
+          <Detail label="Check-in"          value={formatDateTime(card.checkin)} />
         </div>
-        <Actions card={card} onDelete={onDelete} />
+
+        {hasRombongan && (
+          <div className="rounded-xl border border-green-100 bg-green-50/50 p-4">
+            <p className="text-[11px] font-semibold text-green-600 uppercase tracking-wide mb-3 flex items-center gap-1.5">
+              <UsersRound className="h-3.5 w-3.5" />
+              Anggota Rombongan ({card.anggotaRombongan!.length} orang)
+            </p>
+            <div className="space-y-2">
+              {card.anggotaRombongan!.map((a, i) => (
+                <div key={i} className="flex items-start gap-2.5 rounded-lg border border-green-100 bg-white px-3 py-2.5">
+                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green-100 text-[10px] font-bold text-green-700">
+                    {i + 1}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-slate-800">{a.nama}</p>
+                    <p className="text-xs text-slate-500">{a.email}</p>
+                    <p className="text-xs text-slate-400">{a.noTelp}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
-      <div className="space-y-1 text-sm relative">
-        <p className="font-bold text-slate-800 text-base">{card.name}</p>
-        <p className="text-amber-700 font-medium">{card.instansi}</p>
-        <p className="text-gray-500">{formatDateTime(card.visitDate)}</p>
-        <p className="text-xs text-gray-400">Check-in: {formatDateTime(card.checkin)}</p>
-      </div>
-    </div>
+
+      <SheetFooter className="mt-6 px-5">
+        <SheetClose asChild>
+          <Button variant="outline">Tutup</Button>
+        </SheetClose>
+      </SheetFooter>
+    </SheetContent>
   );
 }
 
@@ -113,33 +168,7 @@ function Actions({ card, onDelete }: { card: Visitor; onDelete: (id: string) => 
             <Eye size={16} />
           </button>
         </SheetTrigger>
-        <SheetContent>
-          <SheetHeader>
-            <SheetTitle className="flex items-center gap-2">
-              Detail Tamu
-              {card.tipeTamu === "vip" && (
-                <span className="text-xs font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-300">
-                  ★ VIP
-                </span>
-              )}
-            </SheetTitle>
-            <SheetDescription>Informasi lengkap tamu</SheetDescription>
-          </SheetHeader>
-          <div className="p-5 mt-6 space-y-3 text-sm">
-            <Detail label="Nama"              value={card.name} />
-            <Detail label="Instansi"          value={card.instansi} />
-            <Detail label="Email"             value={card.email} />
-            <Detail label="No HP"             value={card.phone} />
-            <Detail label="Tipe Tamu"         value={card.tipeTamu === "vip" ? "VIP" : "Reguler"} />
-            <Detail label="Tanggal Kunjungan" value={formatDateTime(card.visitDate)} />
-            <Detail label="Check-in"          value={formatDateTime(card.checkin)} />
-          </div>
-          <SheetFooter className="mt-6">
-            <SheetClose asChild>
-              <Button variant="outline">Tutup</Button>
-            </SheetClose>
-          </SheetFooter>
-        </SheetContent>
+        <DetailSheet card={card} />
       </Sheet>
 
       <AlertDialog>
@@ -161,6 +190,81 @@ function Actions({ card, onDelete }: { card: Visitor; onDelete: (id: string) => 
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+    </div>
+  );
+}
+
+function RegularCard({ card, onDelete }: { card: Visitor; onDelete: (id: string) => void }) {
+  const hasRombongan = (card.anggotaRombongan ?? []).length > 0;
+
+  return (
+    <div className="bg-white p-5 rounded-xl shadow-md border hover:shadow-lg transition">
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex items-center gap-2">
+          <div className="bg-blue-100 text-blue-600 p-2 rounded-lg">
+            <IdCardLanyard size={18} />
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
+              Reguler
+            </span>
+            {hasRombongan && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500 border border-slate-200">
+                <UsersRound className="h-3 w-3" />
+                +{card.anggotaRombongan!.length}
+              </span>
+            )}
+          </div>
+        </div>
+        <Actions card={card} onDelete={onDelete} />
+      </div>
+      <div className="space-y-1 text-sm">
+        <p className="font-semibold text-slate-800">{card.name}</p>
+        <p className="text-gray-500">{card.instansi}</p>
+        <p className="text-gray-500">{formatDateTime(card.visitDate)}</p>
+        <p className="text-xs text-gray-400">Check-in: {formatDateTime(card.checkin)}</p>
+      </div>
+      {hasRombongan && (
+        <RombonganExpand anggota={card.anggotaRombongan!} />
+      )}
+    </div>
+  );
+}
+
+function VipCard({ card, onDelete }: { card: Visitor; onDelete: (id: string) => void }) {
+  const hasRombongan = (card.anggotaRombongan ?? []).length > 0;
+
+  return (
+    <div className="relative bg-gradient-to-br from-amber-50 to-yellow-50 p-5 rounded-xl shadow-md border border-amber-200 hover:shadow-lg transition overflow-hidden">
+      <div className="absolute top-0 right-0 w-20 h-20 bg-amber-100 rounded-bl-full opacity-50" />
+      <div className="flex justify-between items-center mb-4 relative">
+        <div className="flex items-center gap-2">
+          <div className="bg-amber-100 text-amber-600 p-2 rounded-lg">
+            <Star size={18} className="fill-amber-400 text-amber-500" />
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-300">
+              ★ VIP
+            </span>
+            {hasRombongan && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-600 border border-amber-200">
+                <UsersRound className="h-3 w-3" />
+                +{card.anggotaRombongan!.length}
+              </span>
+            )}
+          </div>
+        </div>
+        <Actions card={card} onDelete={onDelete} />
+      </div>
+      <div className="space-y-1 text-sm relative">
+        <p className="font-bold text-slate-800 text-base">{card.name}</p>
+        <p className="text-amber-700 font-medium">{card.instansi}</p>
+        <p className="text-gray-500">{formatDateTime(card.visitDate)}</p>
+        <p className="text-xs text-gray-400">Check-in: {formatDateTime(card.checkin)}</p>
+      </div>
+      {hasRombongan && (
+        <RombonganExpand anggota={card.anggotaRombongan!} />
+      )}
     </div>
   );
 }
@@ -233,7 +337,6 @@ export default function VisitorCardPage() {
     fetchData();
   }, []);
 
-  // Reset filter tipe saat pindah tab
   const handleTabChange = (val: string) => {
     setTab(val);
     setFilterTipe("semua");
@@ -254,8 +357,7 @@ export default function VisitorCardPage() {
       (item.name || "").toLowerCase().includes(keyword) ||
       (item.instansi || "").toLowerCase().includes(keyword) ||
       (item.email || "").toLowerCase().includes(keyword);
-    const matchTipe =
-      filterTipe === "semua" ? true : item.tipeTamu === filterTipe;
+    const matchTipe = filterTipe === "semua" ? true : item.tipeTamu === filterTipe;
     return matchSearch && matchTipe;
   });
 
@@ -315,7 +417,6 @@ export default function VisitorCardPage() {
           </TabsList>
         </Tabs>
 
-        {/* Toggle filter tipe — muncul di semua tab */}
         <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
           {([
             { val: "semua",   label: "Semua",   count: totalVip + totalRegular },

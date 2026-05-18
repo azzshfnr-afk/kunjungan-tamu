@@ -210,6 +210,11 @@ export async function GET(request: Request) {
         : "-",
       checkin: t.aktualCheckIn ?? null,
       checkout: t.aktualCheckOut ?? null,
+      anggotaRombongan: t.anggotaRombongan.map((a) =>({
+        nama: a.nama,
+        email: a.email,
+        noTelp: a.noTelp,
+      })),
     }));
 
     return NextResponse.json(result);
