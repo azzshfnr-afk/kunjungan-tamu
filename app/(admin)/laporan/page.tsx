@@ -712,7 +712,7 @@ export default function LaporanPage() {
               <div className="rounded-xl border border-green-200 bg-green-50/50 p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <UsersRound className="h-4 w-4 text-green-600" />
-                  <p className="text-xs font-semibold text-green-700 uppercase tracking-wide">
+                  <p className="text-xs font-semibold text-green-600 uppercase tracking-wide">
                     Anggota Rombongan ({detailTamu!.anggotaRombongan!.length} orang)
                   </p>
                 </div>
