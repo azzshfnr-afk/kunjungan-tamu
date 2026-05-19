@@ -37,6 +37,7 @@ export async function GET() {
       },
       include: {
         kartuNfc: true,
+        anggotaRombongan: true,
       },
       orderBy: {
         createdAt: 'desc',

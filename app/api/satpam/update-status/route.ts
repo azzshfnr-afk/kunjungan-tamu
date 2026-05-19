@@ -18,14 +18,35 @@ export async function POST(req: Request) {
 
     const waktuSekarang = waktuAktual ? new Date(waktuAktual) : new Date();
 
+    const jamTap = waktuSekarang.toLocaleTimeString("id-ID", {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "Asia/Jakarta"
+    });
+
+    const tapDenganJam = `${lokasiTap || "Area Umum"} (${jamTap})`;
+
     const tamuLama = await prisma.tamu.findUnique({
       where: { id: cleanId },
       select: { riwayatTap: true }
     });
 
     const riwayatBaru = tamuLama?.riwayatTap
-      ? `${tamuLama.riwayatTap}, ${lokasiTap || "Area Umum"}`
-      : (lokasiTap || "Area Umum");
+      ? `${tamuLama.riwayatTap}, ${tapDenganJam}`
+      : (tapDenganJam);
+
+    let finalAksesAktif = aksesAktif || "";
+    if (Array.isArray(selectedGedungs) && selectedGedungs.length > 0) {
+      finalAksesAktif = selectedGedungs.join(", ");
+    } else if (Array.isArray(selectedGedung) && selectedGedung.length > 0) {
+      finalAksesAktif = selectedGedung.join(", ");
+    } else if (Array.isArray(aksesTambahan) && aksesTambahan.length > 0) {
+      finalAksesAktif = aksesTambahan.join(", ");
+    }
+
+    if (gedungTujuan && !finalAksesAktif.includes(gedungTujuan)) {
+      finalAksesAktif = finalAksesAktif ? `${gedungTujuan}, ${finalAksesAktif}` : gedungTujuan;
+    }
 
     let finalGedungTujuan = gedungTujuan;
     if (Array.isArray(selectedGedung) && selectedGedung.length > 0) {
@@ -47,10 +68,10 @@ export async function POST(req: Request) {
         where: { id: cleanId },
         data: {
           statusKunjungan: statusKunjungan,
-          aksesAktif: aksesAktif,
+          aksesAktif: finalAksesAktif,
           selectedGedungs,
           nfcId: uidNfc,                 
-          aktualCheckIn: statusKunjungan === "Check-in" ? new Date(waktuAktual) : undefined,  
+          aktualCheckIn: statusKunjungan === "Check-in" ? waktuSekarang : undefined,  
           karyawanDituju: karyawanDituju,
           departemen: departemen,
           gedungTujuan: gedungTujuan, 

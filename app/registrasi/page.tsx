@@ -285,7 +285,7 @@ export default function HalamanRegistrasi() {
                                 <p className="text-2xl font-black tracking-wider text-green-800">{idKunjungan}</p>
                             </div>
                             <p className="text-center text-sm text-gray-500 leading-relaxed px-4">
-                                Tunjukkan QR Code ini kepada petugas Satpam di Gate 1 saat tiba di lokasi.
+                                Tunjukkan QR Code ini kepada petugas Satpam di Gate Utama saat tiba di lokasi.
                             </p>
                             <div className="absolute top-[52%] -left-4 w-8 h-8 bg-gray-50 rounded-full border-r-2 border-dashed border-gray-300"></div>
                             <div className="absolute top-[52%] -right-4 w-8 h-8 bg-gray-50 rounded-full border-r-2 border-dashed border-gray-300"></div>
