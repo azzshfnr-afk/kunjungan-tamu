@@ -318,10 +318,16 @@ export default function SatpamDashboard() {
 
         if (roleSatpam === "area") {
             const isTujuanUtama = tamu.gedungTujuan === lokasiArea;
-            const isVip = tamu.gedungTujuan === "VIP";
+            const isVip = tamu.gedungTujuan === "VIP" || tamu.isVip;
             const aksesStr = String(tamu.aksesAktif || "").toLowerCase();
             const areaCari = lokasiArea.toLowerCase().trim();
-            const isAksesTambahan = aksesStr.includes(areaCari);
+            let isAksesTambahan = false;
+            if (aksesStr) {
+                const listAkses = aksesStr.split(",").map(s => s.trim());
+                isAksesTambahan = listAkses.some(akses =>
+                    areaCari.includes(akses) || akses.includes(areaCari)
+                );
+            }
             
             return matchesSearch && matchesStatus && (isTujuanUtama || isVip || isAksesTambahan);
         }
@@ -977,6 +983,38 @@ export default function SatpamDashboard() {
                             <InfoRow label="Akses Aktif" nilai={tamuTerpilih?.aksesAktif || "Belum Ada"} />
                         </div>
 
+                        {/* TAMPILKAN DAFTAR ROMBONGAN REGULER PAS CEK KUNJUNGAN SEBELUM TAP KARTU */}
+                        {tamuTerpilih?.gedungTujuan !== "VIP" && tamuTerpilih?.anggotaRombongan && tamuTerpilih.anggotaRombongan.length > 0 && (
+                            <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-xl space-y-2 text-left">
+                                <p className="text-xs font-bold uppercase tracking-wider text-blue-700 flex items-center gap-1">
+                                    <UsersRound className="h-3.5 w-3.5" /> Verifikasi Anggota Rombongan ({tamuTerpilih.anggotaRombongan.length} Orang)
+                                </p>
+                                <div className="max-h-32 overflow-y-auto space-y-1.5 pr-1">
+                                    {tamuTerpilih.anggotaRombongan.map((anggota: any, idx: number) => (
+                                        <div key={idx} className="bg-white border border-slate-200 rounded-lg p-2 text-xs flex justify-between items-start">
+                                            <div>
+                                                <p className="font-bold text-slate-800">{idx + 1}. {anggota.nama}</p>
+                                                <p className="text-slate-500 text-[11px]">📞 {anggota.noTelp && anggota.noTelp !== "-" ? anggota.noTelp : "Tanpa No. HP"}</p>
+                                            </div>
+                                            <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono truncate max-w-[140px]">
+                                                {anggota.email && anggota.email !== "-" ? anggota.email : "no-email"}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* JIKA TAMU VIP PAS CEK KUNJUNGAN (CUMA SNEAK PEEK TOTAL JUMLAH SAJA) */}
+                        {(tamuTerpilih?.gedungTujuan === "VIP" || tamuTerpilih?.isVip) && (tamuTerpilih?.jumlahRombongan > 0 || tamuTerpilih?.jumlahAnggotaVip > 0) && (
+                            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-left flex items-center gap-2">
+                                <UsersRound className="h-4 w-4 text-amber-700" />
+                                <p className="text-xs font-bold text-amber-900">
+                                    Membawa Pengikut VIP: <span className="underline">+{tamuTerpilih?.jumlahRombongan || tamuTerpilih?.jumlahAnggotaVip} Orang</span>
+                                </p>
+                            </div>
+                        )}
+
                         {/* ========================================================== */}
                         {/* 🔥 BAGIAN RIWAYAT TAP AKTUAL (SISTEM TRACKING NFC) 🔥       */}
                         {/* ========================================================== */}
@@ -1198,21 +1236,22 @@ export function RombonganExpandRow({ anggota, colSpan }: { anggota: any[]; colSp
             <TableCell colSpan={colSpan} className="py-0 px-0">
                 <div className="px-6 py-4">
                     <div className="flex items-center gap-2 mb-3">
-                        <UsersRound className="h-4 w-4 text-slate-400" />
+                        <UsersRound className="h-4 w-4 text-blue-500" />
                         <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
                             Daftar Anggota Rombongan ({anggota.length} Orang)
                         </span>
                     </div>
+                    {/* Grid untuk menampilkan Nama, Email, dan No Telp Anggota Reguler */}
                     <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                         {anggota.map((a: any, i: number) => (
                             <div key={i} className="flex items-start gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
-                                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[10px] font-bold text-slate-500">
+                                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-50 text-[10px] font-bold text-blue-600 border border-blue-100">
                                     {i + 1}
                                 </div>
-                                <div className="min-w-0 flex-1">
-                                    <p className="truncate text-sm font-bold text-slate-700">{a.nama}</p>
-                                    <p className="truncate text-xs text-slate-500">{a.email !== "-" ? a.email : "Tidak ada email"}</p>
-                                    <p className="text-xs text-slate-500">{a.noTelp !== "-" ? a.noTelp : "Tidak ada no telp"}</p>
+                                <div className="min-w-0 flex-1 space-y-0.5">
+                                    <p className="truncate text-sm font-bold text-slate-700">{a.nama || "-"}</p>
+                                    <p className="truncate text-xs text-slate-500 font-mono">📧 {a.email && a.email !== "-" ? a.email : "Tidak ada email"}</p>
+                                    <p className="text-xs text-slate-500">📞 {a.noTelp && a.noTelp !== "-" ? a.noTelp : (a.noHp && a.noHp !== "-" ? a.noHp : "Tidak ada no telp")}</p>
                                 </div>
                             </div>
                         ))}
@@ -1230,7 +1269,7 @@ export function OverviewRow({
     setTamuTerpilih, 
     setStepScan, 
     setModalAction,
-    formatIdTamu 
+    formatIdTamu,
 }: { 
     item: any; 
     index: number; 
@@ -1241,58 +1280,64 @@ export function OverviewRow({
     formatIdTamu: (id: any, vip: boolean) => string;
 }) {
     const [expanded, setExpanded] = useState(false);
-    const hasRombongan = item.anggotaRombongan && item.anggotaRombongan.length > 0;
+    
+    const isVip = item.gedungTujuan === "VIP" || item.isVip;
+    const hasRombonganReguler = !isVip && item.anggotaRombongan && item.anggotaRombongan.length > 0;
+    const jumlahPengikutVip = item.jumlahRombongan || item.jumlahAnggotaVip || item.jumlahAnggota || 0;
+    
     const st = item.statusKunjungan || "Menunggu";
-
-    // Fungsi pembantu format tanggal internal komponen
-    const internalFmtDt = (val?: string) => {
-        if (!val) return "-";
-        const d = new Date(val);
-        if (isNaN(d.getTime())) return val;
-        return d.toLocaleString("id-ID", {
-            day: "2-digit", month: "short", year: "numeric",
-            hour: "2-digit", minute: "2-digit",
-        });
-    };
 
     return (
         <>
             <TableRow 
+                onClick={() => hasRombonganReguler && setExpanded((v) => !v)}
                 className={`${
-                    item.gedungTujuan === "VIP" 
+                    isVip 
                         ? "bg-amber-50/50 hover:bg-amber-100/60" 
-                        : hasRombongan 
+                        : hasRombonganReguler 
                             ? "bg-blue-50/30 hover:bg-blue-50/60" 
                             : "hover:bg-slate-50"
-                } ${hasRombongan ? "cursor-pointer border-l-4 border-l-blue-500" : ""} transition-colors text-sm`}
-                onClick={() => hasRombongan && setExpanded((v) => !v)}
+                } ${hasRombonganReguler ? "cursor-pointer border-l-4 border-l-blue-500" : ""} transition-colors text-sm`}
             >
                 <TableCell className="px-3 py-2.5 font-mono text-xs text-slate-700 whitespace-nowrap">{item.id || "-"}</TableCell>
-                <TableCell className="font-bold text-slate-700">{formatIdTamu(item.id, item.gedungTujuan === "VIP")}</TableCell>
+                <TableCell className="font-bold text-slate-700">{formatIdTamu(item.id, isVip)}</TableCell>
                 <TableCell className="px-3 py-2.5 font-mono text-xs text-slate-600">{item.nfcId || "-"}</TableCell>
+                
                 <TableCell className="font-semibold text-slate-800">
                     <div className="flex items-center gap-2">
                         {item.namaTamu || "-"}
-                        {item.gedungTujuan === "VIP" && (
+                        
+                        {isVip && (
                             <span className="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full text-[10px] font-bold border border-amber-300">VIP</span>
                         )}
-                        {hasRombongan && (
+                        
+                        {/* Rombongan Reguler (Bisa di-klik expand) */}
+                        {hasRombonganReguler && (
                             <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 text-blue-700 px-2 py-0.5 text-[10px] font-bold">
                                 <UsersRound className="h-3 w-3" />
                                 +{item.anggotaRombongan.length}
                                 {expanded ? <ChevronDown className="h-3 w-3 ml-0.5" /> : <ChevronRight className="h-3 w-3 ml-0.5" />}
                             </span>
                         )}
+
+                        {/* Rombongan VIP (HANYA TEXT ANGKA JUMLAH SAJA, GA BISA DI-EXPAND) */}
+                        {isVip && jumlahPengikutVip > 0 && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-100/80 text-amber-800 px-2 py-0.5 text-[10px] font-bold border border-amber-200">
+                                <UsersRound className="h-3 w-3" />
+                                +{jumlahPengikutVip} Rombongan
+                            </span>
+                        )}
                     </div>
                 </TableCell>
+                
                 <TableCell className="px-3 py-2.5 text-slate-600">{item.asalInstansi || "-"}</TableCell>
                 <TableCell className="px-3 py-2.5 text-slate-600 text-xs">{item.email || "-"}</TableCell>
-                <TableCell className="px-3 py-2.5 text-slate-600 truncate max-w-[150px]">{item.tujuanKunjungan || "-"}</TableCell>
-                <TableCell className="px-3 py-2.5 text-slate-600">{item.karyawanDituju || "-"}</TableCell>
-                <TableCell className="px-3 py-2.5 text-xs">{internalFmtDt(item.waktuCheckIn)}</TableCell>
-                <TableCell className="px-3 py-2.5 text-xs">{internalFmtDt(item.waktuCheckOut)}</TableCell>
+                <TableCell className="px-3 py-2.5 text-slate-600 truncate max-w-[150px]">{item.tujuanKunjungan || item.tujuanVip || "-"}</TableCell>
+                <TableCell className="px-3 py-2.5 text-slate-600">{item.karyawanDituju || "Direksi / Manajemen"}</TableCell>
+                <TableCell className="px-3 py-2.5 text-xs">{fmtDt(item.waktuCheckIn)}</TableCell>
+                <TableCell className="px-3 py-2.5 text-xs">{fmtDt(item.waktuCheckOut)}</TableCell>
+                
                 <TableCell>
-                    {/* StatusBadge diakses karena satu file */}
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold ring-1 ${
                         st === "Menunggu" || st === "Menunggu Gate Utama" ? "bg-yellow-100 text-yellow-800 ring-yellow-300" :
                         st === "Check-in" ? "bg-blue-100 text-blue-800 ring-blue-300" :
@@ -1302,6 +1347,7 @@ export function OverviewRow({
                         {st}
                     </span>
                 </TableCell>
+                
                 <TableCell onClick={(e) => e.stopPropagation()}>
                     <div className="flex gap-1">
                         {roleSatpam === "gateUtama" && (
@@ -1334,6 +1380,7 @@ export function OverviewRow({
                         )}
                     </div>
                 </TableCell>
+                
                 <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setTamuTerpilih(item); setModalAction("detail"); }}>
                         <Eye className="h-4 w-4" />
@@ -1341,7 +1388,7 @@ export function OverviewRow({
                 </TableCell>
             </TableRow>
 
-            {hasRombongan && expanded && (
+            {hasRombonganReguler && expanded && (
                 <RombonganExpandRow anggota={item.anggotaRombongan} colSpan={13} />
             )}
         </>
