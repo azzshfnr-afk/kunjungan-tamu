@@ -1,11 +1,18 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Fragment } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Users, Clock, CheckCircle2, Bell, X, Check } from "lucide-react";
 
+
 type GuestType   = "regular" | "vip";
 type GuestStatus = "Diterima" | "Ditolak" | "Menunggu";
+
+interface AnggotaRombongan {
+  nama: string;
+  email: string;
+  noTelp: string;
+}
 
 interface Guest {
   id: string;
@@ -17,6 +24,7 @@ interface Guest {
   phone: string;
   karyawan: string;
   status: GuestStatus;
+  anggotaRombongan: AnggotaRombongan[];
 }
 
 interface HistoryGuest extends Guest {
@@ -26,6 +34,7 @@ interface HistoryGuest extends Guest {
 interface Props {
   namaKaryawan: string | null;
 }
+
 
 function getInitials(name: string) {
   return name.split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase();
@@ -48,8 +57,7 @@ function isToday(dateString: string | null | undefined) {
 }
 
 function isWaiting(t: any) {
-    if (t.status === "Diterima" || t.status === "Ditolak") return false;
-
+  if (t.status === "Diterima" || t.status === "Ditolak") return false;
   return (
     t.status === "Menunggu" ||
     t.status === "Menunggu Kedatangan" ||
@@ -80,6 +88,7 @@ function normalizeNama(name: string) {
   return name.trim().toLowerCase();
 }
 
+
 function NotifBanner({ guest, onClose }: { guest: Guest; onClose: () => void }) {
   return (
     <div className="flex items-start gap-3 rounded-xl border border-green-200 border-l-4 border-l-green-500 bg-green-50 px-4 py-3 mb-6">
@@ -98,6 +107,30 @@ function NotifBanner({ guest, onClose }: { guest: Guest; onClose: () => void }) 
   );
 }
 
+
+function RombonganList({ anggota }: { anggota: AnggotaRombongan[] }) {
+  return (
+    <div className="grid gap-1.5 sm:grid-cols-2">
+      {anggota.map((a, i) => (
+        <div
+          key={i}
+          className="flex items-start gap-2.5 rounded-lg border border-slate-200 bg-white px-3 py-2.5 shadow-sm"
+        >
+          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[10px] font-bold text-slate-500">
+            {i + 1}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium text-slate-700">{a.nama}</p>
+            <p className="truncate text-xs text-slate-400">{a.email}</p>
+            <p className="text-xs text-slate-400">{a.noTelp}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+
 function GuestCard({
   guest, onAccept, onReject, loading,
 }: {
@@ -106,8 +139,10 @@ function GuestCard({
   onReject: (id: string) => void;
   loading: string | null;
 }) {
-  const isVip        = guest.tipeTamu === "vip";
-  const isProcessing = loading === guest.id;
+  const [expanded, setExpanded] = useState(false);
+  const isVip                   = guest.tipeTamu === "vip";
+  const isProcessing            = loading === guest.id;
+  const hasRombongan            = guest.anggotaRombongan.length > 0;
 
   return (
     <Card className="border shadow-sm hover:shadow-md transition-shadow">
@@ -116,16 +151,42 @@ function GuestCard({
           <div className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold ${isVip ? "bg-amber-100 text-amber-800" : "bg-blue-100 text-blue-800"}`}>
             {getInitials(guest.name)}
           </div>
-          <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${isVip ? "bg-amber-100 text-amber-700 border border-amber-200" : "bg-blue-100 text-blue-700 border border-blue-200"}`}>
-            {isVip ? "★ VIP" : "Reguler"}
-          </span>
+          <div className="flex items-center gap-1.5">
+            {hasRombongan && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">
+                👥 +{guest.anggotaRombongan.length} orang
+              </span>
+            )}
+            <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${isVip ? "bg-amber-100 text-amber-700 border border-amber-200" : "bg-blue-100 text-blue-700 border border-blue-200"}`}>
+              {isVip ? "★ VIP" : "Reguler"}
+            </span>
+          </div>
         </div>
+
         <p className="font-semibold text-slate-800 mb-1">{guest.name}</p>
         <p className="text-sm text-slate-500 mb-3 leading-relaxed">{guest.tujuanKunjungan}</p>
         <div className="flex gap-4 text-xs text-slate-400 mb-4">
           <span>📍 <span className="text-slate-600 font-medium">{guest.departemen}</span></span>
           <span>🕐 <span className="text-slate-600 font-medium">{guest.visitTime}</span></span>
         </div>
+
+        {hasRombongan && (
+          <div className="mb-3">
+            <button
+              onClick={() => setExpanded((v) => !v)}
+              className="flex w-full items-center justify-between rounded-lg bg-slate-50 border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 transition-colors"
+            >
+              <span>Anggota Rombongan ({guest.anggotaRombongan.length} orang)</span>
+              <span className="text-slate-400 text-[10px]">{expanded ? "▲" : "▼"}</span>
+            </button>
+            {expanded && (
+              <div className="mt-2">
+                <RombonganList anggota={guest.anggotaRombongan} />
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="flex gap-2">
           <button
             onClick={() => onAccept(guest.id)}
@@ -153,7 +214,10 @@ function GuestCard({
   );
 }
 
+
 function HistoryTable({ history }: { history: HistoryGuest[] }) {
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
+
   return (
     <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
       <table className="w-full text-sm">
@@ -165,40 +229,84 @@ function HistoryTable({ history }: { history: HistoryGuest[] }) {
             <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Jam</th>
             <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Diproses</th>
             <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Status</th>
+            <th className="w-8" />
           </tr>
         </thead>
         <tbody>
           {history.length === 0 ? (
             <tr>
-              <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
+              <td colSpan={7} className="px-4 py-8 text-center text-slate-400">
                 Belum ada riwayat tamu hari ini.
               </td>
             </tr>
           ) : (
-            history.map((h) => (
-              <tr key={`${h.id}-${h.processedAt}`} className="border-b last:border-0 hover:bg-slate-50 transition-colors">
-                <td className="px-4 py-3 font-medium text-slate-800">{h.name}</td>
-                <td className="px-4 py-3 text-slate-500 max-w-[200px] truncate">{h.tujuanKunjungan}</td>
-                <td className="px-4 py-3">
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${h.tipeTamu === "vip" ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"}`}>
-                    {h.tipeTamu === "vip" ? "★ VIP" : "Reguler"}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-slate-500">{h.visitTime}</td>
-                <td className="px-4 py-3 text-slate-500">{h.processedAt}</td>
-                <td className="px-4 py-3">
-                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${h.status === "Diterima" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
-                    {h.status}
-                  </span>
-                </td>
-              </tr>
-            ))
+            history.map((h) => {
+              const hasRombongan = h.anggotaRombongan && h.anggotaRombongan.length > 0;
+              const rowKey       = `${h.id}-${h.processedAt}`;
+              const isExpanded   = expandedKey === rowKey;
+
+              return (
+                <Fragment key={rowKey}>
+                  <tr
+                    onClick={() => hasRombongan && setExpandedKey(isExpanded ? null : rowKey)}
+                    className={`border-b last:border-0 transition-colors hover:bg-slate-50 ${hasRombongan ? "cursor-pointer" : ""}`}
+                  >
+                    <td className="px-4 py-3 font-medium text-slate-800">
+                      <div className="flex items-center gap-1.5">
+                        {h.name}
+                        {hasRombongan && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
+                            👥 +{h.anggotaRombongan.length}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+
+                    <td className="px-4 py-3 text-slate-500 max-w-[200px] truncate">{h.tujuanKunjungan}</td>
+
+                    <td className="px-4 py-3">
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${h.tipeTamu === "vip" ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"}`}>
+                        {h.tipeTamu === "vip" ? "★ VIP" : "Reguler"}
+                      </span>
+                    </td>
+
+                    <td className="px-4 py-3 text-slate-500">{h.visitTime}</td>
+
+                    <td className="px-4 py-3 text-slate-500">{h.processedAt}</td>
+
+                    <td className="px-4 py-3">
+                      <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${h.status === "Diterima" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                        {h.status}
+                      </span>
+                    </td>
+
+                    <td className="px-4 py-3 text-center text-slate-400 text-xs">
+                      {hasRombongan && (isExpanded ? "▲" : "▶")}
+                    </td>
+                  </tr>
+
+                  {hasRombongan && isExpanded && (
+                    <tr key={`${rowKey}-expand`} className="border-b border-dashed border-slate-200 bg-slate-50/80">
+                      <td colSpan={7} className="px-6 py-3">
+                        <div className="flex items-center gap-2 mb-2.5">
+                          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                            👥 Anggota Rombongan ({h.anggotaRombongan.length} orang)
+                          </span>
+                        </div>
+                        <RombonganList anggota={h.anggotaRombongan} />
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              );
+            })
           )}
         </tbody>
       </table>
     </div>
   );
 }
+
 
 export default function DashboardClient({ namaKaryawan }: Props) {
   const [waitingGuests, setWaitingGuests] = useState<Guest[]>([]);
@@ -214,7 +322,7 @@ export default function DashboardClient({ namaKaryawan }: Props) {
       const res = await fetch("/api/tamu");
       if (!res.ok) throw new Error("Gagal mengambil data tamu.");
       const data: any[] = await res.json();
-      console.log("raw status:", data.slice(0,3).map(t => ({ id: t.id, status: t.status, statusKunjungan: t.statusKunjungan })));
+      console.log("raw status:", data.slice(0, 3).map(t => ({ id: t.id, status: t.status, statusKunjungan: t.statusKunjungan })));
 
       const waiting:   Guest[]        = [];
       const processed: HistoryGuest[] = [];
@@ -229,15 +337,16 @@ export default function DashboardClient({ namaKaryawan }: Props) {
         }
 
         const guest: Guest = {
-          id:              String(t.id),
-          name:            t.name             || "-",
-          tujuanKunjungan: t.tujuanKunjungan  || t.instansi || "-",
-          departemen:      t.departemen       || "-",
-          visitTime:       t.visitTime        || "-",
-          tipeTamu:        t.tipeTamu === "vip" ? "vip" : "regular",
-          phone:           t.phone            || "-",
-          karyawan:        t.karyawan         || "-",
-          status:          mapStatus(t),
+          id:               String(t.id),
+          name:             t.name             || "-",
+          tujuanKunjungan:  t.tujuanKunjungan  || t.instansi || "-",
+          departemen:       t.departemen       || "-",
+          visitTime:        t.visitTime        || "-",
+          tipeTamu:         t.tipeTamu === "vip" ? "vip" : "regular",
+          phone:            t.phone            || "-",
+          karyawan:         t.karyawan         || "-",
+          status:           mapStatus(t),
+          anggotaRombongan: t.anggotaRombongan || [],
         };
 
         if (isWaiting(t)) {
