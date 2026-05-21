@@ -70,13 +70,6 @@ export default function AdminLoginPage() {
             <div className="w-5 h-5 rounded-full bg-gray-400 overflow-hidden">
               <div className="w-full h-full bg-gradient-to-br from-gray-300 to-gray-500 rounded-full" />
             </div>
-            <span className="text-gray-400 text-sm">
-              Built by{" "}
-              <span className="text-white underline underline-offset-2 cursor-pointer">
-                Anak Sholeh & Sholehah
-              </span>
-              . Praktikan TI PKC.
-            </span>
           </div>
         </div>
       </div>
@@ -84,16 +77,10 @@ export default function AdminLoginPage() {
       <div className="flex-1 flex items-center justify-center bg-[#0d0d0d] px-8">
         <div className="w-full max-w-sm">
 
-          <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-xl bg-white/10 border border-white/10">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
-              stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-            </svg>
-          </div>
 
           <h1 className="text-white text-3xl font-bold mb-1">Admin Login</h1>
           <p className="text-gray-400 text-sm mb-6">
-            Masuk menggunakan akun SSO Pupuk Kujang
+            Enter your account below to log into your application
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-3">
