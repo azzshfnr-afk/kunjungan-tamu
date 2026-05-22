@@ -443,9 +443,9 @@ export default function Page() {
           <div className="rounded-xl border bg-background shadow-sm overflow-hidden">
             <div className="flex flex-col sm:flex-row items-center justify-between border-b p-4 gap-4">
               <div>
-                <h2 className="font-semibold">Aktivitas Hari Ini</h2>
+                <h2 className="font-semibold">Recent Activity</h2>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Klik baris rombongan untuk melihat detail anggota
+                  Pantau semua aktivitas tamu hari ini
                 </p>
               </div>
               <div className="relative w-full sm:w-64">
