@@ -1,21 +1,15 @@
 import Link from "next/link";
 import { ArrowRight, MapPin, Users, Phone, Mail } from "lucide-react";
-import { Button } from "@/components/ui/button"; // Sesuaikan path shadcn lu
-import { Navbar } from "@/components/Navbar"; // IMPORT NAVBAR PUNYA LU DI SINI
+import { Button } from "@/components/ui/button"; 
+import { Navbar } from "@/components/Navbar"; 
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
-      
-      {/* --- PANGGIL NAVBAR LU --- */}
       <Navbar halamanAktif="beranda" />
-
-      {/* --- KONTEN UTAMA --- */}
       <main className="flex-1 flex flex-col items-center p-6 md:p-12">
         
         <div className="max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 gap-12 items-center mt-8 md:mt-12">
-          
-          {/* Bagian Kiri: Tentang Kujang */}
           <div className="space-y-6">
             <h1 className="text-3xl md:text-5xl font-extrabold text-slate-900 leading-tight">
               PT Pupuk Kujang
@@ -41,8 +35,6 @@ export default function Home() {
               </div>
             </div>
           </div>
-
-          {/* Bagian Kanan: Card Masuk Registrasi */}
           <div className="bg-white rounded-2xl shadow-xl border border-slate-100 p-8 space-y-6">
             <div className="space-y-2 text-center border-b border-slate-100 pb-6">
               <h2 className="text-2xl font-bold text-slate-800">Sistem Buku Tamu</h2>
@@ -58,7 +50,6 @@ export default function Home() {
                 </p>
               </div>
 
-              {/* Link ini sudah diarahkan ke "/registrasi" sesuai menu item navbar lu */}
               <Link href="/registrasi" className="block w-full">
                 <Button className="w-full bg-green-600 hover:bg-green-700 text-white h-14 text-lg rounded-xl shadow-md transition-all hover:shadow-lg flex items-center justify-center gap-2">
                   Lanjut ke Formulir Tamu
@@ -67,18 +58,13 @@ export default function Home() {
               </Link>
             </div>
           </div>
-
         </div>
-
       </main>
-
-      {/* --- FOOTER --- */}
       <footer className="bg-white border-t border-slate-200 py-6 text-center mt-auto">
         <p className="text-sm text-slate-500">
           &copy; {new Date().getFullYear()} PT Pupuk Kujang. Sistem Manajemen Kunjungan Tamu.
         </p>
       </footer>
-      
     </div>
   );
 }

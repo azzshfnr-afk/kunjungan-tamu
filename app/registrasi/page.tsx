@@ -78,6 +78,7 @@ function PanduanK3({ open, onOpenChange, onAgree }: { open: boolean; onOpenChang
         </Dialog>
     );
 }
+
 function KomponenStep({ posisiHalaman }: { posisiHalaman: number }) {
     const namaStep = ["Data Tamu", "Detail Kunjungan", "Konfirmasi"];
     return (
@@ -104,6 +105,7 @@ function KomponenStep({ posisiHalaman }: { posisiHalaman: number }) {
         </div>
     );
 }
+
 function TabelKonfirmasi({ label, nilai }: { label: string; nilai: any }) {
     return (
         <div className="flex justify-between text-sm py-1.5 gap-2 border-b border-gray-50 last:border-0">
@@ -112,6 +114,7 @@ function TabelKonfirmasi({ label, nilai }: { label: string; nilai: any }) {
         </div>
     );
 }
+
 export default function HalamanRegistrasi() {
     const [posisiHalaman, setPosisiHalaman] = useState(1);
     const [PanduanK3Tampil, setPanduanK3Tampil] = useState(false);
@@ -270,7 +273,6 @@ export default function HalamanRegistrasi() {
                     <div className="flex flex-col items-center justify-center w-full mt-4">
                         <div className="relative w-full max-w-md bg-white border-2 border-dashed-gray-300 rounded-3xl p-8 flex flex-col items-center gap-6 shadow-sm overflow-hidden">
                             <div className="flex flex-col items-center text-center gap-2">
-                                <div className="text-6xl mb-2">✅</div>
                                 <h2 className="text-2xl font-bold text-gray-800">Registrasi Berhasil</h2>
                                 <p className="text-gray-600 text-sm mt-1">
                                     Cek email <strong className="text-gray-900">{dataForm.email}</strong> untuk QR Code dan detail kunjungan.
@@ -302,6 +304,7 @@ export default function HalamanRegistrasi() {
             </div>
         );
     }
+    
     return (
         <div className="min-h-screen bg-gray-50 font-sans">
             <Navbar halamanAktif="registrasi"/>

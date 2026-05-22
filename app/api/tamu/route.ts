@@ -98,22 +98,25 @@ export async function POST(request: Request) {
           subject: "Pendaftaran Kunjungan Berhasil - Pupuk Kujang",
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
-              <div style="background-color: #4CAF50; color: white; padding: 20px; text-align: center;">
-                <h2 style="margin: 0; font-size: 24px; font-weight: bold;">Tiket Kunjungan Disetujui</h2>
-                <p style="margin: 8px 0 0 0; font-size: 14px;">PT Pupuk Kujang Cikampek</p>
-              </div>
-              <div style="padding: 30px; color: #333; background-color: #ffffff;">
-                <p>Halo <strong>${namaTamu}</strong>,</p>
-                <p>Registrasi kunjungan Anda telah berhasil. Berikut adalah detail rencana kunjungan Anda:</p>
-
-                <table style="width: 100%; margin-top: 20px; border-collapse: collapse;">
-                  <tr><td style="padding: 10px 0; color: #666; border-bottom: 1px solid #eee;">ID Kunjungan</td>    <td style="font-weight: bold; border-bottom: 1px solid #eee; color: #4CAF50;">${formatIdEmail}</td></tr>
-                  <tr><td style="padding: 10px 0; color: #666; border-bottom: 1px solid #eee;">NIK Terdaftar</td>   <td style="font-weight: bold; border-bottom: 1px solid #eee;">${nik || "-"}</td></tr>
-                  <tr><td style="padding: 10px 0; color: #666; border-bottom: 1px solid #eee;">Tujuan Kunjungan</td><td style="font-weight: bold; border-bottom: 1px solid #eee;">${tujuanKunjungan || "-"}</td></tr>
-                  <tr><td style="padding: 10px 0; color: #666; border-bottom: 1px solid #eee;">Karyawan Dituju</td> <td style="font-weight: bold; border-bottom: 1px solid #eee;">${karyawanDituju} (${departemen})</td></tr>
-                  <tr><td style="padding: 10px 0; color: #666; border-bottom: 1px solid #eee;">Gedung Tujuan</td>   <td style="font-weight: bold; border-bottom: 1px solid #eee;">${gedungTujuan || "-"}</td></tr>
-                  <tr><td style="padding: 10px 0; color: #666; border-bottom: 1px solid #eee;">Rencana Check-in</td><td style="font-weight: bold; border-bottom: 1px solid #eee;">${tanggalFormat} - ${jamMasuk} WIB</td></tr>
-                </table>
+                <div style="background-color: #4CAF50; color: white; padding: 20px; text-align: center;">
+                    <h2 style="margin: 0; font-size: 24px; font-weight: bold;">Tiket Kunjungan Tamu</h2>
+                    <p style="margin: 8px 0 0 0; font-size: 14px;">PT Pupuk Kujang Cikampek</p>
+                </div>
+                <div style="padding: 30px; color: #333; background-color: #ffffff;">
+                    <p>Halo <strong>${namaTamu}</strong>,</p>
+                    <p>Registrasi kunjungan Anda telah berhasil. Berikut adalah detail rencana kunjungan Anda:</p>
+                    
+                    <table style="width: 100%; margin-top: 20px; border-collapse: collapse;">
+                        <tr><td style="padding: 10px 0; color: #666; border-bottom: 1px solid #eee;">ID Kunjungan</td><td style="font-weight: bold; border-bottom: 1px solid #eee; color: #4CAF50;">${formatIdEmail}</td></tr>
+                        <tr>
+                            <td style="padding: 10px 0; color: #666; border-bottom: 1px solid #eee;">NIK Terdaftar</td>
+                            <td style="font-weight: bold; border-bottom: 1px solid #eee;">${nik || "-"}</td>
+                        </tr>
+                        <tr><td style="padding: 10px 0; color: #666; border-bottom: 1px solid #eee;">Tujuan Kunjungan</td><td style="font-weight: bold; border-bottom: 1px solid #eee;">${tujuanKunjungan || "-"}</td></tr>
+                        <tr><td style="padding: 10px 0; color: #666; border-bottom: 1px solid #eee;">Karyawan Dituju</td><td style="font-weight: bold; border-bottom: 1px solid #eee;">${karyawanDituju} (${departemen})</td></tr>
+                        <tr><td style="padding: 10px 0; color: #666; border-bottom: 1px solid #eee;">Gedung Tujuan</td><td style="font-weight: bold; border-bottom: 1px solid #eee;">${gedungTujuan || "-"}</td></tr>
+                        <tr><td style="padding: 10px 0; color: #666; border-bottom: 1px solid #eee;">Rencana Check-in</td><td style="font-weight: bold; border-bottom: 1px solid #eee;">${tanggalFormat} - ${jamMasuk} WIB</td></tr>
+                    </table>
 
                 <div style="margin-top: 30px; padding: 25px; border: 2px dashed #4CAF50; text-align: center; border-radius: 12px; background-color: #f9fff9;">
                   <p style="font-size: 16px; font-weight: bold; color: #2e7d32; margin-bottom: 15px;">QR CODE AKSES</p>
@@ -165,23 +168,23 @@ export async function GET(request: Request) {
     const email = searchParams.get('email');
 
     if (email) {
-      const dataKunjungan = await prisma.tamu.findFirst({
-        where: {
-          OR: [
-            { email: email },
-            { anggotaRombongan: { some: { email: email } } },
-          ],
-        },
-        include: { anggotaRombongan: true },
-        orderBy: { id: 'desc' },
-      });
+    const dataKunjungan = await prisma.tamu.findMany({
+      where: {
+        OR: [
+          { email: email },
+          { anggotaRombongan: { some: { email: email } } },
+        ],
+      },
+      include: { anggotaRombongan: true },
+      orderBy: { id: 'desc' }, 
+    });
 
-      if (!dataKunjungan) {
-        return NextResponse.json({ message: 'Data tidak ditemukan' }, { status: 404 });
-      }
-
-      return NextResponse.json({ message: 'Sukses', data: dataKunjungan }, { status: 200 });
+    if (!dataKunjungan || dataKunjungan.length === 0) {
+      return NextResponse.json({ message: 'Data tidak ditemukan' }, { status: 404 });
     }
+
+    return NextResponse.json({ message: 'Sukses', data: dataKunjungan }, { status: 200 });
+  }
 
     const semuaTamu = await prisma.tamu.findMany({
       include: { anggotaRombongan: true },
@@ -213,7 +216,6 @@ export async function GET(request: Request) {
         noTelp: a.noTelp,
       })),
     }));
-
     return NextResponse.json(result);
   } catch (error: any) {
     return NextResponse.json(

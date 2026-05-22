@@ -1,4 +1,4 @@
-"use client"; // <-- WAJIB TAMBAHIN INI BIAR BISA PAKE ONCLICK
+"use client"; 
 
 import Image from "next/image";
 import Link from "next/link";
@@ -14,7 +14,6 @@ export function Navbar({ halamanAktif }: { halamanAktif?: string }) {
         <nav className="bg-white border-b border-gray-200 py-3 sticky top-0 z-[100]">
             <div className="max-w-6xl mx-auto px-6 flex items-center justify-between">
 
-                {/* GANTI DI SINI: Pakai button dan window.location.reload() */}
                 <button 
                     onClick={() => window.location.reload()} 
                     className="flex items-center gap-3 hover:opacity-80 transition-all text-left cursor-pointer"

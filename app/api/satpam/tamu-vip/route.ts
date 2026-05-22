@@ -11,11 +11,7 @@ export async function POST(req: Request) {
       minute: "2-digit",
       timeZone: "Asia/Jakarta"
     });
-
-    // Validasi & parsing angka jumlah anggota
     const totalAnggota = parseInt(jumlahAnggota) || 0;
-
-    // Bikin array object kosong buat bulk insert ke model AnggotaRombongan
     const listAnggotaDummy = [];
     for (let i = 0; i < totalAnggota; i++) {
       listAnggotaDummy.push({
@@ -24,7 +20,6 @@ export async function POST(req: Request) {
         noTelp: "-"
       });
     }
-
     const tamuVip = await prisma.tamu.create({
       data: {
         namaTamu: namaTamu,
@@ -43,14 +38,11 @@ export async function POST(req: Request) {
         email: "-",
         karyawanDituju: "-",
         gedungTujuan: "VIP",
-
-        // 🔥 LOGIKA SAKTI: OTOMATIS DAFTARIN ANGGOTA TANPA INPUT FORM SATU-SATU 🔥
         anggotaRombongan: {
           create: listAnggotaDummy
         }
       },
     });
-
     return NextResponse.json({ ok: true, data: tamuVip });
   } catch (error) {
     console.error("==== ERROR BIKIN VIP DI DATABASE ====", error);

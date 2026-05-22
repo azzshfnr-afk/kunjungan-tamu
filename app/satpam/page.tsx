@@ -126,7 +126,7 @@ export default function SatpamDashboard() {
     const [lokasiArea, setLokasiArea]   = useState("Gedung Diklat");
     const [searchQuery, setSearchQuery] = useState("");
     const [stepScan, setStepScan]       = useState(1);
-    const [modalAction, setModalAction] = useState<"checkin" | "checkout" | "detail" | "scan_checkout" | null>(null);
+    const [modalAction, setModalAction] = useState<"checkin" | "checkout" | "detail" | "scan_checkout" | "checkout_confirm" | null>(null);
     const [tamuTerpilih, setTamuTerpilih] = useState<any>(null);
     const [selectedGedung, setSelectedGedung] = useState<string>(""); 
     const [aksesTambahan, setAksesTambahan] = useState<string[]>([]);
@@ -196,7 +196,6 @@ export default function SatpamDashboard() {
         setDataTamu((prev) => 
             prev.map((t) => t.id === id ? { ...t, statusKunjungan: status, ...dataTambahan } : t)
         );
-
         try {
             const res = await fetch("/api/satpam/update-status", {
                 method: "POST",
@@ -210,7 +209,6 @@ export default function SatpamDashboard() {
                     ...dataTambahan
                 }),
             });
-            
             if (!res.ok) {
                 const err = await res.json();
                 throw new Error(err.message || "Gagal update");
@@ -240,16 +238,13 @@ export default function SatpamDashboard() {
         return isVip ? `VIP-${nomorFormat}` : `PKC-${nomorFormat}`;
     };
 
-    // 1. CARI FUNGSI INI DI KODE LU (Sekitar baris 170-an)
     const handleDaftarVip = async () => {
         if (!uidNfc) {
             alert("Harap tap kartu NFC VIP terlebih dahulu!");
             return;
         }
-
         try {
             setIsLoadingVip(true);
-
             const aksesArr = [];
             if (aksesBeri.gateUtama) aksesArr.push("Gate Utama");
             if (aksesBeri.gateParkir) aksesArr.push("Gate Parkir");
@@ -260,7 +255,6 @@ export default function SatpamDashboard() {
             if (aksesBeri.mo) aksesArr.push("Gedung MO");
             if (aksesBeri.lc) aksesArr.push("Gedung LC");
             const finalAkses = aksesArr.join(", ") || "Gate Utama";
-
             const res = await fetch("/api/satpam/tamu-vip", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -278,11 +272,8 @@ export default function SatpamDashboard() {
             });
 
             const dataRes = await res.json();
-
             if (res.ok && dataRes.data) {
                 setIsModalVipOpen(false);
-                
-                // Reset form
                 setNamaVip("");
                 setInstansiVip("");
                 setTujuanVip("");
@@ -294,7 +285,6 @@ export default function SatpamDashboard() {
                     gateUtama: false, gateParkir: false, gpa: false, diklat: false,
                     pabrik1a: false, pabrik1b: false, mo: false, lc: false
                 });
-
                 window.location.reload();
             } else {
                 alert("Gagal simpan VIP: " + (dataRes.message || "Cek terminal"));
@@ -307,15 +297,27 @@ export default function SatpamDashboard() {
         }
     };
 
-    const filteredTamu = Array.isArray(dataTamu) 
+    const filteredTamu = Array.isArray(dataTamu)
     ? dataTamu.filter((tamu) => {
         if (!tamu) return false;
         const matchesSearch = tamu.namaTamu?.toLowerCase().includes(searchQuery.toLowerCase()) ?? true;
         const st = tamu.statusKunjungan || "";
-
-        // TAMBAHKAN "Check-out" di sini biar gak ilang dari tabel
-        const matchesStatus = ["Menunggu", "Check-in", "Check-in Area", "Masuk Area", "Check-out"].includes(st);
-
+        let isCheckOutHariIni = false;
+        if (st === "Check-out" && tamu.waktuCheckOut) {
+            const tglCheckOut = new Date(tamu.waktuCheckOut).toDateString();
+            const tglHariIni = new Date().toDateString();
+            isCheckOutHariIni = tglCheckOut === tglHariIni;
+        }
+        const matchesStatus = [
+            "Menunggu", 
+            "Check-in", 
+            "Check-in Area", 
+            "Masuk Area", 
+            "Check-out"
+        ].includes(st);
+        if (st === "Check-out" && !isCheckOutHariIni) {
+            return false;
+        }
         if (roleSatpam === "area") {
             const isTujuanUtama = tamu.gedungTujuan === lokasiArea;
             const isVip = tamu.gedungTujuan === "VIP" || tamu.isVip;
@@ -324,23 +326,19 @@ export default function SatpamDashboard() {
             let isAksesTambahan = false;
             if (aksesStr) {
                 const listAkses = aksesStr.split(",").map(s => s.trim());
-                isAksesTambahan = listAkses.some(akses =>
+                isAksesTambahan = listAkses.some(akses => 
                     areaCari.includes(akses) || akses.includes(areaCari)
                 );
             }
-            
             return matchesSearch && matchesStatus && (isTujuanUtama || isVip || isAksesTambahan);
         }
         return matchesSearch && matchesStatus;
     })
     : [];
 
-    // --- RETURN UI (Tampilan Dashboard Lu) ---
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 md:p-6">
             <div className="mx-auto max-w-[1600px] bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
-                
-                {/* Header Section */}
                 <div className="border-b border-slate-200 bg-slate-50 px-6 py-4 flex flex-wrap items-center justify-between gap-3">
                     <div>
                         <h1 className="text-xl font-bold text-slate-900">
@@ -361,8 +359,6 @@ export default function SatpamDashboard() {
                         )}
                     </div>
                 </div>
-
-                {/* Search & Actions Bar */}
                 <div className="px-6 py-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-100">
                     <div className="relative w-full sm:w-72">
                         <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -377,8 +373,6 @@ export default function SatpamDashboard() {
                                     setInstansiVip("");
                                     setTujuanVip("");
                                     setUidNfc("");
-                                    
-                                    // --- DAFTARIN GEDUNG BARU LU DI SINI ---
                                     setAksesBeri({ 
                                         gateUtama: false,
                                         gateParkir: false, 
@@ -389,7 +383,6 @@ export default function SatpamDashboard() {
                                         mo: false, 
                                         lc: false 
                                     });
-                                    
                                     setStepVip(1);
                                     setIsModalVipOpen(true); 
                                 }}
@@ -405,20 +398,17 @@ export default function SatpamDashboard() {
                         </Button>
                     </div>
                 </div>
-
-                {/* Table Data */}
                 <div className="overflow-x-auto">
                     <Table>
                         <TableHeader>
                             <TableRow className="bg-slate-50 hover:bg-slate-50">
-                                {["ID Tamu", "Format ID", "ID NFC", "Nama Tamu", "Instansi", "Email", "Rencana Kunjungan", "Tujuan Karyawan", "Check-in", "Check-out", "Status", "Aksi", "Detail"].map((h) => (
+                                {["No", "ID Tamu", "Nama Tamu", "Instansi", "Email", "Rencana Kunjungan", "Tujuan Karyawan", "Check-in", "Check-out", "Status", "Aksi", "Detail"].map((h) => (
                                     <TableHead key={h} className="text-xs font-semibold text-slate-700 whitespace-nowrap px-3 py-3"> {h} </TableHead>
                                 ))}
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {isLoading ? (
-                                /* colSpan diganti 13 karena jumlah header lo ada 13 kolom */
                                 <TableRow><TableCell colSpan={13} className="text-center py-12 text-slate-400 animate-pulse"> Memuat data… </TableCell></TableRow>
                             ) : filteredTamu.length === 0 ? (
                                 <TableRow><TableCell colSpan={13} className="text-center py-10 text-slate-400"> Tidak ada data tamu </TableCell></TableRow>
@@ -440,6 +430,7 @@ export default function SatpamDashboard() {
                     </Table>
                 </div>
             </div>
+
             <Dialog open={modalAction === "checkin"} onOpenChange={(open) => !open && tutupModal()}>
                 <DialogContent className="sm:max-w-md p-0 overflow-hidden flex flex-col max-h-[90vh]">
                     <div className="bg-slate-50 px-6 py-4 border-b shrink-0">
@@ -455,26 +446,63 @@ export default function SatpamDashboard() {
                     <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
                         {stepScan === 1 && (
                             <div className="space-y-4 text-center">
-                                <div className="aspect-square bg-black rounded-xl overflow-hidden">
-                                    <Scanner onScan={(result) => {
-                                        if (result?.length) {
-                                            const rawQr = result[0].rawValue.toString().trim();
-                                            const numericId = rawQr.replace(/\D/g, "");
-                                            const idMurni = parseInt(numericId); 
-                                            console.log("DATA TAMU:", { rawQr, idMurni});
-                                            const found = dataTamu.find((t) => 
-                                                Number(t.id) === idMurni ||
-                                                t.id.toString() === rawQr
-                                            );
-                                            if (found) { 
+                                <div className="aspect-square bg-black rounded-xl overflow-hidden border shadow-inner max-w-[280px] mx-auto">
+                                    <Scanner onScan={async (result) => {
+                                        if (!result) return;
+                                        let rawQr = "";
+                                        if (typeof result === "string") {
+                                            rawQr = result;
+                                        } else if (Array.isArray(result) && result.length > 0) {
+                                            const resObj = result[0] as any;
+                                            rawQr = resObj?.rawValue || resObj?.text || String(result[0]);
+                                        } else if (result && typeof result === "object") {
+                                            rawQr = (result as any).rawValue || (result as any).text || "";
+                                        }
+                                        rawQr = rawQr.trim();
+                                        if (!rawQr) return;
+                                        const scanMurni = rawQr
+                                            .replace("PKC-", "")
+                                            .replace("VIP-", "")
+                                            .replace(/^0+/, "")
+                                            .trim();
+
+                                        try {
+                                            const res = await fetch("/api/satpam/tamu");
+                                            const json = await res.json();
+                                            const dataTamuTerbaru = json.data || dataTamu;
+                                            if (json.data) setDataTamu(json.data);
+                                            const found = dataTamuTerbaru.find((t: any) => {
+                                                if (!t) return false;
+                                                const dbIdMurni = String(t.id || "").trim().replace(/^0+/, "");
+                                                const dbNfcId = String(t.nfcId || "").trim();
+                                                return dbIdMurni === scanMurni || String(t.id) === rawQr || dbNfcId === rawQr;
+                                            });
+                                            if (found) {
                                                 setTamuTerpilih(found);
-                                                setSelectedGedung(found.gedungTujuan || ""); 
+                                                setSelectedGedung(found.gedungTujuan || "");
                                                 setTimeout(() => {
-                                                    setSelectedKaryawan(found.karyawanDituju || ""); 
+                                                    setSelectedKaryawan(found.karyawanDituju || "");
                                                 }, 100);
-                                                setStepScan(2); 
+                                                setStepScan(2);
                                             } else {
-                                                alert(`Data tidak ditemukan! ${rawQr} (Parsed: ${idMurni})`);
+                                                alert(`Data tidak ditemukan! ${rawQr} (Parsed: ${scanMurni})`);
+                                            }
+                                        } catch (err) {
+                                            console.error("Gagal auto-refresh data tamu:", err);
+                                            const found = dataTamu.find((t: any) => {
+                                                if (!t) return false;
+                                                const dbIdMurni = String(t.id || "").trim().replace(/^0+/, "");
+                                                return dbIdMurni === scanMurni || String(t.id) === rawQr;
+                                            });
+                                            if (found) {
+                                                setTamuTerpilih(found);
+                                                setSelectedGedung(found.gedungTujuan || "");
+                                                setTimeout(() => {
+                                                    setSelectedKaryawan(found.karyawanDituju || "");
+                                                }, 100);
+                                                setStepScan(2);
+                                            } else {
+                                                alert(`Data tidak ditemukan! ${rawQr} (Parsed: ${scanMurni})`);
                                             }
                                         }
                                     }} />
@@ -485,7 +513,6 @@ export default function SatpamDashboard() {
                                 </Button>
                             </div>
                         )}
-
                         {stepScan === 2 && roleSatpam === "gateUtama" && (
                             <div className="space-y-5 pb-6">
                                 <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 space-y-1">
@@ -504,7 +531,6 @@ export default function SatpamDashboard() {
                                         nilai={`${formatTanggalJam(tamuTerpilih?.waktuCheckIn)} s/d ${formatTanggalJam(tamuTerpilih?.waktuCheckOut)}`} 
                                     />
                                 </div>
-
                                 <div className="space-y-4">
                                     <div className="space-y-1.5 mt-2">
                                         <Label>Cari Karyawan Dituju</Label>
@@ -549,7 +575,6 @@ export default function SatpamDashboard() {
                                             </PopoverContent>
                                         </Popover>
                                     </div>
-
                                     {selectedKaryawan && (
                                         <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg">
                                             <Label className="text-xs font-bold text-slate-500 mb-2 block">DATA KARYAWAN TERPILIH</Label>
@@ -568,30 +593,35 @@ export default function SatpamDashboard() {
                                             </p>
                                         </div>
                                     )}
-
-                                    <div className="space-y-2 mt-4 pt-2 border-t border-slate-100">
-                                        <Label className="text-xs font-bold text-slate-700 block mb-2">PILIH AKSES KAWASAN LAIN (Opsional)</Label>
-                                        <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-lg border border-slate-200">
-                                            {DAFTAR_GEDUNG.map((gedung) => (
-                                                <div key={gedung} className="flex items-center space-x-2">
-                                                    <Checkbox 
-                                                    id={gedung} 
-                                                    checked={aksesTambahan.includes(gedung)}
+                                    <div className="space-y-2 max-h-40 overflow-y-auto border p-2 rounded bg-slate-50">
+                                    {DAFTAR_GEDUNG.map((gedung, idx) => {
+                                        const isGedungUtama = selectedGedung === gedung;
+                                        return (
+                                            <div key={idx} className="flex items-center space-x-2 py-1 border-b last:border-0 border-slate-100">
+                                                <Checkbox 
+                                                    id={`gd-${idx}`}
+                                                    checked={isGedungUtama || aksesTambahan.includes(gedung)}
+                                                    disabled={isGedungUtama}
                                                     onCheckedChange={(checked) => {
+                                                        if (isGedungUtama) return; 
                                                         if (checked) {
-                                                        setAksesTambahan([...aksesTambahan, gedung]);
+                                                            setAksesTambahan([...aksesTambahan, gedung]);
                                                         } else {
-                                                        setAksesTambahan(aksesTambahan.filter((g) => g !== gedung));
+                                                            setAksesTambahan([...aksesTambahan.filter(g => g !== gedung)]);
                                                         }
                                                     }}
-                                                    />
-                                                    <label htmlFor={gedung}>{gedung}</label>
-                                                </div>
-                                                ))}
-                                        </div>
-                                    </div>
+                                                />
+                                                <label 
+                                                    htmlFor={`gd-${idx}`} 
+                                                    className={`text-xs font-medium cursor-pointer ${isGedungUtama ? "text-blue-600 font-bold" : "text-slate-700"}`}
+                                                >
+                                                    {gedung} {isGedungUtama && <span className="text-[10px] text-blue-500 bg-blue-50 px-1.5 py-0.2 rounded border border-blue-200 ml-1">Tujuan Utama</span>}
+                                                </label>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
-                                
+                                </div>
                                 <div className="flex gap-2">
                                     <Button variant="outline" className="w-1/3" onClick={() => setStepScan(1)}>Sebelumnya</Button>
                                     <Button 
@@ -622,13 +652,11 @@ export default function SatpamDashboard() {
                                         nilai={`${formatTanggalJam(tamuTerpilih?.waktuCheckIn)} s/d ${formatTanggalJam(tamuTerpilih?.waktuCheckOut)}`} 
                                     />
                                 </div>
-                                
                                 <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg">
                                     <p className="text-sm text-slate-700">
                                         Pastikan tamu memiliki keperluan untuk memasuki area dalam gedung ini sesuai dengan data di atas.
                                     </p>
                                 </div>
-                                
                                 <div className="flex gap-2 pt-2">
                                     <Button variant="outline" className="w-1/3" onClick={() => setStepScan(1)}>
                                         Sebelumnya
@@ -642,7 +670,6 @@ export default function SatpamDashboard() {
                                 </div>
                             </div>
                         )}
-
                         {stepScan === 3 && (
                             <div className="space-y-5">
                                 <div className="space-y-1.5">
@@ -657,7 +684,6 @@ export default function SatpamDashboard() {
                                     />
                                     <p className="text-[10px] text-slate-400">*Pastikan kursor berada di kotak ini saat menempelkan kartu.</p>
                                 </div>
-
                                 <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
                                     <Label className="font-semibold text-blue-900 mb-3 block">Opsi Akses Diberikan</Label>
                                     {roleSatpam === "gateUtama" ? (
@@ -679,7 +705,6 @@ export default function SatpamDashboard() {
                                         </ul>
                                     )}
                                 </div>
-
                                 <div className="flex gap-2">
                                     <Button variant="outline" className="w-1/3" onClick={() => setStepScan(2)}>Sebelumnya</Button>
                                     <Button
@@ -689,14 +714,9 @@ export default function SatpamDashboard() {
 
                                             if (roleSatpam === "gateUtama") {
                                                 if (!uidNfc) { alert("Harap tap kartu NFC terlebih dahulu!"); return; }
-                                                
                                                 const aksesArr: string[] = [];
-                                                
-                                                // --- KODE VIP YANG LAMA DIHAPUS, DIGANTI JADI GINI AJA ---
                                                 if (aksesBeri.gateUtama) aksesArr.push("Gate Utama");
                                                 if (aksesBeri.gateParkir) aksesArr.push(`Parkir ${selectedGedung}`);
-                                                // ---------------------------------------------------------
-                                                
                                                 const finalAkses = aksesArr.join(",");
 
                                                 updateStatusTamu(
@@ -752,24 +772,14 @@ export default function SatpamDashboard() {
                                 console.log("DATA TAMU:", { rawQr, cleanId }); 
 
                                 const found = dataTamu.find((t) => {
-                                // 1. Ambil ID murni hasil scan (hilangkan angka 0 di depan jika ada)
                                 const scanndIdMurni = rawQr.replace(/^0+/, "");
                                 const dbIdMurni = t.id.toString().replace(/^0+/, "");
                                 const matchId = dbIdMurni === scanndIdMurni;
-
-                                // 2. Cocokkan dengan UID NFC hasil scan angka panjang
                                 const matchNfc = t.nfcId === rawQr || t.kartuNfcId === rawQr;
-
-                                // Pastikan tamunya emang ketemu lewat ID atau NFC
                                 const isTamuCocok = matchId || matchNfc;
-
-                                // 3. TAMBAHKAN LOGIKA INI: Pastikan status tamunya masih aktif di kawasan, 
-                                // BUKAN yang sudah "Check-out" (selesai) di Gate Utama
                                 const masihDiKawasan = t.statusKunjungan === "Check-in" || t.statusKunjungan === "Masuk Area";
-
                                 return isTamuCocok && masihDiKawasan;
                             });
-                                
                                 if (found) { 
                                     setTamuTerpilih(found); 
                                     setStepScan(2); 
@@ -795,69 +805,206 @@ export default function SatpamDashboard() {
                 </DialogContent>
             </Dialog>
 
+            <Dialog open={modalAction === "checkout_confirm"} onOpenChange={(open) => !open && setModalAction(null)}>
+                <DialogContent className={`sm:max-w-md overflow-hidden rounded-xl border p-0 ${
+                    tamuTerpilih?.gedungTujuan === "VIP" || tamuTerpilih?.isVip ? "border-amber-400 ring-2 ring-amber-300" : "border-slate-200"
+                }`}>
+                    <div className={`px-6 py-4 border-b ${
+                        tamuTerpilih?.gedungTujuan === "VIP" || tamuTerpilih?.isVip
+                            ? "bg-gradient-to-r from-amber-500 to-yellow-600 text-white" 
+                            : "bg-gradient-to-r from-red-500 to-rose-600 text-white"
+                    }`}>
+                        <DialogTitle className="text-lg font-bold flex items-center gap-2">
+                            <LogOut className="h-5 w-5" />
+                            Konfirmasi Keluar / Check-out {tamuTerpilih?.gedungTujuan === "VIP" ? "VIP" : "Tamu"}
+                        </DialogTitle>
+                        <p className="text-xs mt-0.5 opacity-90">
+                            ID Card: {tamuTerpilih?.id || "-"} | Status Saat Ini: {tamuTerpilih?.statusKunjungan}
+                        </p>
+                    </div>
+                    <div className="p-6 space-y-4 bg-white max-h-[65vh] overflow-y-auto">
+                        <div className="space-y-2 text-sm">
+                            <div className="flex justify-between border-b pb-1.5"><span className="text-slate-400">Nama Tamu</span><span className="font-bold text-slate-800">{tamuTerpilih?.namaTamu || "-"}</span></div>
+                            <div className="flex justify-between border-b pb-1.5"><span className="text-slate-400">Instansi</span><span className="font-medium text-slate-700">{tamuTerpilih?.asalInstansi || "-"}</span></div>
+                            <div className="flex justify-between border-b pb-1.5"><span className="text-slate-400">Gedung Tujuan</span><span className="font-semibold text-slate-700">{tamuTerpilih?.gedungTujuan || "-"}</span></div>
+                            <div className="flex justify-between border-b pb-1.5"><span className="text-slate-400">NFC Card UID</span><span className="font-mono text-slate-600">{tamuTerpilih?.nfcId || tamuTerpilih?.uidNfc || "Belum Terpasang"}</span></div>
+                        </div>
+
+                        {tamuTerpilih?.gedungTujuan !== "VIP" && tamuTerpilih?.anggotaRombongan && tamuTerpilih.anggotaRombongan.length > 0 && (
+                            <div className="p-3 bg-blue-50/50 border border-blue-100 rounded-xl space-y-1.5 text-left">
+                                <p className="text-xs font-bold uppercase tracking-wider text-blue-700 flex items-center gap-1">
+                                    <UsersRound className="h-3.5 w-3.5" /> Anggota Rombongan ({tamuTerpilih.anggotaRombongan.length} Orang)
+                                </p>
+                                <div className="max-h-24 overflow-y-auto space-y-1 pr-1 text-xs">
+                                    {tamuTerpilih.anggotaRombongan.map((anggota: any, idx: number) => (
+                                        <div key={idx} className="bg-white border border-slate-200 rounded-md p-1.5 font-medium text-slate-700">
+                                            {idx + 1}. {anggota.nama} {anggota.noTelp ? `(${anggota.noTelp})` : ''}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        {(tamuTerpilih?.gedungTujuan === "VIP" || tamuTerpilih?.isVip) && (tamuTerpilih?.jumlahRombongan > 0 || tamuTerpilih?.jumlahAnggotaVip > 0) && (
+                            <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-left text-xs font-bold text-amber-800">
+                                membawa Pengikut VIP: +{tamuTerpilih?.jumlahRombongan || tamuTerpilih?.jumlahAnggotaVip} Orang
+                            </div>
+                        )}
+                        <div className="pt-2 border-t border-slate-200 text-left">
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2.5 flex items-center gap-1.5">
+                                ⏱️ Tracking Riwayat Tap Aktual Kartu
+                            </h4>
+                            <div className="relative pl-4 border-l-2 border-slate-200 space-y-3 text-xs ml-1.5">
+                                {(() => {
+                                    let listLog = [];
+                                    if (Array.isArray(tamuTerpilih?.riwayatTap)) listLog = tamuTerpilih.riwayatTap;
+                                    else if (typeof tamuTerpilih?.riwayatTap === "string") {
+                                        try { const parsed = JSON.parse(tamuTerpilih.riwayatTap); if (Array.isArray(parsed)) listLog = parsed; } catch(e){}
+                                    }
+                                    if (listLog.length > 0) {
+                                        return listLog.map((log: any, idx: number) => (
+                                            <div key={idx} className="relative">
+                                                <div className={`absolute -left-[21px] mt-0.5 w-2.5 h-2.5 rounded-full ring-4 ring-white ${
+                                                    log.jenisTap === "OUT" || log.status?.toLowerCase().includes("out") ? "bg-rose-500" : "bg-emerald-500"
+                                                }`} />
+                                                <p className="font-semibold text-slate-800">{log.lokasiGate || log.namaGate || "Gate Area"}</p>
+                                                <p className="text-slate-500 text-[11px]">{log.waktuTap ? new Date(log.waktuTap).toLocaleString('id-ID') : "-"} ({log.jenisTap || "Tap"})</p>
+                                            </div>
+                                        ));
+                                    }
+                                    return <p className="text-slate-400 italic text-[11px]">Belum ada pergerakan kartu NFC terekam.</p>
+                                })()}
+                            </div>
+                        </div>
+                    </div>
+                    <div className="px-6 py-3 bg-slate-50 border-t flex justify-end gap-2">
+                        <Button variant="outline" size="sm" onClick={() => setModalAction(null)}>Batal</Button>
+                        <Button 
+                            size="sm" 
+                            className={tamuTerpilih?.gedungTujuan === "VIP" ? "bg-amber-600 hover:bg-amber-700 text-white" : "bg-red-600 hover:bg-red-700 text-white"} 
+                            onClick={async () => {
+                                try {
+                                    setDataTamu((prev: any[]) => prev.map((t) => {
+                                        if (t.id === tamuTerpilih.id) {
+                                            return {
+                                                ...t,
+                                                statusKunjungan: "Check-out",
+                                                waktuCheckOut: new Date().toISOString() 
+                                            };
+                                        }
+                                        return t;
+                                    }));
+                                    alert(`Berhasil Memproses Check-out untuk ${tamuTerpilih.namaTamu}`);
+                                    setModalAction(null);
+                                    setTamuTerpilih(null);
+                                } catch (err) {
+                                    alert("Gagal memproses check-out");
+                                }
+                            }}
+                        >
+                            Fix Check-out
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
             <Dialog open={modalAction === "checkout"} onOpenChange={(open) => !open && tutupModal()}>
-                <DialogContent className="sm:max-w-md">
+                <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
-                        <DialogTitle>Proses Check-out: {tamuTerpilih?.namaTamu}</DialogTitle>
+                        <DialogTitle>
+                            {stepScan === 1 ? "Scan Tiket Keluar" : `Proses Check-out: ${tamuTerpilih?.namaTamu}`}
+                        </DialogTitle>
                     </DialogHeader>
 
                     {roleSatpam === "gateUtama" && (
                         <div className="space-y-4">
-                            {stepScan === 2 && (
-                                <>
-                                    <div className="space-y-1.5 mt-2">
-                                        <Label>Karyawan Dituju</Label>
-                                        <Select 
-                                            value={selectedKaryawan} 
-                                            onValueChange={(val) => {
-                                                setSelectedKaryawan(val);
-                                                    
-                                                const orangnya = SEMUA_KARYAWAN.find(k => k.nama === val);
-                                                if (orangnya) {
-                                                    setSelectedGedung(orangnya.gedung);
-                                                }
-                                            }}
-                                        >
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="-- Pilih Karyawan --" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {SEMUA_KARYAWAN.map((karyawan, idx) => (
-                                                        <SelectItem key={idx} value={karyawan.nama}>
-                                                            {karyawan.nama} - {karyawan.dept}
-                                                        </SelectItem>
-                                                    ))}
+                            {stepScan === 1 && (
+                                <div className="space-y-3 text-center">
+                                    <Label className="font-bold text-slate-700 block text-sm">Scan QR Code Tiket Tamu Reguler</Label>
+                                    <div className="aspect-square max-w-[280px] mx-auto bg-black rounded-xl overflow-hidden border shadow-inner">
+                                        <Scanner onScan={(result) => {
+                                            if (!result) return;
+                                            let rawQr = "";
+                                            if (typeof result === "string") { rawQr = result; }
+                                            else if (Array.isArray(result) && result.length > 0) {
+                                                const resObj = result[0] as any;
+                                                rawQr = resObj?.rawValue || resObj?.text || String(result[0]);
+                                            }
+                                            rawQr = rawQr.trim();
+                                            if (!rawQr) return;
+                                            const scanMurni = rawQr.replace("PKC-", "").replace("VIP-", "").replace(/^0+/, "").trim();
+                                            const ditemukan = dataTamu.find(t => {
+                                                if (!t) return false;
+                                                const dbIdMurni = String(t.id || "").trim().replace(/^0+/, "");
+                                                return dbIdMurni === scanMurni || String(t.id) === rawQr || String(t.nfcId) === rawQr;
+                                            });
+                                            if (ditemukan) {
+                                                setTamuTerpilih(ditemukan);
+                                                setStepScan(2); 
+                                            } else {
+                                                alert(`Data tiket QR (${rawQr}) tidak ditemukan!`);
+                                            }
+                                        }} />
+                                    </div>
+                                </div>
+                            )}
 
-                                                    {selectedKaryawan && !SEMUA_KARYAWAN.some(k => k.nama === selectedKaryawan) && (
-                                                        <SelectItem value={selectedKaryawan}>
-                                                            {selectedKaryawan} (Manual/Tidak Tersinkron)
-                                                        </SelectItem>
-                                                    )}
-                                                </SelectContent>
-                                        </Select>
+                            {stepScan === 2 && tamuTerpilih && (
+                                <div className="space-y-4">
+                                    <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3 text-xs">
+                                        <p className="font-bold text-slate-700 uppercase tracking-wider border-b pb-1">📋 Detail Informasi Tamu</p>
+                                        <div className="grid grid-cols-2 gap-y-2 gap-x-4">
+                                            <div><span className="text-slate-400">Nama Tamu:</span> <p className="font-bold text-slate-800">{tamuTerpilih.namaTamu}</p></div>
+                                            <div><span className="text-slate-400">Instansi:</span> <p className="font-medium text-slate-700">{tamuTerpilih.asalInstansi || "-"}</p></div>
+                                            <div><span className="text-slate-400">Karyawan Dituju:</span> <p className="font-medium text-slate-700">{tamuTerpilih.karyawanDituju || "-"}</p></div>
+                                            <div><span className="text-slate-400">Gedung Tujuan:</span> <p className="font-bold text-blue-600">{tamuTerpilih.gedungTujuan || "-"}</p></div>
                                         </div>
 
-                                        <div className="space-y-1.5">
-                                            <Label>Gedung Tujuan Aktual</Label>
-                                                <Select 
-                                                    value={selectedGedung} 
-                                                    onValueChange={setSelectedGedung}
-                                                    disabled={!selectedKaryawan} 
-                                                >
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder={selectedKaryawan ? "-- Pilih Gedung --" : "-- Pilih Karyawan Dulu --"} />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        {DAFTAR_GEDUNG.map((gedung, idx) => (
-                                                            <SelectItem key={idx} value={gedung}>
-                                                                {gedung}
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
+                                        {tamuTerpilih.anggotaRombongan && tamuTerpilih.anggotaRombongan.length > 0 && (
+                                            <div className="pt-2 border-t border-slate-200">
+                                                <p className="font-bold text-blue-600 mb-1">👥 Anggota Rombongan ({tamuTerpilih.anggotaRombongan.length} Orang):</p>
+                                                <div className="max-h-24 overflow-y-auto space-y-1 bg-white p-2 rounded border text-[11px]">
+                                                    {tamuTerpilih.anggotaRombongan.map((ang: any, i: number) => (
+                                                        <div key={i} className="text-slate-700">
+                                                            {i + 1}. {ang.nama} | <span className="text-slate-500">{ang.noTelp || "-"}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
                                             </div>
-                                        </>
-                                    )}
+                                        )}
+
+                                        <div className="pt-2 border-t border-slate-200">
+                                            <p className="font-bold text-slate-600 mb-1">⏱️ Riwayat Tap Aktual Kartu:</p>
+                                            <div className="pl-3 border-l-2 border-slate-300 space-y-1.5 text-[11px]">
+                                                {(() => {
+                                                    let listLog = [];
+                                                    if (Array.isArray(tamuTerpilih?.riwayatTap)) listLog = tamuTerpilih.riwayatTap;
+                                                    else if (typeof tamuTerpilih?.riwayatTap === "string") {
+                                                        try { listLog = JSON.parse(tamuTerpilih.riwayatTap); } catch(e){}
+                                                    }
+                                                    if (listLog && listLog.length > 0) {
+                                                        return listLog.map((log: any, idx: number) => (
+                                                            <div key={idx} className="text-slate-700">
+                                                                <span className="font-bold text-slate-800">{log.lokasiGate || "Gate Area"}</span> 
+                                                                <span className="text-slate-400 mx-1">•</span>
+                                                                <span className="text-slate-500">{log.waktuTap ? new Date(log.waktuTap).toLocaleTimeString('id-ID') : "-"}</span>
+                                                                <span className="text-amber-600 font-mono ml-1.5 bg-amber-50 px-1 rounded border border-amber-200">({log.jenisTap || "TAP"})</span>
+                                                            </div>
+                                                        ));
+                                                    }
+                                                    return <p className="text-slate-400 italic">Belum ada riwayat tap kartu.</p>;
+                                                })()}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2 pt-2">
+                                        <Button variant="outline" className="flex-1" onClick={tutupModal}>Batal</Button>
+                                        <Button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white" onClick={() => setStepScan(3)}>
+                                            Lanjut ke Tap NFC
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+
                             {stepScan === 3 && (
                                 <div className="space-y-4">
                                     <div className="bg-red-50 p-4 rounded-lg border border-red-100">
@@ -870,18 +1017,30 @@ export default function SatpamDashboard() {
                                         />
                                     </div>
                                     <div className="flex gap-2">
-                                        <Button variant="outline" className="flex-1" onClick={() => setStepScan(2)}>Kembali</Button>
+                                        <Button 
+                                            variant="outline" 
+                                            className="flex-1" 
+                                            onClick={() => {
+                                                if (tamuTerpilih?.gedungTujuan === "VIP" || tamuTerpilih?.isVip) {
+                                                    tutupModal();
+                                                } else {
+                                                    setStepScan(2);
+                                                }
+                                            }}
+                                        >
+                                            Kembali
+                                        </Button>
                                         <Button 
                                             variant="destructive" 
                                             className="flex-1" 
                                             onClick={() => {
                                                 updateStatusTamu(
                                                     tamuTerpilih.id, 
-                                                    "Check-out", // Pakai Check-out
+                                                    "Check-out", 
                                                     uidNfc || "", 
                                                     "Gate Utama Keluar", 
                                                     new Date().toISOString(),
-                                                    { aksesAktif: "" } // Hapus semua akses
+                                                    { aksesAktif: "" } 
                                                 );
                                                 tutupModal();
                                             }}
@@ -931,14 +1090,10 @@ export default function SatpamDashboard() {
                 </DialogContent>
             </Dialog>
 
-            {/* ====================================================================
-                📍 KHUSUS POPUP DETAIL TAMU (JANGAN DICAMPUR SAMA REGISTRASI VIP)
-            ==================================================================== */}
             <Dialog open={modalAction === "detail"} onOpenChange={(open) => !open && tutupModal()}>
                 <DialogContent className={`sm:max-w-md overflow-hidden rounded-xl border p-0 ${
                     tamuTerpilih?.gedungTujuan === "VIP" || tamuTerpilih?.gedungAktual === "VIP" ? "border-amber-400 ring-2 ring-amber-300" : "border-slate-200"
                 }`}>
-                    {/* Header Tema */}
                     <div className={`px-6 py-4 border-b ${
                         tamuTerpilih?.gedungTujuan === "VIP" || tamuTerpilih?.gedungAktual === "VIP"
                             ? "bg-gradient-to-r from-amber-500 to-yellow-600 text-white" 
@@ -948,14 +1103,8 @@ export default function SatpamDashboard() {
                             {(tamuTerpilih?.gedungTujuan === "VIP" || tamuTerpilih?.gedungAktual === "VIP")}
                             Detail Informasi Tamu VIP
                         </DialogTitle>
-                        <p className={`text-xs mt-0.5 ${tamuTerpilih?.gedungTujuan === "VIP" || tamuTerpilih?.gedungAktual === "VIP" ? "text-amber-100" : "text-slate-500"}`}>
-                            ID Card: {tamuTerpilih?.id || "-"}
-                        </p>
                     </div>
-
-                    {/* Content Body */}
                     <div className="p-6 space-y-4 bg-white max-h-[70vh] overflow-y-auto">
-                        {/* Foto KTP (Otomatis sembunyi kalau Tamu VIP) */}
                         {tamuTerpilih?.gedungTujuan !== "VIP" && tamuTerpilih?.gedungAktual !== "VIP" && (
                             <div>
                                 {tamuTerpilih?.fotoKtp ? (
@@ -967,23 +1116,18 @@ export default function SatpamDashboard() {
                                 )}
                             </div>
                         )}
-
-                        {/* Biodata Utama */}
                         <div className="space-y-2">
                             <InfoRow label="Nama Lengkap" nilai={tamuTerpilih?.namaTamu || "-"} />
                             <InfoRow label="Instansi Asal" nilai={tamuTerpilih?.asalInstansi || "-"} />
                             <InfoRow label="No. Handphone / WA" nilai={tamuTerpilih?.noTelp || tamuTerpilih?.noHp || "-"} />
                             <InfoRow label="Tujuan Kunjungan" nilai={tamuTerpilih?.tujuanKunjungan || tamuTerpilih?.tujuan || "-"} />
                             <InfoRow label="Gedung / Area" nilai={tamuTerpilih?.gedungTujuan || tamuTerpilih?.gedungAktual || "-"} />
-                            
                             <div className="border-t border-slate-100 my-2 pt-2"></div>
-                            
-                            <InfoRow label="UID NFC Card" nilai={tamuTerpilih?.nfcId || tamuTerpilih?.uidNfc || "Belum Ditempel"} />
+                            <InfoRow label="ID Tamu" nilai={tamuTerpilih ? formatIdTamu(tamuTerpilih.id, tamuTerpilih.gedungTujuan === "VIP" || tamuTerpilih.isVip) : "-" } />
                             <InfoRow label="Status Saat Ini" nilai={tamuTerpilih?.statusKunjungan || "Menunggu"} />
                             <InfoRow label="Akses Aktif" nilai={tamuTerpilih?.aksesAktif || "Belum Ada"} />
                         </div>
 
-                        {/* TAMPILKAN DAFTAR ROMBONGAN REGULER PAS CEK KUNJUNGAN SEBELUM TAP KARTU */}
                         {tamuTerpilih?.gedungTujuan !== "VIP" && tamuTerpilih?.anggotaRombongan && tamuTerpilih.anggotaRombongan.length > 0 && (
                             <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-xl space-y-2 text-left">
                                 <p className="text-xs font-bold uppercase tracking-wider text-blue-700 flex items-center gap-1">
@@ -1005,7 +1149,6 @@ export default function SatpamDashboard() {
                             </div>
                         )}
 
-                        {/* JIKA TAMU VIP PAS CEK KUNJUNGAN (CUMA SNEAK PEEK TOTAL JUMLAH SAJA) */}
                         {(tamuTerpilih?.gedungTujuan === "VIP" || tamuTerpilih?.isVip) && (tamuTerpilih?.jumlahRombongan > 0 || tamuTerpilih?.jumlahAnggotaVip > 0) && (
                             <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-left flex items-center gap-2">
                                 <UsersRound className="h-4 w-4 text-amber-700" />
@@ -1015,9 +1158,6 @@ export default function SatpamDashboard() {
                             </div>
                         )}
 
-                        {/* ========================================================== */}
-                        {/* 🔥 BAGIAN RIWAYAT TAP AKTUAL (SISTEM TRACKING NFC) 🔥       */}
-                        {/* ========================================================== */}
                         <div className="pt-2 border-t border-slate-200">
                             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-1.5">
                                 ⏱️ Riwayat Tap Aktual (Sistem)
@@ -1025,7 +1165,6 @@ export default function SatpamDashboard() {
                             <div className="relative pl-4 border-l-2 border-slate-200 space-y-4 text-xs ml-1.5">
                                 {(() => {
                                     let listLog = [];
-                                    
                                     if (Array.isArray(tamuTerpilih?.riwayatTap)) {
                                         listLog = tamuTerpilih.riwayatTap;
                                     } else if (typeof tamuTerpilih?.riwayatTap === "string") {
@@ -1036,7 +1175,6 @@ export default function SatpamDashboard() {
                                             listLog = [];
                                         }
                                     }
-
                                     if (listLog.length > 0) {
                                         return listLog.map((log: any, idx: number) => (
                                             <div key={idx} className="relative">
@@ -1045,11 +1183,9 @@ export default function SatpamDashboard() {
                                                         ? "bg-rose-500" 
                                                         : "bg-emerald-500"
                                                 }`} />
-                                                
                                                 <p className="font-semibold text-slate-800">
                                                     {log.lokasiGate || log.namaGate || log.gate || "Gate Area"}
                                                 </p>
-                                                
                                                 <p className="text-slate-500 text-[11px]">
                                                     {log.waktuTap || log.waktu 
                                                         ? new Date(log.waktuTap || log.waktu).toLocaleString('id-ID') 
@@ -1072,163 +1208,147 @@ export default function SatpamDashboard() {
                         </div>
                     </div>
 
-                    {/* Footer Modal */}
                     <div className="px-6 py-3 bg-slate-50 border-t flex justify-end">
                         <Button variant="outline" size="sm" onClick={tutupModal}>Tutup</Button>
                     </div>
                 </DialogContent>
             </Dialog>
-            {/* ====================================================================
-    WADAH MODAL REGISTRASI VIP (YANG HILANG) - TARUH DI BAWAH MODAL DETAIL
-   ==================================================================== */}
-<Dialog open={isModalVipOpen} onOpenChange={setIsModalVipOpen}>
-    <DialogContent className="sm:max-w-md rounded-xl border border-amber-200 bg-white p-6">
-        <DialogTitle className="text-lg font-bold text-amber-800 flex items-center gap-2">
-            <FaCrown className="h-5 w-5" /> Registrasi Kunjungan Tamu VIP
-        </DialogTitle>
-        
-        {/* STEP 1: FORM INPUT BIODATA TAMU VIP */}
-        {stepVip === 1 && (
-            <div className="space-y-4 pt-2">
-                <div className="space-y-1">
-                    <label className="text-xs font-semibold text-slate-600">Nama Lengkap Tamu</label>
-                    <input 
-                        type="text" 
-                        className="w-full px-3 py-2 border rounded-lg text-sm bg-white text-slate-900" 
-                        placeholder="Masukkan nama tamu VIP..."
-                        value={namaVip}
-                        onChange={(e) => setNamaVip(e.target.value)}
-                    />
-                </div>
-                <div className="space-y-1">
-                    <label className="text-xs font-semibold text-slate-600">Instansi / Perusahaan</label>
-                    <input 
-                        type="text" 
-                        className="w-full px-3 py-2 border rounded-lg text-sm bg-white text-slate-900" 
-                        placeholder="Masukkan nama instansi asal..."
-                        value={instansiVip}
-                        onChange={(e) => setInstansiVip(e.target.value)}
-                    />
-                </div>
-                <div className="space-y-1">
-                    <label className="text-xs font-semibold text-slate-600">No. Handphone / WA</label>
-                    <input 
-                        type="text" 
-                        className="w-full px-3 py-2 border rounded-lg text-sm bg-white text-slate-900" 
-                        placeholder="Contoh: 081234567xxx"
-                        value={noTelpVip}
-                        onChange={(e) => setNoTelpVip(e.target.value)}
-                    />
-                </div>
-                <div className="space-y-1">
-                    <label className="text-xs font-semibold text-slate-600">Tujuan Kunjungan</label>
-                    <textarea 
-                        className="w-full px-3 py-2 border rounded-lg text-sm bg-white text-slate-900" 
-                        placeholder="Masukkan detail tujuan kunjungan..."
-                        rows={3}
-                        value={tujuanVip}
-                        onChange={(e) => setTujuanVip(e.target.value)}
-                    />
-                </div>
-                <div className="space-y-1">
-                    <label className="text-xs font-bold text-amber-700 uppercase tracking-wider flex items-center gap-1">
-                        Jumlah Anggota Yang Ikut (Rombongan)
-                    </label>
-                    <div className="flex items-center gap-2">
-                        <input 
-                            type="number" 
-                            min="0"
-                            className="w-32 px-3 py-2 border rounded-lg text-sm bg-white text-slate-900 font-bold text-center" 
-                            placeholder="0"
-                            value={jumlahAnggotaVip}
-                            onChange={(e) => setJumlahAnggotaVip(Math.max(0, parseInt(e.target.value) || 0))}
-                        />
-                        <span className="text-xs text-slate-500 font-medium">
-                            *Isi <span className="font-bold text-slate-700">0</span> jika datang sendirian (tanpa pengikut).
-                        </span>
-                    </div>
-                </div>
-                
-                <div className="flex justify-end pt-2">
-                    <Button 
-                        className="bg-amber-600 hover:bg-amber-700 text-white w-full"
-                        onClick={() => {
-                            if (!namaVip || !instansiVip || !tujuanVip) {
-                                alert("Harap lengkapi nama, instansi, dan tujuan terlebih dahulu!");
-                                return;
-                            }
-                            setStepVip(2);
-                        }}
-                    >
-                        Lanjut ke Akses & NFC →
-                    </Button>
-                </div>
-            </div>
-        )}
 
-        {/* STEP 2: TAP KARTU NFC & OPSI AKSES GEDUNG */}
-        {stepVip === 2 && (
-            <div className="space-y-4 pt-2">
-                {/* KOTAK STATUS NFC + INPUT TEXTBOX MANUAL */}
-                <div className={`p-4 rounded-xl border text-center space-y-3 ${uidNfc ? "bg-emerald-50 border-emerald-200" : "bg-amber-50 border-amber-200 border-dashed"}`}>
-                    <div>
-                        <p className="text-sm font-bold text-slate-700">
-                            {uidNfc ? "Kartu NFC Berhasil Terdeteksi" : "Silakan Tap Kartu NFC VIP ke Reader..."}
-                        </p>
-                    </div>
+            <Dialog open={isModalVipOpen} onOpenChange={setIsModalVipOpen}>
+                <DialogContent className="sm:max-w-md rounded-xl border border-amber-200 bg-white p-6">
+                    <DialogTitle className="text-lg font-bold text-amber-800 flex items-center gap-2">
+                        <FaCrown className="h-5 w-5" /> Registrasi Kunjungan Tamu VIP
+                    </DialogTitle>
+                    {stepVip === 1 && (
+                        <div className="space-y-4 pt-2">
+                            <div className="space-y-1">
+                                <label className="text-xs font-semibold text-slate-600">Nama Lengkap Tamu</label>
+                                <input 
+                                    type="text" 
+                                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white text-slate-900" 
+                                    placeholder="Masukkan nama tamu VIP..."
+                                    value={namaVip}
+                                    onChange={(e) => setNamaVip(e.target.value)}
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-xs font-semibold text-slate-600">Instansi / Perusahaan</label>
+                                <input 
+                                    type="text" 
+                                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white text-slate-900" 
+                                    placeholder="Masukkan nama instansi asal..."
+                                    value={instansiVip}
+                                    onChange={(e) => setInstansiVip(e.target.value)}
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-xs font-semibold text-slate-600">No. Handphone / WA</label>
+                                <input 
+                                    type="text" 
+                                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white text-slate-900" 
+                                    placeholder="Contoh: 081234567xxx"
+                                    value={noTelpVip}
+                                    onChange={(e) => setNoTelpVip(e.target.value)}
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-xs font-semibold text-slate-600">Tujuan Kunjungan</label>
+                                <textarea 
+                                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white text-slate-900" 
+                                    placeholder="Masukkan detail tujuan kunjungan..."
+                                    rows={3}
+                                    value={tujuanVip}
+                                    onChange={(e) => setTujuanVip(e.target.value)}
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-xs font-bold text-amber-700 uppercase tracking-wider flex items-center gap-1">
+                                    Jumlah Anggota Yang Ikut (Rombongan)
+                                </label>
+                                <div className="flex items-center gap-2">
+                                    <input 
+                                        type="number" 
+                                        min="0"
+                                        className="w-32 px-3 py-2 border rounded-lg text-sm bg-white text-slate-900 font-bold text-center" 
+                                        placeholder="0"
+                                        value={jumlahAnggotaVip}
+                                        onChange={(e) => setJumlahAnggotaVip(Math.max(0, parseInt(e.target.value) || 0))}
+                                    />
+                                    <span className="text-xs text-slate-500 font-medium">
+                                        *Isi <span className="font-bold text-slate-700">0</span> jika datang sendirian (tanpa pengikut).
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="flex justify-end pt-2">
+                                <Button 
+                                    className="bg-amber-600 hover:bg-amber-700 text-white w-full"
+                                    onClick={() => {
+                                        if (!namaVip || !instansiVip || !tujuanVip) {
+                                            alert("Harap lengkapi nama, instansi, dan tujuan terlebih dahulu!");
+                                            return;
+                                        }
+                                        setStepVip(2);
+                                    }}
+                                >
+                                    Lanjut ke Akses & NFC →
+                                </Button>
+                            </div>
+                        </div>
+                    )}
 
-                    {/* --- INPUT MANUAL TEXTBOX --- */}
-                    <div className="max-w-xs mx-auto pt-1">
-                        <label className="block text-[11px] font-semibold text-slate-500 text-left mb-1 uppercase tracking-wider">
-                            Input UID Manual:
-                        </label>
-                        <input 
-                            type="text"
-                            className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm font-mono text-center bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 uppercase"
-                            placeholder="Ketik UID kartu di sini..."
-                            value={uidNfc}
-                            onChange={(e) => setUidNfc(e.target.value)}
-                        />
-                    </div>
-                </div>
+                    {stepVip === 2 && (
+                        <div className="space-y-4 pt-2">
+                            <div className={`p-4 rounded-xl border text-center space-y-3 ${uidNfc ? "bg-emerald-50 border-emerald-200" : "bg-amber-50 border-amber-200 border-dashed"}`}>
+                                <div>
+                                    <p className="text-sm font-bold text-slate-700">
+                                        {uidNfc ? "Kartu NFC Berhasil Terdeteksi" : "Silakan Tap Kartu NFC VIP ke Reader..."}
+                                    </p>
+                                </div>
 
-                {/* CHECKBOX HAK AKSES AREA/GEDUNG (BAWAKAN ASLI LU) */}
-                <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase text-slate-500 tracking-wider">Beri Hak Akses Area/Gedung:</label>
-                    <div className="grid grid-cols-2 gap-2 text-sm text-slate-700 pt-1">
-                        <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={aksesBeri.gateUtama} onChange={(e) => setAksesBeri({...aksesBeri, gateUtama: e.target.checked})} /> Gate Utama</label>
-                        <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={aksesBeri.gateParkir} onChange={(e) => setAksesBeri({...aksesBeri, gateParkir: e.target.checked})} /> Gate Parkir</label>
-                        <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={aksesBeri.gpa} onChange={(e) => setAksesBeri({...aksesBeri, gpa: e.target.checked})} /> GPA</label>
-                        <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={aksesBeri.diklat} onChange={(e) => setAksesBeri({...aksesBeri, diklat: e.target.checked})} /> Gedung Diklat</label>
-                        <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={aksesBeri.pabrik1a} onChange={(e) => setAksesBeri({...aksesBeri, pabrik1a: e.target.checked})} /> Pabrik 1A</label>
-                        <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={aksesBeri.pabrik1b} onChange={(e) => setAksesBeri({...aksesBeri, pabrik1b: e.target.checked})} /> Pabrik 1B</label>
-                        <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={aksesBeri.mo} onChange={(e) => setAksesBeri({...aksesBeri, mo: e.target.checked})} /> Gedung MO</label>
-                        <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={aksesBeri.lc} onChange={(e) => setAksesBeri({...aksesBeri, lc: e.target.checked})} /> Gedung LC</label>
-                    </div>
-                </div>
-
-                {/* TOMBOL NAVIGASI MODAL (BAWAKAN ASLI LU) */}
-                <div className="flex gap-2 pt-2">
-                    <Button variant="outline" className="w-1/3" onClick={() => setStepVip(1)}>
-                        Kembali
-                    </Button>
-                    <Button
-                        className="w-2/3 bg-amber-600 hover:bg-amber-700 text-white"
-                        onClick={handleDaftarVip}
-                    >
-                        Selesai & Simpan
-                    </Button>
-                </div>
-            </div>
-        )}
-    </DialogContent>
-</Dialog>
+                                <div className="max-w-xs mx-auto pt-1">
+                                    <label className="block text-[11px] font-semibold text-slate-500 text-left mb-1 uppercase tracking-wider">
+                                        Input UID Manual:
+                                    </label>
+                                    <input 
+                                        type="text"
+                                        className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm font-mono text-center bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 uppercase"
+                                        placeholder="Ketik UID kartu di sini..."
+                                        value={uidNfc}
+                                        onChange={(e) => setUidNfc(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold uppercase text-slate-500 tracking-wider">Beri Hak Akses Area/Gedung:</label>
+                                <div className="grid grid-cols-2 gap-2 text-sm text-slate-700 pt-1">
+                                    <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={aksesBeri.gateUtama} onChange={(e) => setAksesBeri({...aksesBeri, gateUtama: e.target.checked})} /> Gate Utama</label>
+                                    <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={aksesBeri.gateParkir} onChange={(e) => setAksesBeri({...aksesBeri, gateParkir: e.target.checked})} /> Gate Parkir</label>
+                                    <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={aksesBeri.gpa} onChange={(e) => setAksesBeri({...aksesBeri, gpa: e.target.checked})} /> GPA</label>
+                                    <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={aksesBeri.diklat} onChange={(e) => setAksesBeri({...aksesBeri, diklat: e.target.checked})} /> Gedung Diklat</label>
+                                    <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={aksesBeri.pabrik1a} onChange={(e) => setAksesBeri({...aksesBeri, pabrik1a: e.target.checked})} /> Pabrik 1A</label>
+                                    <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={aksesBeri.pabrik1b} onChange={(e) => setAksesBeri({...aksesBeri, pabrik1b: e.target.checked})} /> Pabrik 1B</label>
+                                    <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={aksesBeri.mo} onChange={(e) => setAksesBeri({...aksesBeri, mo: e.target.checked})} /> Gedung MO</label>
+                                    <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={aksesBeri.lc} onChange={(e) => setAksesBeri({...aksesBeri, lc: e.target.checked})} /> Gedung LC</label>
+                                </div>
+                            </div>
+                            <div className="flex gap-2 pt-2">
+                                <Button variant="outline" className="w-1/3" onClick={() => setStepVip(1)}>
+                                    Kembali
+                                </Button>
+                                <Button
+                                    className="w-2/3 bg-amber-600 hover:bg-amber-700 text-white"
+                                    onClick={handleDaftarVip}
+                                >
+                                    Selesai & Simpan
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
         </div> 
     );
 }
-// ==========================================
-// TARUH KODE DI BAWAH INI DI PALING BAWAH FILE LO
-// ==========================================
 
 export function RombonganExpandRow({ anggota, colSpan }: { anggota: any[]; colSpan: number }) {
     return (
@@ -1241,7 +1361,6 @@ export function RombonganExpandRow({ anggota, colSpan }: { anggota: any[]; colSp
                             Daftar Anggota Rombongan ({anggota.length} Orang)
                         </span>
                     </div>
-                    {/* Grid untuk menampilkan Nama, Email, dan No Telp Anggota Reguler */}
                     <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                         {anggota.map((a: any, i: number) => (
                             <div key={i} className="flex items-start gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
@@ -1269,7 +1388,7 @@ export function OverviewRow({
     setTamuTerpilih, 
     setStepScan, 
     setModalAction,
-    formatIdTamu,
+    formatIdTamu
 }: { 
     item: any; 
     index: number; 
@@ -1280,11 +1399,9 @@ export function OverviewRow({
     formatIdTamu: (id: any, vip: boolean) => string;
 }) {
     const [expanded, setExpanded] = useState(false);
-    
     const isVip = item.gedungTujuan === "VIP" || item.isVip;
     const hasRombonganReguler = !isVip && item.anggotaRombongan && item.anggotaRombongan.length > 0;
     const jumlahPengikutVip = item.jumlahRombongan || item.jumlahAnggotaVip || item.jumlahAnggota || 0;
-    
     const st = item.statusKunjungan || "Menunggu";
 
     return (
@@ -1299,19 +1416,18 @@ export function OverviewRow({
                             : "hover:bg-slate-50"
                 } ${hasRombonganReguler ? "cursor-pointer border-l-4 border-l-blue-500" : ""} transition-colors text-sm`}
             >
-                <TableCell className="px-3 py-2.5 font-mono text-xs text-slate-700 whitespace-nowrap">{item.id || "-"}</TableCell>
-                <TableCell className="font-bold text-slate-700">{formatIdTamu(item.id, isVip)}</TableCell>
-                <TableCell className="px-3 py-2.5 font-mono text-xs text-slate-600">{item.nfcId || "-"}</TableCell>
-                
+                <TableCell className="px-3 py-2.5 text-xs font-medium text-slate-500 text-center w-12">
+                    {index + 1}
+                </TableCell>
+                <TableCell className="font-bold text-slate-700">
+                    {formatIdTamu(item.id, isVip)}
+                </TableCell>
                 <TableCell className="font-semibold text-slate-800">
                     <div className="flex items-center gap-2">
                         {item.namaTamu || "-"}
-                        
                         {isVip && (
                             <span className="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full text-[10px] font-bold border border-amber-300">VIP</span>
                         )}
-                        
-                        {/* Rombongan Reguler (Bisa di-klik expand) */}
                         {hasRombonganReguler && (
                             <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 text-blue-700 px-2 py-0.5 text-[10px] font-bold">
                                 <UsersRound className="h-3 w-3" />
@@ -1319,8 +1435,6 @@ export function OverviewRow({
                                 {expanded ? <ChevronDown className="h-3 w-3 ml-0.5" /> : <ChevronRight className="h-3 w-3 ml-0.5" />}
                             </span>
                         )}
-
-                        {/* Rombongan VIP (HANYA TEXT ANGKA JUMLAH SAJA, GA BISA DI-EXPAND) */}
                         {isVip && jumlahPengikutVip > 0 && (
                             <span className="inline-flex items-center gap-1 rounded-full bg-amber-100/80 text-amber-800 px-2 py-0.5 text-[10px] font-bold border border-amber-200">
                                 <UsersRound className="h-3 w-3" />
@@ -1329,14 +1443,12 @@ export function OverviewRow({
                         )}
                     </div>
                 </TableCell>
-                
                 <TableCell className="px-3 py-2.5 text-slate-600">{item.asalInstansi || "-"}</TableCell>
                 <TableCell className="px-3 py-2.5 text-slate-600 text-xs">{item.email || "-"}</TableCell>
                 <TableCell className="px-3 py-2.5 text-slate-600 truncate max-w-[150px]">{item.tujuanKunjungan || item.tujuanVip || "-"}</TableCell>
                 <TableCell className="px-3 py-2.5 text-slate-600">{item.karyawanDituju || "Direksi / Manajemen"}</TableCell>
                 <TableCell className="px-3 py-2.5 text-xs">{fmtDt(item.waktuCheckIn)}</TableCell>
                 <TableCell className="px-3 py-2.5 text-xs">{fmtDt(item.waktuCheckOut)}</TableCell>
-                
                 <TableCell>
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold ring-1 ${
                         st === "Menunggu" || st === "Menunggu Gate Utama" ? "bg-yellow-100 text-yellow-800 ring-yellow-300" :
@@ -1347,7 +1459,6 @@ export function OverviewRow({
                         {st}
                     </span>
                 </TableCell>
-                
                 <TableCell onClick={(e) => e.stopPropagation()}>
                     <div className="flex gap-1">
                         {roleSatpam === "gateUtama" && (
@@ -1358,7 +1469,20 @@ export function OverviewRow({
                                     </Button>
                                 )}
                                 {(st === "Check-in" || st === "Check-in Area") && (
-                                    <Button size="sm" variant="destructive" className="h-7 text-xs" onClick={() => { setTamuTerpilih(item); setStepScan(1); setModalAction("scan_checkout"); }}>
+                                    <Button 
+                                        size="sm" 
+                                        variant="destructive" 
+                                        className="h-7 text-xs" 
+                                        onClick={() => { 
+                                            setTamuTerpilih(item); 
+                                            if (item.gedungTujuan === "VIP" || item.isVip) {
+                                                setStepScan(3);
+                                            } else {
+                                                setStepScan(1);
+                                            }
+                                            setModalAction("checkout");
+                                        }}
+                                    >
                                         Check-out
                                     </Button>
                                 )}
@@ -1372,7 +1496,20 @@ export function OverviewRow({
                                     </Button>
                                 )}
                                 {st === "Check-in Area" && (
-                                    <Button size="sm" variant="destructive" className="h-7 text-xs" onClick={() => { setTamuTerpilih(item); setStepScan(1); setModalAction("scan_checkout"); }}>
+                                    <Button 
+                                        size="sm" 
+                                        variant="destructive" 
+                                        className="h-7 text-xs" 
+                                        onClick={() => { 
+                                            setTamuTerpilih(item); 
+                                            if (item.gedungTujuan === "VIP" || item.isVip) {
+                                                setStepScan(3);
+                                            } else {
+                                                setStepScan(1);
+                                            }
+                                            setModalAction("checkout");
+                                        }}
+                                    >
                                         Keluar Area
                                     </Button>
                                 )}
@@ -1389,7 +1526,7 @@ export function OverviewRow({
             </TableRow>
 
             {hasRombonganReguler && expanded && (
-                <RombonganExpandRow anggota={item.anggotaRombongan} colSpan={13} />
+                <RombonganExpandRow anggota={item.anggotaRombongan} colSpan={12} />
             )}
         </>
     );
