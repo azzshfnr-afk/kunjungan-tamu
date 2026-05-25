@@ -33,6 +33,7 @@ export async function POST(request: Request) {
     const waktuCheckOut = (tglKeluar && jamKeluar)  ? new Date(`${tglKeluar}T${jamKeluar}`) : new Date();
     const tanggalKunjungan = tglMasuk ? new Date(`${tglMasuk}T00:00:00`) : new Date();
 
+
     let anggotaRombonganParsed: { nama: string; email: string; noTelp: string }[] = [];
     try {
       const rombonganRaw = formData.get("anggotaRombongan") as string;
@@ -86,17 +87,12 @@ export async function POST(request: Request) {
       },
     });
 
-    // ========================================================================
-    // 🔥 LOGIKA BARU: KUMPULKAN SEMUA EMAIL PENERIMA (UTAMA + ROMBONGAN) 🔥
-    // ========================================================================
     const daftarPenerima: { email: string; nama: string }[] = [];
 
-    // 1. Masukkan email tamu utama jika valid
     if (email !== "-" && email.includes("@")) {
       daftarPenerima.push({ email: email.trim(), nama: namaTamu });
     }
 
-    // 2. Masukkan email anggota rombongan jika mereka mengisi email
     anggotaRombonganParsed.forEach((anggota) => {
       if (anggota.email && anggota.email !== "-" && anggota.email.includes("@")) {
         daftarPenerima.push({ 
@@ -106,13 +102,11 @@ export async function POST(request: Request) {
       }
     });
 
-    // 3. Jalankan perulangan kirim email jika ada penerima yang terdaftar
     if (daftarPenerima.length > 0) {
       const d = new Date(tglMasuk || new Date());
       const tanggalFormat = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
-      const formatIdEmail = `PKC-${String(hasil.id).padStart(4, '0')}`; // ID & Barcode dijamin SAMA PERSIS buat semua orang
+      const formatIdEmail = `PKC-${String(hasil.id).padStart(4, '0')}`; 
 
-      // Looping kirim email satu per satu secara asinkron
       for (const penerima of daftarPenerima) {
         try {
           await transporter.sendMail({
@@ -176,6 +170,7 @@ export async function POST(request: Request) {
       }
     }
 
+
     return NextResponse.json({ ok: true, data: { id: hasil.id } });
   } catch (error: any) {
     console.error("ERROR API POST:", error);
@@ -199,7 +194,10 @@ export async function GET(request: Request) {
             { anggotaRombongan: { some: { email: email } } },
           ],
         },
-        include: { anggotaRombongan: true },
+        include: { 
+          anggotaRombongan: true,
+          logTracking: true 
+        },
         orderBy: { id: 'desc' }, 
       });
 
@@ -207,43 +205,161 @@ export async function GET(request: Request) {
         return NextResponse.json({ message: 'Data tidak ditemukan' }, { status: 404 });
       }
 
-      return NextResponse.json({ message: 'Sukses', data: dataKunjungan }, { status: 200 });
+      const dataKunjunganMapped = dataKunjungan.map((t) => {
+        const logMapped = t.logTracking?.map(log => ({
+          lokasiGate: log.lokasiTap,
+          waktuTap: log.waktuTap,
+          jenisTap: log.jenisTap
+        })) || [];
+        return { ...t, riwayatTap: logMapped };
+      });
+
+      return NextResponse.json({ message: 'Sukses', data: dataKunjunganMapped }, { status: 200 });
     }
 
     const semuaTamu = await prisma.tamu.findMany({
-      include: { anggotaRombongan: true },
+      include: { 
+        anggotaRombongan: true,
+        logTracking: true 
+      },
       orderBy: { id: 'desc' },
     });
 
-    const result = semuaTamu.map((t) => ({
-      id:               t.id,
-      name:             t.namaTamu,
-      instansi:         t.asalInstansi,
-      email:            t.email,
-      phone:            t.noTelp,
-      departemen:       t.departemen,
-      karyawan:         t.karyawanDituju,
-      tujuanKunjungan:  t.tujuanKunjungan,
-      tipeTamu:         t.tipeTamu ?? "regular",
-      status:           t.status,
-      statusKunjungan:  t.statusKunjungan,
-      tanggalKunjungan: t.tanggalKunjungan,
-      visitDate:        t.waktuCheckIn,
-      visitTime:        t.waktuCheckIn
-        ? new Date(t.waktuCheckIn).toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' })
-        : "-",
-      checkin:          t.aktualCheckIn  ?? null,
-      checkout:         t.aktualCheckOut ?? null,
-      anggotaRombongan: t.anggotaRombongan.map((a) => ({
-        nama:   a.nama,
-        email:  a.email,
-        noTelp: a.noTelp,
-      })),
-    }));
+    const result = semuaTamu.map((t) => {
+      const logMapped = t.logTracking?.map(log => ({
+        lokasiGate: log.lokasiTap,
+        waktuTap: log.waktuTap,
+        jenisTap: log.jenisTap
+      })) || [];
+
+      return {
+        id:               t.id,
+        name:             t.namaTamu,
+        namaTamu:         t.namaTamu, 
+        asalInstansi:     t.asalInstansi,
+        instansi:         t.asalInstansi,
+        email:            t.email,
+        phone:            t.noTelp,
+        noTelp:           t.noTelp,
+        nik:              t.nik,
+        nfcId:            t.nfcId,
+        kartuNfcId:       t.kartuNfcId,
+        gedungTujuan:     t.gedungTujuan,
+        aksesAktif:       t.aksesAktif,
+        departemen:       t.departemen,
+        karyawan:         t.karyawanDituju,
+        karyawanDituju:   t.karyawanDituju,
+        tujuanKunjungan:  t.tujuanKunjungan,
+        tipeTamu:         t.tipeTamu ?? "regular",
+        status:           t.status,
+        statusKunjungan:  t.statusKunjungan,
+        tanggalKunjungan: t.tanggalKunjungan,
+        visitDate:        t.waktuCheckIn,
+        visitTime:        t.waktuCheckIn
+          ? new Date(t.waktuCheckIn).toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' })
+          : "-",
+        checkin:          t.aktualCheckIn  ?? null,
+        checkout:         t.aktualCheckOut ?? null,
+        aktualCheckOut:   t.aktualCheckOut ?? null,
+        riwayatTap:       logMapped, 
+        anggotaRombongan: t.anggotaRombongan.map((a) => ({
+          nama:   a.nama,
+          email:  a.email,
+          noTelp: a.noTelp,
+        })),
+      };
+    });
+
     return NextResponse.json(result);
   } catch (error: any) {
     return NextResponse.json(
       { message: 'Gagal', error: error.message },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const body = await request.json();
+    const { idTamu, aksi, lokasi } = body;
+
+    if (!idTamu || aksi !== "CHECKOUT") {
+      return NextResponse.json(
+        { ok: false, message: "Parameter tidak valid." },
+        { status: 400 }
+      );
+    }
+
+    const dataTamuSebelumnya = await prisma.tamu.findUnique({
+      where: { id: Number(idTamu) },
+      select: { kartuNfcId: true }
+    });
+
+    if (!dataTamuSebelumnya) {
+      return NextResponse.json(
+        { ok: false, message: "Data tamu tidak ditemukan." },
+        { status: 404 }
+      );
+    }
+
+    let idKartuValid = dataTamuSebelumnya.kartuNfcId;
+
+    if (!idKartuValid) {
+      const kartuFormalitas = await prisma.kartuNfc.upsert({
+        where: { id: 1 },
+        update: {}, 
+        create: {
+          id: 1,
+          uidKartu: "DUMMY-SYSTEM-CARD",
+          kodeVisual: "DUMMY-01",
+          status: "TERSEDIA"
+        }
+      });
+      idKartuValid = kartuFormalitas.id;
+    }
+
+    const hasilUpdate = await prisma.tamu.update({
+      where: { id: Number(idTamu) },
+      data: {
+        statusKunjungan: "Selesai",
+        status: "Selesai Kunjungan",
+        aktualCheckOut: new Date(),
+        kartuNfcId: null, 
+      },
+    });
+
+    if (dataTamuSebelumnya.kartuNfcId) {
+      try {
+        await prisma.kartuNfc.update({
+          where: { id: dataTamuSebelumnya.kartuNfcId },
+          data: { status: "TERSEDIA" } 
+        });
+      } catch (e) {
+        console.log("Kartu lama tidak ditemukan di tabel fisik KartuNfc, lanjut...");
+      }
+    }
+
+    const namaLokasiAktual = lokasi || "Gate Keluar (Utama)";
+
+    await prisma.logTracking.create({
+      data: {
+        lokasiTap: namaLokasiAktual, 
+        jenisTap: "OUT / CHECKOUT",       
+        tamuId: hasilUpdate.id,
+        kartuNfcId: idKartuValid, 
+      },
+    });
+
+    return NextResponse.json({ 
+      ok: true, 
+      message: "Proses Scan Check-out Berhasil dicatat ke Sistem!" 
+    });
+
+  } catch (error: any) {
+    console.error("ERROR API PATCH CHECKOUT:", error);
+    return NextResponse.json(
+      { ok: false, message: error.message || "Gagal memproses check-out." },
       { status: 500 }
     );
   }

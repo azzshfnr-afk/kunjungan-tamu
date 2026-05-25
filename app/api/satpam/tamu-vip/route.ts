@@ -11,6 +11,7 @@ export async function POST(req: Request) {
       minute: "2-digit",
       timeZone: "Asia/Jakarta"
     });
+    
     const totalAnggota = parseInt(jumlahAnggota) || 0;
     const listAnggotaDummy = [];
     for (let i = 0; i < totalAnggota; i++) {
@@ -20,6 +21,16 @@ export async function POST(req: Request) {
         noTelp: "-"
       });
     }
+
+    let gedungTujuanUtama = "VIP";
+    if (aksesAktif) {
+      const listGedung = aksesAktif.split(",").map((g: string) => g.trim());
+      const gedungSpesifik = listGedung.find((g: string) => g.toLowerCase() !== "gate utama");
+      if (gedungSpesifik) {
+        gedungTujuanUtama = gedungSpesifik;
+      }
+    }
+
     const tamuVip = await prisma.tamu.create({
       data: {
         namaTamu: namaTamu,
@@ -29,7 +40,7 @@ export async function POST(req: Request) {
         aktualCheckIn: new Date(), 
         waktuCheckOut: new Date(),
         statusKunjungan: "Check-in", 
-        aksesAktif: aksesAktif || "Gate Utama", 
+        aksesAktif: aksesAktif || "Gate Utama",
         nfcId: nfcId || "-", 
         riwayatTap: `Gate Utama (${jamTap})`, 
         tipeTamu: "vip",
@@ -37,12 +48,13 @@ export async function POST(req: Request) {
         noTelp: noTelp || "-",
         email: "-",
         karyawanDituju: "-",
-        gedungTujuan: "VIP",
+        gedungTujuan: gedungTujuanUtama, 
         anggotaRombongan: {
           create: listAnggotaDummy
         }
       },
     });
+    
     return NextResponse.json({ ok: true, data: tamuVip });
   } catch (error) {
     console.error("==== ERROR BIKIN VIP DI DATABASE ====", error);

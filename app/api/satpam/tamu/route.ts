@@ -7,6 +7,7 @@ export async function GET() {
     startOfToday.setHours(0, 0, 0, 0);
     const endOfToday = new Date();
     endOfToday.setHours(23, 59, 59, 999);
+    
     const dataTamu = await prisma.tamu.findMany({
       where: {
         OR: [
@@ -36,13 +37,40 @@ export async function GET() {
       include: {
         kartuNfc: true,
         anggotaRombongan: true,
+        logTracking: true, 
       },
       orderBy: {
         createdAt: 'desc',
       },
-  });
+    });
+
+    const dataTamuTerformat = dataTamu.map((tamu) => {
+      let riwayatGabungan = [];
+      
+      if (Array.isArray(tamu.riwayatTap)) {
+        riwayatGabungan = tamu.riwayatTap;
+      } else if (typeof tamu.riwayatTap === "string") {
+        try { riwayatGabungan = JSON.parse(tamu.riwayatTap); } catch(e){}
+      }
+
+      if (tamu.logTracking && tamu.logTracking.length > 0) {
+        const logMapped = tamu.logTracking.map(log => ({
+          lokasiGate: log.lokasiTap,
+          waktuTap: log.waktuTap,
+          jenisTap: log.jenisTap
+        }));
+        
+        riwayatGabungan = [...riwayatGabungan, ...logMapped];
+      }
+
+      return {
+        ...tamu,
+        riwayatTap: riwayatGabungan 
+      };
+    });
+
     return NextResponse.json(
-      { message: "Sukses", data: dataTamu },
+      { message: "Sukses", data: dataTamuTerformat }, 
       { status: 200 }
     );
   } catch (error: any) {
