@@ -56,12 +56,15 @@ interface Karyawan {
 
 const DATA_KARYAWAN: Record<string, { bet: string; nama: string; dept: string }[]> = {
     "Gedung Pusat Administrasi (GPA)": [
-        { bet: "PKC-101", nama: "Junaedi", dept: "TI" },
+        { bet: "PKC-101", nama: "Riza Ilhamsyah", dept: "TI" },
         { bet: "PKC-102", nama: "Susi", dept: "Keuangan" },
     ],
     "Gedung Diklat": [
         { bet: "PKC-201", nama: "Yoyo", dept: "Agrosolution" },
         { bet: "PKC-202", nama: "Mumun", dept: "Sekretaris" },
+    ],
+    "Pabrik 1A": [
+        { bet: "PKC-301", nama: "Junaedi", dept: "Produksi" },
     ],
 };
 
