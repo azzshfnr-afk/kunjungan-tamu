@@ -1085,6 +1085,17 @@ export default function SatpamDashboard() {
                                                     });
                                                     const hasil = await respon.json();
                                                     if (hasil.ok) {
+                                                        if (typeof (window as any).setTamuTerpilih === "function" || true) {
+                                                            try {
+                                                                const updater = (setTamuTerpilih as any);
+                                                                if (typeof updater === "function") {
+                                                                    updater((prev: any) => prev ? { ...prev, riwayatTap: hasil.riwayatTap } : prev);
+                                                                }
+                                                            } catch (e) {
+                                                                console.error(e);
+                                                            }
+                                                        }
+
                                                         alert("Selesai! Tamu berhasil keluar dan log tersimpan.");
                                                         tutupModal();
                                                         if (typeof fetchTamu === "function") fetchTamu();
@@ -1137,6 +1148,17 @@ export default function SatpamDashboard() {
                                             });
                                             const hasil = await respon.json();
                                             if (hasil.ok) {
+                                                if (typeof (window as any).setTamuTerpilih === "function" || true) {
+                                                    try {
+                                                        const updater = (setTamuTerpilih as any);
+                                                        if (typeof updater === "function") {
+                                                            updater((prev: any) => prev ? { ...prev, riwayatTap: hasil.riwayatTap } : prev);
+                                                        }
+                                                    } catch (e) {
+                                                        console.error(e);
+                                                    }
+                                                }
+
                                                 alert("Sukses cabut akses area!");
                                                 tutupModal();
                                                 if (typeof fetchTamu === "function") fetchTamu();

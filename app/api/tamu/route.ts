@@ -219,6 +219,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json(result);
   } catch (error: any) {
+    console.error("ERROR API GET:", error);
     return NextResponse.json({ message: 'Gagal', error: error.message }, { status: 500 });
   }
 }
@@ -242,21 +243,13 @@ export async function PATCH(request: Request) {
     }
 
     if (aksi === "CHECKIN") {
-      
       if (dataTamuSebelumnya.statusKunjungan !== null && 
           dataTamuSebelumnya.statusKunjungan !== "Menunggu pendaftaran" && 
-          dataTamuSebelumnya.statusKunjungan !== "Selesai pendaftaran") {
+          dataTamuSebelumnya.statusKunjungan !== "Selesai pendaftaran" &&
+          dataTamuSebelumnya.statusKunjungan !== "Menunggu") {
         return NextResponse.json({ 
           ok: false, 
-          message: "❌ TIKET EXPIRED: QR Code ini sudah kedaluwarsa karena sudah pernah digunakan untuk check-in masuk!" 
-        }, { status: 400 });
-      }
-
-      const waktuSekarang = new Date();
-      if (waktuSekarang > new Date(dataTamuSebelumnya.waktuCheckOut)) {
-        return NextResponse.json({
-          ok: false,
-          message: "❌ TIKET EXPIRED: Batas akhir waktu rencana kunjungan Anda sudah terlewati. Harap isi formulir registrasi baru!"
+          message: "❌ TIKET EXPIRED: QR Code ini sudah kedaluwarsa karena sudah pernah digunakan untuk check-in!" 
         }, { status: 400 });
       }
 
@@ -288,12 +281,54 @@ export async function PATCH(request: Request) {
         },
       });
 
-      return NextResponse.json({ ok: true, message: "Proses Scan Check-in Berhasil! QR Code resmi hangus." });
+      const logTerupdate = await prisma.logTracking.findMany({
+        where: { tamuId: Number(idTamu) },
+        orderBy: { waktuTap: 'asc' }
+      });
+
+      return NextResponse.json({ 
+        ok: true, 
+        message: "Proses Scan Check-in Berhasil!",
+        riwayatTap: logTerupdate.map(log => ({
+          lokasiGate: log.lokasiTap, waktuTap: log.waktuTap, jenisTap: log.jenisTap
+        }))
+      });
+    }
+
+    if (aksi === "MASUK_AREA" || (aksi === "CHECKIN" && dataTamuSebelumnya.statusKunjungan === "Check-in")) {
+      const hasilUpdateAreaIn = await prisma.tamu.update({
+        where: { id: Number(idTamu) },
+        data: {
+          statusKunjungan: "Check-in Area",
+          status: "Di Dalam Gedung/Area",
+        },
+      });
+
+      await prisma.logTracking.create({
+        data: {
+          lokasiTap: lokasi || "Gate Masuk (Area)", 
+          jenisTap: "TAP AREA IN",       
+          tamuId: hasilUpdateAreaIn.id,
+          kartuNfcId: dataTamuSebelumnya.kartuNfcId || 1, 
+        },
+      });
+
+      const logTerupdate = await prisma.logTracking.findMany({
+        where: { tamuId: Number(idTamu) },
+        orderBy: { waktuTap: 'asc' }
+      });
+
+      return NextResponse.json({ 
+        ok: true, 
+        message: "Berhasil tap masuk area gedung!",
+        riwayatTap: logTerupdate.map(log => ({
+          lokasiGate: log.lokasiTap, waktuTap: log.waktuTap, jenisTap: log.jenisTap
+        }))
+      });
     }
 
     if (aksi === "CHECKOUT") {
-      
-      if (dataTamuSebelumnya.statusKunjungan === "Selesai") {
+      if (dataTamuSebelumnya.statusKunjungan === "Selesai" || dataTamuSebelumnya.statusKunjungan === "Check-out") {
         return NextResponse.json({ 
           ok: false, 
           message: "⚠️ Tamu ini sudah berstatus Selesai / Sudah melakukan Check-out sebelumnya!" 
@@ -301,7 +336,6 @@ export async function PATCH(request: Request) {
       }
 
       let idKartuValid = dataTamuSebelumnya.kartuNfcId;
-
       if (!idKartuValid) {
         const kartuSystem = await prisma.kartuNfc.upsert({
           where: { id: 1 },
@@ -311,17 +345,19 @@ export async function PATCH(request: Request) {
         idKartuValid = kartuSystem.id;
       }
 
+      const isLobby = lokasi && lokasi.includes("Lobby");
+      
       const hasilUpdateOut = await prisma.tamu.update({
         where: { id: Number(idTamu) },
         data: {
-          statusKunjungan: "Selesai",
-          status: "Selesai Kunjungan",
-          aktualCheckOut: new Date(),
-          kartuNfcId: null, 
+          statusKunjungan: isLobby ? "Check-in" : "Check-out", 
+          status: isLobby ? "Aktif di Kawasan Luar" : "Selesai Kunjungan",
+          aktualCheckOut: isLobby ? null : new Date(),
+          kartuNfcId: isLobby ? dataTamuSebelumnya.kartuNfcId : null, 
         },
       });
 
-      if (dataTamuSebelumnya.kartuNfcId) {
+      if (!isLobby && dataTamuSebelumnya.kartuNfcId) {
         try {
           await prisma.kartuNfc.update({
             where: { id: dataTamuSebelumnya.kartuNfcId },
@@ -333,13 +369,24 @@ export async function PATCH(request: Request) {
       await prisma.logTracking.create({
         data: {
           lokasiTap: lokasi || "Gate Keluar (Utama)", 
-          jenisTap: "OUT / CHECKOUT",       
+          jenisTap: isLobby ? "TAP AREA OUT" : "OUT / CHECKOUT",       
           tamuId: hasilUpdateOut.id,
           kartuNfcId: idKartuValid, 
         },
       });
 
-      return NextResponse.json({ ok: true, message: "Proses Scan Check-out Berhasil dicatat ke Sistem!" });
+      const logTerupdate = await prisma.logTracking.findMany({
+        where: { tamuId: Number(idTamu) },
+        orderBy: { waktuTap: 'asc' } 
+      });
+
+      return NextResponse.json({ 
+        ok: true, 
+        message: "Proses Scan Berhasil dicatat ke riwayat log!",
+        riwayatTap: logTerupdate.map(log => ({
+          lokasiGate: log.lokasiTap, waktuTap: log.waktuTap, jenisTap: log.jenisTap
+        }))
+      });
     }
 
     return NextResponse.json({ ok: false, message: "Aksi tidak dikenali." }, { status: 400 });
