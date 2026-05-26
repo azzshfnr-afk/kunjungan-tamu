@@ -11,38 +11,42 @@ export async function GET() {
     const result = data.map((item) => ({
       id:              item.id.toString(),
       name:            item.namaTamu,
-      instansi:        item.asalInstansi       || "-",
-      email:           item.email              || "-",
-      departemen:      item.departemen         || "-",
-      karyawan:        item.karyawanDituju     || "-",
-      noTelp:          item.noTelp             || "-",
-      nik:             item.nik                || "-",
-      tujuanKunjungan: item.tujuanKunjungan    || "-",
-      gedungTujuan:    item.gedungTujuan       || "-",
-      aksesAktif:      item.aksesAktif        || "-",
-      fotoKtp:         item.fotoKtp           || null,
+      instansi:        item.asalInstansi    || "-",
+      email:           item.email           || "-",
+      departemen:      item.departemen      || "-",
+      karyawan:        item.karyawanDituju  || "-",
+      noTelp:          item.noTelp          || "-",
+      nik:             item.nik             || "-",
+      tujuanKunjungan: item.tujuanKunjungan || "-",
+      gedungTujuan:    item.gedungTujuan    || "-",
+      aksesAktif:      item.aksesAktif      || "-",
+      fotoKtp:         item.fotoKtp         || null,
       tipeTamu:        item.tipeTamu === "vip" ? "vip" : "regular",
+      rejected:        item.statusKunjungan === "DITOLAK",
 
       date: item.tanggalKunjungan
-        ? item.tanggalKunjungan.toISOString().split("T")[0]
+        ? formatLocalDate(item.tanggalKunjungan)
         : item.waktuCheckIn
-        ? item.waktuCheckIn.toISOString().split("T")[0]
+        ? formatLocalDate(item.waktuCheckIn)
         : "-",
 
-      checkin: item.aktualCheckIn
-        ? item.aktualCheckIn.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })
+
+      waktuCheckOut: item.waktuCheckOut
+        ? item.waktuCheckOut.toISOString()
         : null,
 
-      checkout: item.aktualCheckOut
-        ? item.aktualCheckOut.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })
-        : null,
+      checkin:  item.aktualCheckIn  ? item.aktualCheckIn.toISOString()  : null,
+      checkout: item.aktualCheckOut ? item.aktualCheckOut.toISOString() : null,
 
-      rejected: item.statusKunjungan === "DITOLAK",
+      nfcKembali:      (item as any).nfcKembali      ?? false,
+      waktuNfcKembali: (item as any).waktuNfcKembali
+        ? new Date((item as any).waktuNfcKembali).toISOString()
+        : null,
 
       anggotaRombongan: item.anggotaRombongan.map((a) => ({
         nama:   a.nama,
-        email:  a.email,
-        noTelp: a.noTelp,
+        email:  a.email  || "-",
+        noTelp: a.noTelp || "-",
       })),
     }));
 
@@ -54,4 +58,11 @@ export async function GET() {
       { status: 500 }
     );
   }
+}
+
+function formatLocalDate(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }

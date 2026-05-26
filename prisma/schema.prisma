@@ -41,6 +41,9 @@ model Tamu {
   anggotaRombongan AnggotaRombongan[]
 
   tipeTamu String @default("regular")
+
+  nfcKembali     Boolean   @default(false)   
+  waktuNfcKembali DateTime?   
 }
 
 model KartuNfc {

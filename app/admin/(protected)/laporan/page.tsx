@@ -43,9 +43,15 @@ type Visitor = {
   instansi: string;
   email: string;
   departemen: string;
-  date: string;
+  // Tanggal kunjungan (YYYY-MM-DD dari server)
+  date?: string;
+  tanggalKunjungan?: string;
+  visitDate?: string;
+  // Batas akhir kunjungan — full ISO datetime dari waktuCheckOut DB
+  waktuCheckOut?: string;
   dateTo?: string;
   karyawan: string;
+  // Waktu aktual check-in & check-out — full ISO datetime
   checkin: string | null;
   checkout: string | null;
   rejected: boolean;
@@ -56,8 +62,22 @@ type Visitor = {
   gedungTujuan?: string;
   aksesAktif?: string;
   fotoKtp?: string;
+  // Status pengembalian NFC
+  nfcKembali?: boolean;
+  waktuNfcKembali?: string | null;
   anggotaRombongan?: AnggotaRombongan[];
 };
+
+
+// Helper: ambil tanggal kunjungan dari field yang benar (API kirim tanggalKunjungan, bukan date)
+function getVisitDate(item: Visitor): string {
+  return item.tanggalKunjungan || item.date || item.visitDate || "";
+}
+
+// Helper: ambil tanggal akhir kunjungan (dari waktuCheckOut rencana)
+function getVisitDateTo(item: Visitor): string | undefined {
+  return item.dateTo || item.waktuCheckOut || undefined;
+}
 
 function getStatus(item: Visitor): StatusType {
   if (item.rejected)                  return "Ditolak";
@@ -90,21 +110,35 @@ function formatDateTime(dt?: string | null) {
   });
 }
 
-function getKeterlambatan(item: Visitor): { label: string; terlambat: boolean } {
-  if (!item.checkout) return { label: "-", terlambat: false };
+function getKeterlambatan(item: Visitor): { label: string; terlambat: boolean; belumKembali: boolean } {
+  const batasStr = item.waktuCheckOut || getVisitDateTo(item) || getVisitDate(item);
+  if (!batasStr) return { label: "-", terlambat: false, belumKembali: false };
 
-  const batasStr = item.dateTo ?? item.date;
-  // FIX: same timezone-safe parsing for batas date
-  const batas    = parseDateSafe(batasStr);
-  const checkout = new Date(item.checkout);
+  const batas = new Date(batasStr);
+  if (isNaN(batas.getTime())) return { label: "-", terlambat: false, belumKembali: false };
 
-  if (isNaN(batas.getTime()) || isNaN(checkout.getTime())) {
-    return { label: "-", terlambat: false };
+  // Kartu belum dikembalikan
+  if (!item.nfcKembali) {
+    // Tamu belum checkout sama sekali
+    if (!item.checkout) return { label: "-", terlambat: false, belumKembali: false };
+
+    // Sudah checkout tapi kartu belum dikembalikan — cek apakah sudah lewat deadline
+    const sekarang = new Date();
+    if (sekarang > batas) {
+      return { label: "Belum Dikembalikan", terlambat: true, belumKembali: true };
+    }
+    return { label: "-", terlambat: false, belumKembali: false };
   }
 
-  const diffMs = checkout.getTime() - batas.getTime();
+  // Kartu sudah dikembalikan — hitung tepat/terlambat berdasarkan waktuNfcKembali
+  const kembaliStr = item.waktuNfcKembali || item.checkout;
+  if (!kembaliStr) return { label: "Tepat Waktu", terlambat: false, belumKembali: false };
 
-  if (diffMs <= 0) return { label: "Tepat Waktu", terlambat: false };
+  const kembali = new Date(kembaliStr);
+  if (isNaN(kembali.getTime())) return { label: "Tepat Waktu", terlambat: false, belumKembali: false };
+
+  const diffMs = kembali.getTime() - batas.getTime();
+  if (diffMs <= 0) return { label: "Tepat Waktu", terlambat: false, belumKembali: false };
 
   const totalMenit = Math.floor(diffMs / 60000);
   const hari       = Math.floor(totalMenit / 1440);
@@ -116,7 +150,7 @@ function getKeterlambatan(item: Visitor): { label: string; terlambat: boolean } 
   if (jam   > 0) parts.push(`${jam} jam`);
   if (menit > 0) parts.push(`${menit} menit`);
 
-  return { label: `Terlambat ${parts.join(" ")}`, terlambat: true };
+  return { label: `Terlambat ${parts.join(" ")}`, terlambat: true, belumKembali: false };
 }
 
 function StatusBadge({ status }: { status: StatusType }) {
@@ -215,6 +249,7 @@ function buildRows(data: Visitor[]) {
 
   data.forEach((item) => {
     const { label: keterlambatan } = getKeterlambatan(item);
+    const nfcStatus = item.nfcKembali ? "Sudah Dikembalikan" : item.checkout ? "Belum Dikembalikan" : "-";
     rows.push({
       ID:                    `PKC-${item.id}`,
       Tipe:                  item.tipeTamu === "vip" ? "VIP" : "Reguler",
@@ -225,10 +260,11 @@ function buildRows(data: Visitor[]) {
       "No. Telepon":         item.noTelp ?? "-",
       Departemen:            item.departemen,
       Karyawan:              item.karyawan,
-      "Tgl Dari":            formatDate(item.date),
-      "Tgl Sampai":          item.dateTo ? formatDate(item.dateTo) : formatDate(item.date),
+      "Tgl Dari":            formatDate(getVisitDate(item)),
+      "Tgl Sampai":          getVisitDateTo(item) ? formatDate(getVisitDateTo(item)!) : formatDate(getVisitDate(item)),
       "Check-in":            formatDateTime(item.checkin),
       "Check-out":           formatDateTime(item.checkout),
+      "Status NFC":          nfcStatus,
       "Pengembalian NFC":    keterlambatan,
       Status:                getStatus(item),
     });
@@ -244,8 +280,8 @@ function buildRows(data: Visitor[]) {
         "No. Telepon":         a.noTelp,
         Departemen:            item.departemen,
         Karyawan:              item.karyawan,
-        "Tgl Dari":            formatDate(item.date),
-        "Tgl Sampai":          item.dateTo ? formatDate(item.dateTo) : formatDate(item.date),
+        "Tgl Dari":            formatDate(getVisitDate(item)),
+        "Tgl Sampai":          getVisitDateTo(item) ? formatDate(getVisitDateTo(item)!) : formatDate(getVisitDate(item)),
         "Check-in":            "-",
         "Check-out":           "-",
         "Pengembalian NFC":    "-",
@@ -415,9 +451,9 @@ function LaporanRow({
         <td className="px-3 py-2.5 text-gray-600 whitespace-nowrap">{item.departemen}</td>
         <td className="px-3 py-2.5 text-gray-600 whitespace-nowrap">{item.karyawan}</td>
         <td className="px-3 py-2.5 whitespace-nowrap">
-          <span className="text-gray-800 font-medium">{formatDate(item.date)}</span>
-          {item.dateTo ? (
-            <><span className="mx-1 text-gray-400">–</span><span className="text-gray-800 font-medium">{formatDate(item.dateTo)}</span></>
+          <span className="text-gray-800 font-medium">{formatDate(getVisitDate(item))}</span>
+          {getVisitDateTo(item) ? (
+            <><span className="mx-1 text-gray-400">–</span><span className="text-gray-800 font-medium">{formatDate(getVisitDateTo(item)!)}</span></>
           ) : (
             <span className="ml-1 text-gray-400 text-xs">(1 hari)</span>
           )}
@@ -486,8 +522,7 @@ export default function LaporanPage() {
   }, []);
 
   const filteredData = data.filter((item) => {
-    // FIX: use parseDateSafe for consistent date comparison
-    const itemDate = parseDateSafe(item.date);
+    const itemDate = parseDateSafe(getVisitDate(item));
     const keyword  = search.toLowerCase();
     const inRange  =
       appliedStartDate && appliedEndDate
@@ -502,7 +537,7 @@ export default function LaporanPage() {
     );
   });
 
-  const sortedData    = [...filteredData].sort((a, b) => parseDateSafe(b.date).getTime() - parseDateSafe(a.date).getTime());
+  const sortedData    = [...filteredData].sort((a, b) => parseDateSafe(getVisitDate(b)).getTime() - parseDateSafe(getVisitDate(a)).getTime());
   const totalPages    = Math.ceil(sortedData.length / rowsPerPage);
   const paginatedData = sortedData.slice((page - 1) * rowsPerPage, page * rowsPerPage);
 
@@ -745,10 +780,10 @@ export default function LaporanPage() {
               <InfoRow
                 label="Tgl Kunjungan"
                 nilai={
-                  detailTamu?.date
-                    ? detailTamu.dateTo
-                      ? `${formatDate(detailTamu.date)} – ${formatDate(detailTamu.dateTo)}`
-                      : formatDate(detailTamu.date)
+                  detailTamu
+                    ? getVisitDateTo(detailTamu)
+                      ? `${formatDate(getVisitDate(detailTamu))} – ${formatDate(getVisitDateTo(detailTamu)!)}`
+                      : formatDate(getVisitDate(detailTamu))
                     : undefined
                 }
               />
@@ -789,19 +824,43 @@ export default function LaporanPage() {
               <InfoRow label="Waktu Check-out" nilai={formatDateTime(detailTamu?.checkout)} />
 
               {detailTamu && (() => {
-                const { label, terlambat } = getKeterlambatan(detailTamu);
+                const { label, terlambat, belumKembali } = getKeterlambatan(detailTamu);
                 return (
-                  <div className="flex justify-between items-center py-1.5 border-b border-gray-100 last:border-0">
-                    <span className="text-sm text-gray-500">Pengembalian NFC</span>
-                    <span className={`text-sm font-semibold ${
-                      terlambat
-                        ? "text-red-600"
-                        : label === "Tepat Waktu"
-                          ? "text-green-600"
-                          : "text-gray-400"
-                    }`}>
-                      {label}
-                    </span>
+                  <div className="space-y-1.5 py-1.5 border-b border-gray-100">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-500">Status NFC</span>
+                      {detailTamu.nfcKembali ? (
+                        <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold bg-green-100 text-green-700 ring-1 ring-green-300">
+                          ✓ Sudah Dikembalikan
+                        </span>
+                      ) : detailTamu.checkout ? (
+                        <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold bg-red-100 text-red-700 ring-1 ring-red-300">
+                          ✗ Belum Dikembalikan
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold bg-gray-100 text-gray-500 ring-1 ring-gray-200">
+                          — Belum Check-out
+                        </span>
+                      )}
+                    </div>
+                    {detailTamu.nfcKembali && detailTamu.waktuNfcKembali && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-gray-400">Waktu Kembali</span>
+                        <span className="text-xs text-gray-600 font-medium">{formatDateTime(detailTamu.waktuNfcKembali)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-500">Keterlambatan</span>
+                      <span className={`text-sm font-semibold ${
+                        terlambat
+                          ? "text-red-600"
+                          : label === "Tepat Waktu"
+                            ? "text-green-600"
+                            : "text-gray-400"
+                      }`}>
+                        {label}
+                      </span>
+                    </div>
                   </div>
                 );
               })()}
