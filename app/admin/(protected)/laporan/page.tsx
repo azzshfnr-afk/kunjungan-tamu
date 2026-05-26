@@ -66,9 +66,16 @@ function getStatus(item: Visitor): StatusType {
   return "Selesai";
 }
 
+// FIX: parse date-only strings as local time to avoid UTC offset shifting the date
+function parseDateSafe(date: string): Date {
+  // If already has time component (e.g. ISO with T), parse as-is
+  // If date-only (e.g. "2025-05-25"), append T00:00:00 to force local time parsing
+  return new Date(date.includes("T") ? date : date + "T00:00:00");
+}
+
 function formatDate(date?: string | null) {
   if (!date) return "-";
-  return new Date(date).toLocaleDateString("id-ID", {
+  return parseDateSafe(date).toLocaleDateString("id-ID", {
     day: "numeric", month: "short", year: "numeric",
   });
 }
@@ -81,6 +88,35 @@ function formatDateTime(dt?: string | null) {
     day: "2-digit", month: "short", year: "numeric",
     hour: "2-digit", minute: "2-digit",
   });
+}
+
+function getKeterlambatan(item: Visitor): { label: string; terlambat: boolean } {
+  if (!item.checkout) return { label: "-", terlambat: false };
+
+  const batasStr = item.dateTo ?? item.date;
+  // FIX: same timezone-safe parsing for batas date
+  const batas    = parseDateSafe(batasStr);
+  const checkout = new Date(item.checkout);
+
+  if (isNaN(batas.getTime()) || isNaN(checkout.getTime())) {
+    return { label: "-", terlambat: false };
+  }
+
+  const diffMs = checkout.getTime() - batas.getTime();
+
+  if (diffMs <= 0) return { label: "Tepat Waktu", terlambat: false };
+
+  const totalMenit = Math.floor(diffMs / 60000);
+  const hari       = Math.floor(totalMenit / 1440);
+  const jam        = Math.floor((totalMenit % 1440) / 60);
+  const menit      = totalMenit % 60;
+
+  const parts: string[] = [];
+  if (hari  > 0) parts.push(`${hari} hari`);
+  if (jam   > 0) parts.push(`${jam} jam`);
+  if (menit > 0) parts.push(`${menit} menit`);
+
+  return { label: `Terlambat ${parts.join(" ")}`, terlambat: true };
 }
 
 function StatusBadge({ status }: { status: StatusType }) {
@@ -178,39 +214,42 @@ function buildRows(data: Visitor[]) {
   const rows: Record<string, string>[] = [];
 
   data.forEach((item) => {
+    const { label: keterlambatan } = getKeterlambatan(item);
     rows.push({
-      ID:              `PKC-${item.id}`,
-      Tipe:            item.tipeTamu === "vip" ? "VIP" : "Reguler",
-      "Jenis Baris":   "Tamu Utama",
-      Nama:            item.name,
-      Instansi:        item.instansi,
-      Email:           item.email,
-      "No. Telepon":   item.noTelp ?? "-",
-      Departemen:      item.departemen,
-      Karyawan:        item.karyawan,
-      "Tgl Dari":      formatDate(item.date),
-      "Tgl Sampai":    item.dateTo ? formatDate(item.dateTo) : formatDate(item.date),
-      "Check-in":      formatDateTime(item.checkin),
-      "Check-out":     formatDateTime(item.checkout),
-      Status:          getStatus(item),
+      ID:                    `PKC-${item.id}`,
+      Tipe:                  item.tipeTamu === "vip" ? "VIP" : "Reguler",
+      "Jenis Baris":         "Tamu Utama",
+      Nama:                  item.name,
+      Instansi:              item.instansi,
+      Email:                 item.email,
+      "No. Telepon":         item.noTelp ?? "-",
+      Departemen:            item.departemen,
+      Karyawan:              item.karyawan,
+      "Tgl Dari":            formatDate(item.date),
+      "Tgl Sampai":          item.dateTo ? formatDate(item.dateTo) : formatDate(item.date),
+      "Check-in":            formatDateTime(item.checkin),
+      "Check-out":           formatDateTime(item.checkout),
+      "Pengembalian NFC":    keterlambatan,
+      Status:                getStatus(item),
     });
 
     (item.anggotaRombongan ?? []).forEach((a, i) => {
       rows.push({
-        ID:              `PKC-${item.id}`,
-        Tipe:            item.tipeTamu === "vip" ? "VIP" : "Reguler",
-        "Jenis Baris":   `Anggota Rombongan ${i + 1}`,
-        Nama:            a.nama,
-        Instansi:        item.instansi,
-        Email:           a.email,
-        "No. Telepon":   a.noTelp,
-        Departemen:      item.departemen,
-        Karyawan:        item.karyawan,
-        "Tgl Dari":      formatDate(item.date),
-        "Tgl Sampai":    item.dateTo ? formatDate(item.dateTo) : formatDate(item.date),
-        "Check-in":      "-",
-        "Check-out":     "-",
-        Status:          getStatus(item),
+        ID:                    `PKC-${item.id}`,
+        Tipe:                  item.tipeTamu === "vip" ? "VIP" : "Reguler",
+        "Jenis Baris":         `Anggota Rombongan ${i + 1}`,
+        Nama:                  a.nama,
+        Instansi:              item.instansi,
+        Email:                 a.email,
+        "No. Telepon":         a.noTelp,
+        Departemen:            item.departemen,
+        Karyawan:              item.karyawan,
+        "Tgl Dari":            formatDate(item.date),
+        "Tgl Sampai":          item.dateTo ? formatDate(item.dateTo) : formatDate(item.date),
+        "Check-in":            "-",
+        "Check-out":           "-",
+        "Pengembalian NFC":    "-",
+        Status:                getStatus(item),
       });
     });
   });
@@ -275,6 +314,8 @@ function downloadPDF(data: Visitor[]) {
         td    { border: 1px solid #ddd; padding: 5px 7px; font-size: 10px; }
         .utama { background: #ffffff; }
         .anggota { background: #f0fdf4; color: #166534; }
+        .terlambat { color: #dc2626; font-weight: 600; }
+        .tepat { color: #16a34a; font-weight: 600; }
       </style>
     </head>
     <body>
@@ -285,7 +326,13 @@ function downloadPDF(data: Visitor[]) {
         <tbody>
           ${rows.map((r) =>
             `<tr class="${r["Jenis Baris"] === "Tamu Utama" ? "utama" : "anggota"}">
-              ${headers.map((h) => `<td>${r[h] ?? ""}</td>`).join("")}
+              ${headers.map((h) => {
+                const val = r[h] ?? "";
+                const isTerlambat = h === "Pengembalian NFC" && val.startsWith("Terlambat");
+                const isTepat     = h === "Pengembalian NFC" && val === "Tepat Waktu";
+                const cls = isTerlambat ? ' class="terlambat"' : isTepat ? ' class="tepat"' : "";
+                return `<td${cls}>${val}</td>`;
+              }).join("")}
             </tr>`
           ).join("")}
         </tbody>
@@ -439,7 +486,8 @@ export default function LaporanPage() {
   }, []);
 
   const filteredData = data.filter((item) => {
-    const itemDate = new Date(item.date);
+    // FIX: use parseDateSafe for consistent date comparison
+    const itemDate = parseDateSafe(item.date);
     const keyword  = search.toLowerCase();
     const inRange  =
       appliedStartDate && appliedEndDate
@@ -454,7 +502,7 @@ export default function LaporanPage() {
     );
   });
 
-  const sortedData    = [...filteredData].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const sortedData    = [...filteredData].sort((a, b) => parseDateSafe(b.date).getTime() - parseDateSafe(a.date).getTime());
   const totalPages    = Math.ceil(sortedData.length / rowsPerPage);
   const paginatedData = sortedData.slice((page - 1) * rowsPerPage, page * rowsPerPage);
 
@@ -473,7 +521,6 @@ export default function LaporanPage() {
       if (downloadFormat === "csv")   downloadCSV(sortedData, filename);
       if (downloadFormat === "excel") downloadExcel(sortedData, filename);
       if (downloadFormat === "pdf")   downloadPDF(sortedData);
-
 
       const totalRows = sortedData.reduce(
         (acc, item) => acc + 1 + (item.anggotaRombongan?.length ?? 0), 0
@@ -634,7 +681,6 @@ export default function LaporanPage() {
           </table>
         </div>
 
-
         <div className="flex items-center justify-between border-t px-4 py-3 flex-wrap gap-3">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <span>Tampilkan</span>
@@ -741,6 +787,25 @@ export default function LaporanPage() {
               <InfoRow label="Akses Aktif"     nilai={detailTamu?.aksesAktif || "Belum Ada"} />
               <InfoRow label="Waktu Check-in"  nilai={formatDateTime(detailTamu?.checkin)} />
               <InfoRow label="Waktu Check-out" nilai={formatDateTime(detailTamu?.checkout)} />
+
+              {detailTamu && (() => {
+                const { label, terlambat } = getKeterlambatan(detailTamu);
+                return (
+                  <div className="flex justify-between items-center py-1.5 border-b border-gray-100 last:border-0">
+                    <span className="text-sm text-gray-500">Pengembalian NFC</span>
+                    <span className={`text-sm font-semibold ${
+                      terlambat
+                        ? "text-red-600"
+                        : label === "Tepat Waktu"
+                          ? "text-green-600"
+                          : "text-gray-400"
+                    }`}>
+                      {label}
+                    </span>
+                  </div>
+                );
+              })()}
+
               <div className="flex justify-between items-center py-1.5">
                 <span className="text-sm text-gray-500">Status</span>
                 {detailTamu && <StatusBadge status={getStatus(detailTamu)} />}
