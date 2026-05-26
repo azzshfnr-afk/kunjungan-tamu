@@ -33,7 +33,6 @@ export async function POST(request: Request) {
     const waktuCheckOut = (tglKeluar && jamKeluar)  ? new Date(`${tglKeluar}T${jamKeluar}`) : new Date();
     const tanggalKunjungan = tglMasuk ? new Date(`${tglMasuk}T00:00:00`) : new Date();
 
-
     let anggotaRombonganParsed: { nama: string; email: string; noTelp: string }[] = [];
     try {
       const rombonganRaw = formData.get("anggotaRombongan") as string;
@@ -88,17 +87,12 @@ export async function POST(request: Request) {
     });
 
     const daftarPenerima: { email: string; nama: string }[] = [];
-
     if (email !== "-" && email.includes("@")) {
       daftarPenerima.push({ email: email.trim(), nama: namaTamu });
     }
-
     anggotaRombonganParsed.forEach((anggota) => {
       if (anggota.email && anggota.email !== "-" && anggota.email.includes("@")) {
-        daftarPenerima.push({ 
-          email: anggota.email.trim(), 
-          nama: anggota.nama || "Anggota Rombongan" 
-        });
+        daftarPenerima.push({ email: anggota.email.trim(), nama: anggota.nama || "Anggota Rombongan" });
       }
     });
 
@@ -122,62 +116,37 @@ export async function POST(request: Request) {
                   <div style="padding: 30px; color: #333; background-color: #ffffff;">
                       <p>Halo <strong>${penerima.nama}</strong>,</p>
                       <p>Registrasi kunjungan Anda telah berhasil. Berikut adalah detail rencana kunjungan Anda:</p>
-                      
                       <table style="width: 100%; margin-top: 20px; border-collapse: collapse;">
                           <tr><td style="padding: 10px 0; color: #666; border-bottom: 1px solid #eee;">ID Kunjungan</td><td style="font-weight: bold; border-bottom: 1px solid #eee; color: #4CAF50;">${formatIdEmail}</td></tr>
-                          <tr>
-                              <td style="padding: 10px 0; color: #666; border-bottom: 1px solid #eee;">NIK Terdaftar</td>
-                              <td style="font-weight: bold; border-bottom: 1px solid #eee;">${nik || "-"}</td>
-                          </tr>
+                          <tr><td style="padding: 10px 0; color: #666; border-bottom: 1px solid #eee;">NIK Terdaftar</td><td style="font-weight: bold; border-bottom: 1px solid #eee;">${nik || "-"}</td></tr>
                           <tr><td style="padding: 10px 0; color: #666; border-bottom: 1px solid #eee;">Tujuan Kunjungan</td><td style="font-weight: bold; border-bottom: 1px solid #eee;">${tujuanKunjungan || "-"}</td></tr>
                           <tr><td style="padding: 10px 0; color: #666; border-bottom: 1px solid #eee;">Karyawan Dituju</td><td style="font-weight: bold; border-bottom: 1px solid #eee;">${karyawanDituju} (${departemen})</td></tr>
                           <tr><td style="padding: 10px 0; color: #666; border-bottom: 1px solid #eee;">Gedung Tujuan</td><td style="font-weight: bold; border-bottom: 1px solid #eee;">${gedungTujuan || "-"}</td></tr>
                           <tr><td style="padding: 10px 0; color: #666; border-bottom: 1px solid #eee;">Rencana Check-in</td><td style="font-weight: bold; border-bottom: 1px solid #eee;">${tanggalFormat} - ${jamMasuk} WIB</td></tr>
                       </table>
-
-                  <div style="margin-top: 30px; padding: 25px; border: 2px dashed #4CAF50; text-align: center; border-radius: 12px; background-color: #f9fff9;">
-                    <p style="font-size: 16px; font-weight: bold; color: #2e7d32; margin-bottom: 15px;">QR CODE AKSES</p>
-                    <img
-                      src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${formatIdEmail}"
-                      alt="QR Code"
-                      style="display: block; margin: 0 auto; border: 4px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"
-                    />
-                    <p style="font-size: 18px; font-weight: bold; color: #4CAF50; margin-top: 15px; letter-spacing: 1px;">${formatIdEmail}</p>
-                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e0e0e0;">
-                      <p style="font-size: 13px; color: #444; line-height: 1.5; margin: 0;">
-                        Tunjukkan QR Code ini kepada petugas Satpam di <strong>Gate Utama</strong> saat tiba di lokasi untuk proses Check-in akses masuk area perusahaan.
-                      </p>
-                    </div>
+                      <div style="margin-top: 30px; padding: 25px; border: 2px dashed #4CAF50; text-align: center; border-radius: 12px; background-color: #f9fff9;">
+                        <p style="font-size: 16px; font-weight: bold; color: #2e7d32; margin-bottom: 15px;">QR CODE AKSES</p>
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${formatIdEmail}" alt="QR Code" style="display: block; margin: 0 auto; border: 4px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" />
+                        <p style="font-size: 18px; font-weight: bold; color: #4CAF50; margin-top: 15px; letter-spacing: 1px;">${formatIdEmail}</p>
+                        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e0e0e0;">
+                          <p style="font-size: 13px; color: #444; line-height: 1.5; margin: 0;">Tunjukkan QR Code ini kepada petugas Satpam di <strong>Gate Utama</strong> saat tiba di lokasi untuk proses Check-in akses masuk area perusahaan.</p>
+                        </div>
+                      </div>
+                      <p style="margin-top: 30px; font-size: 12px; color: #888; text-align: center;">© 2026 PT Pupuk Kujang Cikampek - E-Visitor System</p>
                   </div>
-
-                  <div style="margin-top: 25px; padding: 15px; background-color: #fff9c4; border-radius: 8px; border-left: 4px solid #fbc02d;">
-                    <p style="font-size: 13px; color: #574b00; margin: 0;">
-                      <strong>Penting:</strong> Harap membawa kartu identitas asli (KTP) yang telah didaftarkan pada saat mengisi formulir registrasi untuk keperluan verifikasi di pos keamanan.
-                    </p>
-                  </div>
-
-                  <p style="margin-top: 30px; font-size: 12px; color: #888; text-align: center;">
-                    Patuhi seluruh protokol K3 dan aturan keamanan yang berlaku di lingkungan PT Pupuk Kujang.<br>
-                    © 2026 PT Pupuk Kujang Cikampek - E-Visitor System
-                  </p>
-                </div>
               </div>
             `,
           });
         } catch (err) {
-          console.error(`Gagal kirim email ke anggota rombongan (${penerima.email}):`, err);
+          console.error(`Gagal kirim email tiket:`, err);
         }
       }
     }
 
-
     return NextResponse.json({ ok: true, data: { id: hasil.id } });
   } catch (error: any) {
     console.error("ERROR API POST:", error);
-    return NextResponse.json(
-      { ok: false, message: error.message || "Gagal menyimpan data." },
-      { status: 500 }
-    );
+    return NextResponse.json({ ok: false, message: error.message || "Gagal menyimpan data." }, { status: 500 });
   }
 }
 
@@ -188,16 +157,8 @@ export async function GET(request: Request) {
 
     if (email) {
       const dataKunjungan = await prisma.tamu.findMany({
-        where: {
-          OR: [
-            { email: email },
-            { anggotaRombongan: { some: { email: email } } },
-          ],
-        },
-        include: { 
-          anggotaRombongan: true,
-          logTracking: true 
-        },
+        where: { OR: [ { email: email }, { anggotaRombongan: { some: { email: email } } } ] },
+        include: { anggotaRombongan: true, logTracking: true },
         orderBy: { id: 'desc' }, 
       });
 
@@ -207,9 +168,7 @@ export async function GET(request: Request) {
 
       const dataKunjunganMapped = dataKunjungan.map((t) => {
         const logMapped = t.logTracking?.map(log => ({
-          lokasiGate: log.lokasiTap,
-          waktuTap: log.waktuTap,
-          jenisTap: log.jenisTap
+          lokasiGate: log.lokasiTap, waktuTap: log.waktuTap, jenisTap: log.jenisTap
         })) || [];
         return { ...t, riwayatTap: logMapped };
       });
@@ -218,18 +177,13 @@ export async function GET(request: Request) {
     }
 
     const semuaTamu = await prisma.tamu.findMany({
-      include: { 
-        anggotaRombongan: true,
-        logTracking: true 
-      },
+      include: { anggotaRombongan: true, logTracking: true },
       orderBy: { id: 'desc' },
     });
 
     const result = semuaTamu.map((t) => {
       const logMapped = t.logTracking?.map(log => ({
-        lokasiGate: log.lokasiTap,
-        waktuTap: log.waktuTap,
-        jenisTap: log.jenisTap
+        lokasiGate: log.lokasiTap, waktuTap: log.waktuTap, jenisTap: log.jenisTap
       })) || [];
 
       return {
@@ -255,112 +209,143 @@ export async function GET(request: Request) {
         statusKunjungan:  t.statusKunjungan,
         tanggalKunjungan: t.tanggalKunjungan,
         visitDate:        t.waktuCheckIn,
-        visitTime:        t.waktuCheckIn
-          ? new Date(t.waktuCheckIn).toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' })
-          : "-",
+        visitTime:        t.waktuCheckIn ? new Date(t.waktuCheckIn).toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' }) : "-",
         checkin:          t.aktualCheckIn  ?? null,
         checkout:         t.aktualCheckOut ?? null,
-        aktualCheckOut:   t.aktualCheckOut ?? null,
         riwayatTap:       logMapped, 
-        anggotaRombongan: t.anggotaRombongan.map((a) => ({
-          nama:   a.nama,
-          email:  a.email,
-          noTelp: a.noTelp,
-        })),
+        anggotaRombongan: t.anggotaRombongan.map((a) => ({ nama: a.nama, email: a.email, noTelp: a.noTelp })),
       };
     });
 
     return NextResponse.json(result);
   } catch (error: any) {
-    return NextResponse.json(
-      { message: 'Gagal', error: error.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ message: 'Gagal', error: error.message }, { status: 500 });
   }
 }
 
 export async function PATCH(request: Request) {
   try {
     const body = await request.json();
-    const { idTamu, aksi, lokasi } = body;
+    const { idTamu, aksi, lokasi, kartuNfcIdInput } = body; 
 
-    if (!idTamu || aksi !== "CHECKOUT") {
-      return NextResponse.json(
-        { ok: false, message: "Parameter tidak valid." },
-        { status: 400 }
-      );
+    if (!idTamu || !aksi) {
+      return NextResponse.json({ ok: false, message: "Parameter tidak valid." }, { status: 400 });
     }
 
     const dataTamuSebelumnya = await prisma.tamu.findUnique({
       where: { id: Number(idTamu) },
-      select: { kartuNfcId: true }
+      select: { kartuNfcId: true, tipeTamu: true, statusKunjungan: true, waktuCheckOut: true }
     });
 
     if (!dataTamuSebelumnya) {
-      return NextResponse.json(
-        { ok: false, message: "Data tamu tidak ditemukan." },
-        { status: 404 }
-      );
+      return NextResponse.json({ ok: false, message: "Data tamu tidak ditemukan." }, { status: 404 });
     }
 
-    let idKartuValid = dataTamuSebelumnya.kartuNfcId;
-
-    if (!idKartuValid) {
-      const kartuFormalitas = await prisma.kartuNfc.upsert({
-        where: { id: 1 },
-        update: {}, 
-        create: {
-          id: 1,
-          uidKartu: "DUMMY-SYSTEM-CARD",
-          kodeVisual: "DUMMY-01",
-          status: "TERSEDIA"
-        }
-      });
-      idKartuValid = kartuFormalitas.id;
-    }
-
-    const hasilUpdate = await prisma.tamu.update({
-      where: { id: Number(idTamu) },
-      data: {
-        statusKunjungan: "Selesai",
-        status: "Selesai Kunjungan",
-        aktualCheckOut: new Date(),
-        kartuNfcId: null, 
-      },
-    });
-
-    if (dataTamuSebelumnya.kartuNfcId) {
-      try {
-        await prisma.kartuNfc.update({
-          where: { id: dataTamuSebelumnya.kartuNfcId },
-          data: { status: "TERSEDIA" } 
-        });
-      } catch (e) {
-        console.log("Kartu lama tidak ditemukan di tabel fisik KartuNfc, lanjut...");
+    if (aksi === "CHECKIN") {
+      
+      if (dataTamuSebelumnya.statusKunjungan !== null && 
+          dataTamuSebelumnya.statusKunjungan !== "Menunggu pendaftaran" && 
+          dataTamuSebelumnya.statusKunjungan !== "Selesai pendaftaran") {
+        return NextResponse.json({ 
+          ok: false, 
+          message: "❌ TIKET EXPIRED: QR Code ini sudah kedaluwarsa karena sudah pernah digunakan untuk check-in masuk!" 
+        }, { status: 400 });
       }
+
+      const waktuSekarang = new Date();
+      if (waktuSekarang > new Date(dataTamuSebelumnya.waktuCheckOut)) {
+        return NextResponse.json({
+          ok: false,
+          message: "❌ TIKET EXPIRED: Batas akhir waktu rencana kunjungan Anda sudah terlewati. Harap isi formulir registrasi baru!"
+        }, { status: 400 });
+      }
+
+      const hasilUpdateIn = await prisma.tamu.update({
+        where: { id: Number(idTamu) },
+        data: {
+          statusKunjungan: "Check-in",
+          status: "Aktif di Area",
+          aktualCheckIn: new Date(),
+          kartuNfcId: kartuNfcIdInput ? Number(kartuNfcIdInput) : null
+        },
+      });
+
+      if (kartuNfcIdInput) {
+        try {
+          await prisma.kartuNfc.update({
+            where: { id: Number(kartuNfcIdInput) },
+            data: { status: "DIPAKAI" }
+          });
+        } catch (e) {}
+      }
+
+      await prisma.logTracking.create({
+        data: {
+          lokasiTap: lokasi || "Gate Masuk (Utama)", 
+          jenisTap: "IN / CHECKIN",       
+          tamuId: hasilUpdateIn.id,
+          kartuNfcId: kartuNfcIdInput ? Number(kartuNfcIdInput) : 1, 
+        },
+      });
+
+      return NextResponse.json({ ok: true, message: "Proses Scan Check-in Berhasil! QR Code resmi hangus." });
     }
 
-    const namaLokasiAktual = lokasi || "Gate Keluar (Utama)";
+    if (aksi === "CHECKOUT") {
+      
+      if (dataTamuSebelumnya.statusKunjungan === "Selesai") {
+        return NextResponse.json({ 
+          ok: false, 
+          message: "⚠️ Tamu ini sudah berstatus Selesai / Sudah melakukan Check-out sebelumnya!" 
+        }, { status: 400 });
+      }
 
-    await prisma.logTracking.create({
-      data: {
-        lokasiTap: namaLokasiAktual, 
-        jenisTap: "OUT / CHECKOUT",       
-        tamuId: hasilUpdate.id,
-        kartuNfcId: idKartuValid, 
-      },
-    });
+      let idKartuValid = dataTamuSebelumnya.kartuNfcId;
 
-    return NextResponse.json({ 
-      ok: true, 
-      message: "Proses Scan Check-out Berhasil dicatat ke Sistem!" 
-    });
+      if (!idKartuValid) {
+        const kartuSystem = await prisma.kartuNfc.upsert({
+          where: { id: 1 },
+          update: {}, 
+          create: { id: 1, uidKartu: "BYPASS-GATE-CARD", kodeVisual: "SYSTEM-01", status: "TERSEDIA" }
+        });
+        idKartuValid = kartuSystem.id;
+      }
+
+      const hasilUpdateOut = await prisma.tamu.update({
+        where: { id: Number(idTamu) },
+        data: {
+          statusKunjungan: "Selesai",
+          status: "Selesai Kunjungan",
+          aktualCheckOut: new Date(),
+          kartuNfcId: null, 
+        },
+      });
+
+      if (dataTamuSebelumnya.kartuNfcId) {
+        try {
+          await prisma.kartuNfc.update({
+            where: { id: dataTamuSebelumnya.kartuNfcId },
+            data: { status: "TERSEDIA" } 
+          });
+        } catch (e) {}
+      }
+
+      await prisma.logTracking.create({
+        data: {
+          lokasiTap: lokasi || "Gate Keluar (Utama)", 
+          jenisTap: "OUT / CHECKOUT",       
+          tamuId: hasilUpdateOut.id,
+          kartuNfcId: idKartuValid, 
+        },
+      });
+
+      return NextResponse.json({ ok: true, message: "Proses Scan Check-out Berhasil dicatat ke Sistem!" });
+    }
+
+    return NextResponse.json({ ok: false, message: "Aksi tidak dikenali." }, { status: 400 });
 
   } catch (error: any) {
-    console.error("ERROR API PATCH CHECKOUT:", error);
-    return NextResponse.json(
-      { ok: false, message: error.message || "Gagal memproses check-out." },
-      { status: 500 }
-    );
+    console.error("ERROR API PATCH:", error);
+    return NextResponse.json({ ok: false, message: error.message || "Gagal memproses data PATCH." }, { status: 500 });
   }
 }

@@ -660,7 +660,7 @@ export default function SatpamDashboard() {
                         {stepScan === 2 && roleSatpam === "area" && (
                             <div className="space-y-5">
                                 <div className="bg-green-50 p-4 rounded-xl border border-green-100 space-y-1">
-                                    <InfoRow label="ID Tamu" nilai={formatIdTamu(tamuTerpilih?.id)} />
+                                    <InfoRow label="ID Tamu" nilai={formatIdTamu(tamuTerpilih?.id, tamuTerpilih?.gedungTujuan === "VIP" || tamuTerpilih?.isVip)} />
                                     <InfoRow label="Nama Lengkap" nilai={tamuTerpilih?.namaTamu || "-"} />
                                     <InfoRow label="Instansi/Asal" nilai={tamuTerpilih?.asalInstansi || "-"} />
                                     <InfoRow label="Email" nilai={tamuTerpilih?.email || "-"} />
@@ -888,7 +888,7 @@ export default function SatpamDashboard() {
                         )}
                         <div className="pt-2 border-t border-slate-200 text-left">
                             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2.5 flex items-center gap-1.5">
-                                ⏱️ Tracking Riwayat Tap Aktual Kartu
+                                Tracking Riwayat Tap Aktual Kartu
                             </h4>
                             <div className="relative pl-4 border-l-2 border-slate-200 space-y-3 text-xs ml-1.5">
                                 {(() => {
@@ -1157,248 +1157,246 @@ export default function SatpamDashboard() {
                 </DialogContent>
             </Dialog>
 
-            <Dialog open={modalAction === "detail"} onOpenChange={(open) => !open && tutupModal()}>
-                <DialogContent className={`sm:max-w-md overflow-hidden rounded-xl border p-0 ${
-                    tamuTerpilih?.gedungTujuan === "VIP" || tamuTerpilih?.gedungAktual === "VIP" ? "border-amber-400 ring-2 ring-amber-300" : "border-slate-200"
-                }`}>
-                    <div className={`px-6 py-4 border-b ${
-                        tamuTerpilih?.gedungTujuan === "VIP" || tamuTerpilih?.gedungAktual === "VIP"
-                            ? "bg-gradient-to-r from-amber-500 to-yellow-600 text-white" 
-                            : "bg-slate-50 text-slate-900"
-                    }`}>
-                        <DialogTitle className="text-lg font-bold flex items-center gap-2">
-                            {(tamuTerpilih?.gedungTujuan === "VIP" || tamuTerpilih?.gedungAktual === "VIP")}
-                            Detail Informasi Tamu VIP
+            <Dialog open={modalAction === "detail"} onOpenChange={(open) => !open && setModalAction(null)}>
+                <DialogContent className="max-w-md w-[95vw] md:w-full max-h-[85vh] p-0 overflow-hidden flex flex-col rounded-xl">
+                    <DialogHeader className="px-6 py-3 border-b border-slate-100 shrink-0">
+                        <DialogTitle className="flex items-center gap-2 text-base font-bold text-slate-800">
+                            {tamuTerpilih?.tipeTamu === "vip" || tamuTerpilih?.isVip ? (
+                                <>
+                                    <FaCrown className="text-amber-500 h-5 w-5 shrink-0" />
+                                    <span>Detail Kunjungan Tamu VIP</span>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="h-4 w-1 bg-blue-600 rounded-full shrink-0" />
+                                    <span>Detail Kunjungan Tamu Reguler</span>
+                                </>
+                            )}
                         </DialogTitle>
-                    </div>
-                    <div className="p-6 space-y-4 bg-white max-h-[70vh] overflow-y-auto">
-                        {tamuTerpilih?.gedungTujuan !== "VIP" && tamuTerpilih?.gedungAktual !== "VIP" && (
-                            <div>
-                                {tamuTerpilih?.fotoKtp ? (
-                                    <img src={tamuTerpilih.fotoKtp} alt="Foto KTP" className="w-full h-auto max-h-40 object-contain rounded-lg border bg-slate-50" />
-                                ) : (
-                                    <div className="w-full h-24 bg-slate-100 rounded-lg flex items-center justify-center text-xs text-slate-400 border border-dashed">
-                                        Tidak ada lampiran foto KTP
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                        <div className="space-y-2">
-                            <InfoRow label="Nama Lengkap" nilai={tamuTerpilih?.namaTamu || "-"} />
-                            <InfoRow label="Instansi Asal" nilai={tamuTerpilih?.asalInstansi || "-"} />
-                            <InfoRow label="No. Handphone / WA" nilai={tamuTerpilih?.noTelp || tamuTerpilih?.noHp || "-"} />
-                            <InfoRow label="Tujuan Kunjungan" nilai={tamuTerpilih?.tujuanKunjungan || tamuTerpilih?.tujuan || "-"} />
-                            <InfoRow label="Gedung / Area" nilai={tamuTerpilih?.gedungTujuan || tamuTerpilih?.gedungAktual || "-"} />
-                            <div className="border-t border-slate-100 my-2 pt-2"></div>
-                            <InfoRow label="ID Tamu" nilai={tamuTerpilih ? formatIdTamu(tamuTerpilih.id, tamuTerpilih.gedungTujuan === "VIP" || tamuTerpilih.isVip) : "-" } />
-                            <InfoRow label="Status Saat Ini" nilai={tamuTerpilih?.statusKunjungan || "Menunggu"} />
-                            <InfoRow label="Akses Aktif" nilai={tamuTerpilih?.aksesAktif || "Belum Ada"} />
-                        </div>
+                    </DialogHeader>
 
-                        {tamuTerpilih?.gedungTujuan !== "VIP" && tamuTerpilih?.anggotaRombongan && tamuTerpilih.anggotaRombongan.length > 0 && (
-                            <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-xl space-y-2 text-left">
-                                <p className="text-xs font-bold uppercase tracking-wider text-blue-700 flex items-center gap-1">
-                                    <UsersRound className="h-3.5 w-3.5" /> Verifikasi Anggota Rombongan ({tamuTerpilih.anggotaRombongan.length} Orang)
-                                </p>
-                                <div className="max-h-32 overflow-y-auto space-y-1.5 pr-1">
-                                    {tamuTerpilih.anggotaRombongan.map((anggota: any, idx: number) => (
-                                        <div key={idx} className="bg-white border border-slate-200 rounded-lg p-2 text-xs flex justify-between items-start">
-                                            <div>
-                                                <p className="font-bold text-slate-800">{idx + 1}. {anggota.nama}</p>
-                                                <p className="text-slate-500 text-[11px]">📞 {anggota.noTelp && anggota.noTelp !== "-" ? anggota.noTelp : "Tanpa No. HP"}</p>
+                    <div className="flex-1 overflow-y-auto px-6 pt-2 pb-6 space-y-3 min-h-0 text-slate-800">
+                    {tamuTerpilih && (
+                        <div className="space-y-3">
+                            {(tamuTerpilih?.tipeTamu === "vip" || tamuTerpilih?.isVip) ? (
+                                <div className="space-y-1 bg-amber-50/50 p-3 rounded-xl border border-amber-100 -mt-1">
+                                    <InfoRow label="ID Tamu VIP" nilai={formatIdTamu(tamuTerpilih.id, true)} />
+                                    <InfoRow label="Nama Lengkap" nilai={tamuTerpilih.namaTamu || tamuTerpilih.name || "-"} />
+                                    <InfoRow label="Asal / Instansi" nilai={tamuTerpilih.asalInstansi || tamuTerpilih.instansi || "Tamu VIP"} />
+                                    <InfoRow label="No. Handphone" nilai={tamuTerpilih.noTelp || tamuTerpilih.phone || "-"} />
+                                    <InfoRow label="Keperluan / Tujuan" nilai={tamuTerpilih.tujuanKunjungan || "-"} />
+                                    <InfoRow label="Akses Gedung" nilai={tamuTerpilih.aksesAktif || "-"} />
+                                    <div className="border-t border-amber-200/60 my-2 pt-2"></div>
+                                    <InfoRow label="Tipe Akses" nilai="VIP PASS (Tanpa Batas Waktu)" />
+                                </div>
+                            ) : (
+                                <div className="space-y-1 bg-blue-50/50 p-3 rounded-xl border border-blue-100">
+                                    <InfoRow label="ID Tamu" nilai={formatIdTamu(tamuTerpilih.id)} />
+                                    <InfoRow label="Nama Lengkap" nilai={tamuTerpilih.namaTamu || tamuTerpilih.name || "-"} />
+                                    <InfoRow label="Instansi / Asal" nilai={tamuTerpilih.asalInstansi || tamuTerpilih.instansi || "-"} />
+                                    <InfoRow label="Email" nilai={tamuTerpilih.email || "-"} />
+                                    <InfoRow label="NIK / KTP" nilai={tamuTerpilih.nik || "-"} />
+                                    <InfoRow label="No. Handphone" nilai={tamuTerpilih.noTelp || tamuTerpilih.phone || "-"} />
+                                    <InfoRow label="Tujuan Kunjungan" nilai={tamuTerpilih.tujuanKunjungan || "-"} />
+                                    <InfoRow label="Karyawan Dituju" nilai={tamuTerpilih.karyawanDituju || tamuTerpilih.karyawan || "-"} />
+                                    <InfoRow label="Departemen" nilai={tamuTerpilih.departemen || "-"} />
+                                    
+                                    <div className="border-t border-blue-100 my-2 pt-2"></div>
+                                    <InfoRow 
+                                        label="Rencana Kunjungan" 
+                                        nilai={tamuTerpilih.waktuCheckIn && tamuTerpilih.waktuCheckOut ? (
+                                            `${formatTanggalJam(tamuTerpilih.waktuCheckIn)} s/d ${formatTanggalJam(tamuTerpilih.waktuCheckOut)}`
+                                        ) : "-"} 
+                                    />
+                                </div>
+                            )}
+
+                            {tamuTerpilih.anggotaRombongan && tamuTerpilih.anggotaRombongan.length > 0 && (
+                                <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                                    <p className="font-bold text-slate-700 mb-1.5 text-xs uppercase tracking-wider">
+                                        Anggota Rombongan ({tamuTerpilih.anggotaRombongan.length} Orang):
+                                    </p>
+                                    <div className="max-h-24 overflow-y-auto space-y-1 bg-white p-2 rounded border border-slate-200 text-[11px]">
+                                        {tamuTerpilih.anggotaRombongan.map((ang: any, i: number) => (
+                                            <div key={i} className="text-slate-700 flex justify-between py-0.5 border-b border-slate-50 last:border-0">
+                                                <span className="font-medium">{i + 1}. {ang.nama}</span>
+                                                <span className="text-slate-400">{ang.noTelp || "-"}</span>
                                             </div>
-                                            <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono truncate max-w-[140px]">
-                                                {anggota.email && anggota.email !== "-" ? anggota.email : "no-email"}
-                                            </span>
-                                        </div>
-                                    ))}
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                                <p className="font-bold text-slate-700 border-b border-slate-200 pb-1.5 uppercase tracking-wider text-[11px]">
+                                    Riwayat Tap Aktual (Sistem)
+                                </p>
+                                <div className="space-y-1.5 max-h-32 overflow-y-auto pt-0.5 text-xs">
+                                    {(tamuTerpilih.checkin || tamuTerpilih.aktualCheckIn) && (
+                                        <p className="text-slate-700 flex justify-between py-0.5 border-b border-slate-100 last:border-0">
+                                            <span className="font-medium">• Gate Masuk (Utama)</span>
+                                            <span className="text-slate-500 font-mono text-[11px]">{formatTanggalJam(tamuTerpilih.checkin || tamuTerpilih.aktualCheckIn)}</span>
+                                        </p>
+                                    )}
+
+                                    {Array.isArray(tamuTerpilih.riwayatTap) && tamuTerpilih.riwayatTap.length > 0 ? (
+                                        tamuTerpilih.riwayatTap.map((log: any, index: number) => (
+                                            <p key={index} className="text-slate-700 flex justify-between py-0.5 border-b border-slate-100 last:border-0">
+                                                <span className="font-medium">• {log.lokasiGate || log.lokasiTap || "Gate"}</span>
+                                                <span className="text-slate-500 font-mono text-[11px]">{formatTanggalJam(log.waktuTap)}</span>
+                                            </p>
+                                        ))
+                                    ) : (
+                                        typeof tamuTerpilih.riwayatTap === "string" && tamuTerpilih.riwayatTap ? (
+                                            <p className="text-slate-600 py-0.5">• {tamuTerpilih.riwayatTap}</p>
+                                        ) : null
+                                    )}
+
+                                    {(tamuTerpilih.checkout || tamuTerpilih.aktualCheckOut) && (
+                                        <p className="text-slate-700 flex justify-between py-0.5 border-b border-slate-100 last:border-0">
+                                            <span className="font-medium">• Selesai Kunjungan (Sistem)</span>
+                                            <span className="text-slate-500 font-mono text-[11px]">{formatTanggalJam(tamuTerpilih.checkout || tamuTerpilih.aktualCheckOut)}</span>
+                                        </p>
+                                    )}
+
+                                    {!(tamuTerpilih.checkin || tamuTerpilih.aktualCheckIn) && !tamuTerpilih.riwayatTap && (
+                                        <p className="text-slate-400 italic py-1 text-center">Belum ada aktivitas tap kartu.</p>
+                                    )}
                                 </div>
                             </div>
-                        )}
-
-                        {(tamuTerpilih?.gedungTujuan === "VIP" || tamuTerpilih?.isVip) && (tamuTerpilih?.jumlahRombongan > 0 || tamuTerpilih?.jumlahAnggotaVip > 0) && (
-                            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-left flex items-center gap-2">
-                                <UsersRound className="h-4 w-4 text-amber-700" />
-                                <p className="text-xs font-bold text-amber-900">
-                                    Membawa Pengikut VIP: <span className="underline">+{tamuTerpilih?.jumlahRombongan || tamuTerpilih?.jumlahAnggotaVip} Orang</span>
-                                </p>
-                            </div>
-                        )}
-
-                        <div className="pt-2 border-t border-slate-200">
-                            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-1.5">
-                                ⏱️ Riwayat Tap Aktual (Sistem)
-                            </h4>
-                            <div className="relative pl-4 border-l-2 border-slate-200 space-y-4 text-xs ml-1.5">
-                                {(() => {
-                                    let listLog = [];
-                                    if (Array.isArray(tamuTerpilih?.riwayatTap)) {
-                                        listLog = tamuTerpilih.riwayatTap;
-                                    } else if (typeof tamuTerpilih?.riwayatTap === "string") {
-                                        try {
-                                            const parsed = JSON.parse(tamuTerpilih.riwayatTap);
-                                            if (Array.isArray(parsed)) listLog = parsed;
-                                        } catch (e) {
-                                            listLog = [];
-                                        }
-                                    }
-                                    if (listLog.length > 0) {
-                                        return listLog.map((log: any, idx: number) => (
-                                            <div key={idx} className="relative">
-                                                <div className={`absolute -left-[21px] mt-0.5 w-2.5 h-2.5 rounded-full ring-4 ring-white ${
-                                                    log.jenisTap === "OUT" || log.status?.toLowerCase().includes("out") 
-                                                        ? "bg-rose-500" 
-                                                        : "bg-emerald-500"
-                                                }`} />
-                                                <p className="font-semibold text-slate-800">
-                                                    {log.lokasiGate || log.namaGate || log.gate || "Gate Area"}
-                                                </p>
-                                                <p className="text-slate-500 text-[11px]">
-                                                    {log.waktuTap || log.waktu 
-                                                        ? new Date(log.waktuTap || log.waktu).toLocaleString('id-ID') 
-                                                        : "-"}
-                                                    <span className="ml-1 font-medium text-amber-600">
-                                                        ({log.jenisTap || log.status || "Tap"})
-                                                    </span>
-                                                </p>
-                                            </div>
-                                        ));
-                                    }
-
-                                    return (
-                                        <p className="text-slate-400 italic text-[11px]">
-                                            Belum ada pergerakan kartu NFC terekam di sistem.
-                                        </p>
-                                    );
-                                })()}
-                            </div>
                         </div>
-                    </div>
-
-                    <div className="px-6 py-3 bg-slate-50 border-t flex justify-end">
-                        <Button variant="outline" size="sm" onClick={tutupModal}>Tutup</Button>
-                    </div>
+                    )}
+                </div>
                 </DialogContent>
             </Dialog>
 
             <Dialog open={isModalVipOpen} onOpenChange={setIsModalVipOpen}>
-                <DialogContent className="sm:max-w-md rounded-xl border border-amber-200 bg-white p-6">
-                    <DialogTitle className="text-lg font-bold text-amber-800 flex items-center gap-2">
-                        <FaCrown className="h-5 w-5" /> Registrasi Kunjungan Tamu VIP
-                    </DialogTitle>
-                    {stepVip === 1 && (
-                        <div className="space-y-4 pt-2">
-                            <div className="space-y-1">
-                                <label className="text-xs font-semibold text-slate-600">Nama Lengkap Tamu</label>
-                                <input 
-                                    type="text" 
-                                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white text-slate-900" 
-                                    placeholder="Masukkan nama tamu VIP..."
-                                    value={namaVip}
-                                    onChange={(e) => setNamaVip(e.target.value)}
-                                />
-                            </div>
-                            <div className="space-y-1">
-                                <label className="text-xs font-semibold text-slate-600">Instansi / Perusahaan</label>
-                                <input 
-                                    type="text" 
-                                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white text-slate-900" 
-                                    placeholder="Masukkan nama instansi asal..."
-                                    value={instansiVip}
-                                    onChange={(e) => setInstansiVip(e.target.value)}
-                                />
-                            </div>
-                            <div className="space-y-1">
-                                <label className="text-xs font-semibold text-slate-600">No. Handphone / WA</label>
-                                <input 
-                                    type="text" 
-                                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white text-slate-900" 
-                                    placeholder="Contoh: 081234567xxx"
-                                    value={noTelpVip}
-                                    onChange={(e) => setNoTelpVip(e.target.value)}
-                                />
-                            </div>
-                            <div className="space-y-1">
-                                <label className="text-xs font-semibold text-slate-600">Tujuan Kunjungan</label>
-                                <textarea 
-                                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white text-slate-900" 
-                                    placeholder="Masukkan detail tujuan kunjungan..."
-                                    rows={3}
-                                    value={tujuanVip}
-                                    onChange={(e) => setTujuanVip(e.target.value)}
-                                />
-                            </div>
-                            <div className="space-y-1">
-                                <label className="text-xs font-bold text-amber-700 uppercase tracking-wider flex items-center gap-1">
-                                    Jumlah Anggota Yang Ikut (Rombongan)
-                                </label>
-                                <div className="flex items-center gap-2">
+                <DialogContent className="max-w-md w-[95vw] md:w-full max-h-[85vh] p-0 overflow-hidden flex flex-col rounded-xl border border-amber-200 bg-white">
+                    <DialogHeader className="p-6 pb-4 border-b border-slate-100 shrink-0">
+                        <DialogTitle className="text-lg font-bold text-amber-800 flex items-center gap-2">
+                            <FaCrown className="h-5 w-5 shrink-0" /> Registrasi Kunjungan Tamu VIP
+                        </DialogTitle>
+                    </DialogHeader>
+
+                    <div className="flex-1 overflow-y-auto p-6 space-y-4 min-h-0">
+                        {stepVip === 1 && (
+                            <div className="space-y-4">
+                                <div className="space-y-1">
+                                    <label className="text-xs font-semibold text-slate-600">Nama Lengkap Tamu</label>
                                     <input 
-                                        type="number" 
-                                        min="0"
-                                        className="w-32 px-3 py-2 border rounded-lg text-sm bg-white text-slate-900 font-bold text-center" 
-                                        placeholder="0"
-                                        value={jumlahAnggotaVip}
-                                        onChange={(e) => setJumlahAnggotaVip(Math.max(0, parseInt(e.target.value) || 0))}
+                                        type="text" 
+                                        className="w-full px-3 py-2 border rounded-lg text-sm bg-white text-slate-900" 
+                                        placeholder="Masukkan nama tamu VIP..."
+                                        value={namaVip}
+                                        onChange={(e) => setNamaVip(e.target.value)}
                                     />
-                                    <span className="text-xs text-slate-500 font-medium">
-                                        *Isi <span className="font-bold text-slate-700">0</span> jika datang sendirian (tanpa pengikut).
-                                    </span>
                                 </div>
-                            </div>
-                            <div className="flex justify-end pt-2">
-                                <Button 
-                                    className="bg-amber-600 hover:bg-amber-700 text-white w-full"
-                                    onClick={() => {
-                                        if (!namaVip || !instansiVip || !tujuanVip) {
-                                            alert("Harap lengkapi nama, instansi, dan tujuan terlebih dahulu!");
-                                            return;
-                                        }
-                                        setStepVip(2);
-                                    }}
-                                >
-                                    Lanjut ke Akses & NFC →
-                                </Button>
-                            </div>
-                        </div>
-                    )}
-
-                    {stepVip === 2 && (
-                        <div className="space-y-4 pt-2">
-                            <div className={`p-4 rounded-xl border text-center space-y-3 ${uidNfc ? "bg-emerald-50 border-emerald-200" : "bg-amber-50 border-amber-200 border-dashed"}`}>
-                                <div>
-                                    <p className="text-sm font-bold text-slate-700">
-                                        {uidNfc ? "Kartu NFC Berhasil Terdeteksi" : "Silakan Tap Kartu NFC VIP ke Reader..."}
-                                    </p>
+                                <div className="space-y-1">
+                                    <label className="text-xs font-semibold text-slate-600">Instansi / Perusahaan</label>
+                                    <input 
+                                        type="text" 
+                                        className="w-full px-3 py-2 border rounded-lg text-sm bg-white text-slate-900" 
+                                        placeholder="Masukkan nama instansi asal..."
+                                        value={instansiVip}
+                                        onChange={(e) => setInstansiVip(e.target.value)}
+                                    />
                                 </div>
-
-                                <div className="max-w-xs mx-auto pt-1">
-                                    <label className="block text-[11px] font-semibold text-slate-500 text-left mb-1 uppercase tracking-wider">
-                                        Input UID Manual:
+                                <div className="space-y-1">
+                                    <label className="text-xs font-semibold text-slate-600">No. Handphone / WA</label>
+                                    <input 
+                                        type="text" 
+                                        className="w-full px-3 py-2 border rounded-lg text-sm bg-white text-slate-900" 
+                                        placeholder="Contoh: 081234567xxx"
+                                        value={noTelpVip}
+                                        onChange={(e) => setNoTelpVip(e.target.value)}
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-xs font-semibold text-slate-600">Tujuan Kunjungan</label>
+                                    <textarea 
+                                        className="w-full px-3 py-2 border rounded-lg text-sm bg-white text-slate-900" 
+                                        placeholder="Masukkan detail tujuan kunjungan..."
+                                        rows={3}
+                                        value={tujuanVip}
+                                        onChange={(e) => setTujuanVip(e.target.value)}
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-xs font-bold text-amber-700 uppercase tracking-wider flex items-center gap-1">
+                                        Jumlah Anggota Yang Ikut (Rombongan)
                                     </label>
-                                    <input 
-                                        type="text"
-                                        className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm font-mono text-center bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 uppercase"
-                                        placeholder="Ketik UID kartu di sini..."
-                                        value={uidNfc}
-                                        onChange={(e) => setUidNfc(e.target.value)}
-                                    />
+                                    <div className="flex items-center gap-2">
+                                        <input 
+                                            type="number" 
+                                            min="0"
+                                            className="w-32 px-3 py-2 border rounded-lg text-sm bg-white text-slate-900 font-bold text-center" 
+                                            placeholder="0"
+                                            value={jumlahAnggotaVip}
+                                            onChange={(e) => setJumlahAnggotaVip(Math.max(0, parseInt(e.target.value) || 0))}
+                                        />
+                                        <span className="text-xs text-slate-500 font-medium">
+                                            *Isi <span className="font-bold text-slate-700">0</span> jika datang sendirian.
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold uppercase text-slate-500 tracking-wider">Beri Hak Akses Area/Gedung:</label>
-                                <div className="grid grid-cols-2 gap-2 text-sm text-slate-700 pt-1">
-                                    <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={aksesBeri.gateUtama} onChange={(e) => setAksesBeri({...aksesBeri, gateUtama: e.target.checked})} /> Gate Utama</label>
-                                    <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={aksesBeri.gateParkir} onChange={(e) => setAksesBeri({...aksesBeri, gateParkir: e.target.checked})} /> Gate Parkir</label>
-                                    <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={aksesBeri.gpa} onChange={(e) => setAksesBeri({...aksesBeri, gpa: e.target.checked})} /> GPA</label>
-                                    <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={aksesBeri.diklat} onChange={(e) => setAksesBeri({...aksesBeri, diklat: e.target.checked})} /> Gedung Diklat</label>
-                                    <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={aksesBeri.pabrik1a} onChange={(e) => setAksesBeri({...aksesBeri, pabrik1a: e.target.checked})} /> Pabrik 1A</label>
-                                    <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={aksesBeri.pabrik1b} onChange={(e) => setAksesBeri({...aksesBeri, pabrik1b: e.target.checked})} /> Pabrik 1B</label>
-                                    <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={aksesBeri.mo} onChange={(e) => setAksesBeri({...aksesBeri, mo: e.target.checked})} /> Gedung MO</label>
-                                    <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={aksesBeri.lc} onChange={(e) => setAksesBeri({...aksesBeri, lc: e.target.checked})} /> Gedung LC</label>
+                        )}
+
+                        {stepVip === 2 && (
+                            <div className="space-y-4">
+                                <div className={`p-4 rounded-xl border text-center space-y-3 ${uidNfc ? "bg-emerald-50 border-emerald-200" : "bg-amber-50 border-amber-200 border-dashed"}`}>
+                                    <div>
+                                        <p className="text-sm font-bold text-slate-700">
+                                            {uidNfc ? "Kartu NFC Berhasil Terdeteksi" : "Silakan Tap Kartu NFC VIP ke Reader..."}
+                                        </p>
+                                    </div>
+
+                                    <div className="max-w-xs mx-auto pt-1">
+                                        <label className="block text-[11px] font-semibold text-slate-500 text-left mb-1 uppercase tracking-wider">
+                                            Input UID Manual:
+                                        </label>
+                                        <input 
+                                            type="text"
+                                            className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm font-mono text-center bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 uppercase"
+                                            placeholder="Ketik UID kartu di sini..."
+                                            value={uidNfc}
+                                            onChange={(e) => setUidNfc(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold uppercase text-slate-500 tracking-wider">Beri Hak Akses Area/Gedung:</label>
+                                    <div className="grid grid-cols-2 gap-2 text-sm text-slate-700 pt-1">
+                                        <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={aksesBeri.gateUtama} onChange={(e) => setAksesBeri({...aksesBeri, gateUtama: e.target.checked})} /> Gate Utama</label>
+                                        <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={aksesBeri.gateParkir} onChange={(e) => setAksesBeri({...aksesBeri, gateParkir: e.target.checked})} /> Gate Parkir</label>
+                                        <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={aksesBeri.gpa} onChange={(e) => setAksesBeri({...aksesBeri, gpa: e.target.checked})} /> GPA</label>
+                                        <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={aksesBeri.diklat} onChange={(e) => setAksesBeri({...aksesBeri, diklat: e.target.checked})} /> Gedung Diklat</label>
+                                        <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={aksesBeri.pabrik1a} onChange={(e) => setAksesBeri({...aksesBeri, pabrik1a: e.target.checked})} /> Pabrik 1A</label>
+                                        <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={aksesBeri.pabrik1b} onChange={(e) => setAksesBeri({...aksesBeri, pabrik1b: e.target.checked})} /> Pabrik 1B</label>
+                                        <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={aksesBeri.mo} onChange={(e) => setAksesBeri({...aksesBeri, mo: e.target.checked})} /> Gedung MO</label>
+                                        <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={aksesBeri.lc} onChange={(e) => setAksesBeri({...aksesBeri, lc: e.target.checked})} /> Gedung LC</label>
+                                    </div>
                                 </div>
                             </div>
-                            <div className="flex gap-2 pt-2">
+                        )}
+                    </div>
+
+                    <DialogFooter className="p-6 pt-4 border-t border-slate-100 shrink-0">
+                        {stepVip === 1 ? (
+                            <Button 
+                                className="bg-amber-600 hover:bg-amber-700 text-white w-full"
+                                onClick={() => {
+                                    if (!namaVip || !instansiVip || !tujuanVip) {
+                                        alert("Harap lengkapi nama, instansi, dan tujuan terlebih dahulu!");
+                                        return;
+                                    }
+                                    setStepVip(2);
+                                }}
+                            >
+                                Lanjut ke Akses & NFC →
+                            </Button>
+                        ) : (
+                            <div className="flex gap-2 w-full">
                                 <Button variant="outline" className="w-1/3" onClick={() => setStepVip(1)}>
                                     Kembali
                                 </Button>
@@ -1409,8 +1407,8 @@ export default function SatpamDashboard() {
                                     Selesai & Simpan
                                 </Button>
                             </div>
-                        </div>
-                    )}
+                        )}
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </div> 
