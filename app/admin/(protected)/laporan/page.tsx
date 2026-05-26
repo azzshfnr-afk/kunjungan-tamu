@@ -43,15 +43,12 @@ type Visitor = {
   instansi: string;
   email: string;
   departemen: string;
-  // Tanggal kunjungan (YYYY-MM-DD dari server)
   date?: string;
   tanggalKunjungan?: string;
   visitDate?: string;
-  // Batas akhir kunjungan — full ISO datetime dari waktuCheckOut DB
   waktuCheckOut?: string;
   dateTo?: string;
   karyawan: string;
-  // Waktu aktual check-in & check-out — full ISO datetime
   checkin: string | null;
   checkout: string | null;
   rejected: boolean;
@@ -62,19 +59,16 @@ type Visitor = {
   gedungTujuan?: string;
   aksesAktif?: string;
   fotoKtp?: string;
-  // Status pengembalian NFC
   nfcKembali?: boolean;
   waktuNfcKembali?: string | null;
   anggotaRombongan?: AnggotaRombongan[];
 };
 
 
-// Helper: ambil tanggal kunjungan dari field yang benar (API kirim tanggalKunjungan, bukan date)
 function getVisitDate(item: Visitor): string {
   return item.tanggalKunjungan || item.date || item.visitDate || "";
 }
 
-// Helper: ambil tanggal akhir kunjungan (dari waktuCheckOut rencana)
 function getVisitDateTo(item: Visitor): string | undefined {
   return item.dateTo || item.waktuCheckOut || undefined;
 }
@@ -86,10 +80,8 @@ function getStatus(item: Visitor): StatusType {
   return "Selesai";
 }
 
-// FIX: parse date-only strings as local time to avoid UTC offset shifting the date
 function parseDateSafe(date: string): Date {
-  // If already has time component (e.g. ISO with T), parse as-is
-  // If date-only (e.g. "2025-05-25"), append T00:00:00 to force local time parsing
+
   return new Date(date.includes("T") ? date : date + "T00:00:00");
 }
 
@@ -117,12 +109,10 @@ function getKeterlambatan(item: Visitor): { label: string; terlambat: boolean; b
   const batas = new Date(batasStr);
   if (isNaN(batas.getTime())) return { label: "-", terlambat: false, belumKembali: false };
 
-  // Kartu belum dikembalikan
   if (!item.nfcKembali) {
-    // Tamu belum checkout sama sekali
+
     if (!item.checkout) return { label: "-", terlambat: false, belumKembali: false };
 
-    // Sudah checkout tapi kartu belum dikembalikan — cek apakah sudah lewat deadline
     const sekarang = new Date();
     if (sekarang > batas) {
       return { label: "Belum Dikembalikan", terlambat: true, belumKembali: true };
